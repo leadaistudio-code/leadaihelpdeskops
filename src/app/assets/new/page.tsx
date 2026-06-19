@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { createAsset } from "@/app/actions/assetActions";
 import Link from "next/link";

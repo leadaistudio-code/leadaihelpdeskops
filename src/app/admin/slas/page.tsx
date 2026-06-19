@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getSlaDefinitions, toggleSlaStatus, deleteSlaDefinition, createSlaDefinition } from "@/app/actions/slaActions";
 import { Clock, ShieldAlert, Settings, Plus, Trash2, Power } from "lucide-react";
 import { revalidatePath } from "next/cache";

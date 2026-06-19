@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { getIncidentById, updateIncidentState } from "@/app/actions/incidentActions";
 import Link from "next/link";
@@ -123,7 +125,7 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
               <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">AI Diagnostics</h2>
             </div>
             <div className="p-6">
-              <AIAssistant incidentId={incident.id} description={incident.description} />
+              <AIAssistant title={incident.title} description={incident.description} />
             </div>
           </div>
         </div>

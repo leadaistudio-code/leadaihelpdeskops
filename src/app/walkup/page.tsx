@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { QrCode, MonitorSmartphone, BadgeAlert, Laptop, Smartphone, Headphones, HelpCircle, ArrowRight, User } from "lucide-react";
+import { QrCode, MonitorSmartphone, BadgeAlert, Laptop, Smartphone, Headphones, HelpCircle, ArrowRight, User, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function WalkUpExperience() {

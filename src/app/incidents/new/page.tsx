@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { createIncident } from "@/app/actions/incidentActions";
 import Link from "next/link";

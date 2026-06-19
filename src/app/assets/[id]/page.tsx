@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -56,7 +58,7 @@ export default async function AssetCMDBPage({ params }: { params: { id: string }
                 <div className="text-slate-200 font-medium">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                     asset.status === 'IN_USE' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 
-                    asset.status === 'AVAILABLE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                    asset.status === 'IN_STOCK' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                     'bg-slate-500/10 text-slate-400 border-slate-500/20'
                   }`}>
                     {asset.status}

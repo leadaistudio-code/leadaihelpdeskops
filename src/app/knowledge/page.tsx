@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { getKnowledgeArticles } from "@/app/actions/knowledgeActions";
 import { getServerSession } from "next-auth";
