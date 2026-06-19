@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  IT_AGENT
+  EMPLOYEE
+}
+
+model User {
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  password         String?
+  role             Role              @default(EMPLOYEE)
+  department       String?
+  incidentsRaised  Incident[]        @relation("Caller")
+  incidentsAssigned Incident[]       @relation("Assignee")
+  articles         KnowledgeArticle[]
+  assets           Asset[]           @relation("AssignedAssets")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  domain           String            @default("global")
+}
+
+enum IncidentStatus {
+  NEW
+  IN_PROGRESS
+  ON_HOLD
+  PENDING_APPROVAL
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketType {
+  INCIDENT
+  REQUEST
+}
+
+model SlaDefinition {
+  id            String      @id @default(cuid())
+  name          String
+  type          TicketType
+  priority      Priority
+  durationHours Int
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  domain        String      @default("global")
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  number      String         @unique // e.g., INC0000001
+  title       String
+  description String
+  status      IncidentStatus @default(NEW)
+  priority    Priority       @default(LOW)
+  type        TicketType     @default(INCIDENT)
+  
+  callerId    String
+  caller      User           @relation("Caller", fields: [callerId], references: [id])
+  
+  assigneeId  String?
+  assignee    User?          @relation("Assignee", fields: [assigneeId], references: [id])
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  domain      String         @default("global")
+}
+
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   
+  isPublished Boolean  @default(false)
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  domain      String   @default("global")
+}
+
+enum AssetStatus {
+  IN_USE
+  IN_STOCK
+  RETIRED
+  MISSING
+}
+
+model Asset {
+  id           String      @id @default(cuid())
+  assetTag     String      @unique
+  name         String
+  category     String      // e.g., "Hardware", "Software"
+  status       AssetStatus @default(IN_STOCK)
+  
+  assigneeId   String?
+  assignee     User?       @relation("AssignedAssets", fields: [assigneeId], references: [id])
+  
+  purchaseDate DateTime?
+  notes        String?
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  domain       String      @default("global")
+}
