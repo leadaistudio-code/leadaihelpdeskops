@@ -2,12 +2,11 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { getIncidents } from "@/app/actions/incidentActions";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { CheckCircle2, Plus } from "lucide-react";
 
 export default async function ClosedIncidentsPage() {
-  const session = await getServerSession(authOptions);
+  const user = await getSessionUser();
   
   // Fetch all incidents and filter by closed status
   const allIncidents = await getIncidents();

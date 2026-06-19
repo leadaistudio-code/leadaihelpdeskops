@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { Library, Laptop, Monitor, FileSpreadsheet, Palette, ShieldAlert, BadgeHelp, Search, Settings } from "lucide-react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth-utils";
 
 export default async function CatalogPage() {
-  const session = await getServerSession(authOptions);
-  const role = session?.user?.role || "EMPLOYEE";
+  const user = await getSessionUser();
+  const role = user?.role || "EMPLOYEE";
   const items = [
     { id: "laptop-macbook", name: "Apple MacBook Pro 16\"", category: "Hardware", desc: "Request a standard developer laptop.", icon: Laptop, color: "text-sky-400", bg: "bg-sky-500/20", allowedRoles: ["EMPLOYEE", "IT_AGENT", "ADMIN"] },
     { id: "monitor-dell", name: "Dell 27\" 4K Monitor", category: "Hardware", desc: "Request an additional external display.", icon: Monitor, color: "text-indigo-400", bg: "bg-indigo-500/20", allowedRoles: ["EMPLOYEE", "IT_AGENT", "ADMIN"] },

@@ -1,25 +1,24 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { getIncidents } from "@/app/actions/incidentActions";
 import { Plus, Ticket, Activity, ShieldAlert, Library, BookOpen } from "lucide-react";
 import DashboardChart from "@/components/DashboardChart";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
-  const isEmployee = session?.user?.role === "EMPLOYEE";
+  const user = await getSessionUser();
+  const isEmployee = user?.role === "EMPLOYEE";
   
   if (isEmployee) {
-    const myIncidents = await getIncidents(session?.user?.id);
+    const myIncidents = await getIncidents(user?.id);
     const activeCount = myIncidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED").length;
     
     return (
       <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
           <div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {session?.user?.name}</h1>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {user?.name}</h1>
             <p className="text-slate-400 mt-2 text-lg">Your personalized IT service portal.</p>
           </div>
           <Link href="/incidents/new" className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:shadow-[0_0_30px_rgba(124,58,237,0.6)] hover:-translate-y-1 transition-all font-bold group">
@@ -119,7 +118,7 @@ export default async function Home() {
   const allIncidents = await getIncidents();
   const openIncidents = allIncidents.filter(i => i.status !== "RESOLVED" && i.status !== "CLOSED");
   const criticalCount = openIncidents.filter(i => i.priority === "CRITICAL").length;
-  const myWork = openIncidents.filter(i => i.assigneeId === session?.user?.id);
+  const myWork = openIncidents.filter(i => i.assigneeId === user?.id);
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">

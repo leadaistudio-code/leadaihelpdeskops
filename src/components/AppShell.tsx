@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import AIChatbot from "@/components/AIChatbot";
-import { SessionProvider } from "next-auth/react";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,11 +12,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isMarketingPage = pathname === "/" || pathname === "/login" || pathname === "/walkup" || pathname?.startsWith("/p/");
 
   if (isMarketingPage) {
-    return <SessionProvider>{children}</SessionProvider>;
+    return <>{children}</>;
   }
 
   return (
-    <SessionProvider>
+    <>
       <Header />
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <main className={`fixed top-[88px] ${isCollapsed ? 'left-24' : 'left-72'} right-8 bottom-8 overflow-hidden rounded-2xl glass-panel flex flex-col transition-all duration-300`}>
@@ -28,6 +27,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <AIChatbot />
-    </SessionProvider>
+    </>
   );
 }

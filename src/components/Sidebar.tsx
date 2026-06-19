@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -22,9 +22,9 @@ import {
 } from "lucide-react";
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean, setIsCollapsed: (val: boolean) => void }) {
-  const { data: session } = useSession();
+  const { user } = useUser();
   const pathname = usePathname();
-  const role = session?.user?.role;
+  const role = (user?.publicMetadata?.role as string) || "EMPLOYEE";
   const isAgent = role === "IT_AGENT" || role === "ADMIN";
 
   const NavLink = ({ href, icon: Icon, children }: { href: string, icon: any, children: React.ReactNode }) => {

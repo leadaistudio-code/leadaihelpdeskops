@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { getKnowledgeArticles } from "@/app/actions/knowledgeActions";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { BookOpen, Plus, Search, FileText } from "lucide-react";
 
 export default async function KnowledgePage({
@@ -11,8 +10,8 @@ export default async function KnowledgePage({
 }: {
   searchParams: { q?: string };
 }) {
-  const session = await getServerSession(authOptions);
-  const isEmployee = session?.user?.role === "EMPLOYEE";
+  const user = await getSessionUser();
+  const isEmployee = user?.role === "EMPLOYEE";
 
   // Fix for Next.js 15+ where searchParams is a Promise. (We are using 16)
   const resolvedParams = await Promise.resolve(searchParams);

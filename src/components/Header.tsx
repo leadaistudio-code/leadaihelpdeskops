@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { ShieldAlert, Zap, LogOut, User, Globe, Moon, Monitor, Settings, ChevronDown, X, Save, Building2 } from "lucide-react";
 
 export default function Header() {
-  const { data: session } = useSession();
+  const { user: clerkUser } = useUser();
+  const { signOut } = useAuth();
+  const role = (clerkUser?.publicMetadata?.role as string) || "EMPLOYEE";
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,9 +41,9 @@ export default function Header() {
         </div>
         
         <div className="flex items-center space-x-5">
-          {session ? (
+          {clerkUser ? (
             <div className="flex items-center space-x-4">
-              {session.user?.role === 'ADMIN' && (
+              {role === 'ADMIN' && (
                 <div className="hidden lg:flex items-center space-x-2 bg-slate-900/50 border border-white/10 rounded-xl px-3 py-1.5 text-sm">
                   <Building2 className="w-4 h-4 text-slate-400" />
                   <select className="bg-transparent text-slate-300 font-bold focus:outline-none appearance-none cursor-pointer pr-4">
@@ -57,11 +59,11 @@ export default function Header() {
                 className="flex items-center space-x-3 hover:bg-white/5 p-1.5 pr-3 rounded-full transition-colors border border-transparent hover:border-white/10"
               >
                 <div className="text-right hidden md:block">
-                  <div className="text-sm font-bold text-slate-100">{session.user?.name}</div>
-                  <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">{session.user?.role?.replace('_', ' ')}</div>
+                  <div className="text-sm font-bold text-slate-100">{clerkUser.fullName}</div>
+                  <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">{role.replace('_', ' ')}</div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center justify-center font-bold text-white text-lg">
-                  {session.user?.name?.charAt(0) || 'U'}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center justify-center font-bold text-white text-lg overflow-hidden">
+                  {clerkUser.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser.fullName?.charAt(0) || 'U')}
                 </div>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -70,14 +72,14 @@ export default function Header() {
                 <div className="absolute right-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
                   <div className="p-6 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
                     <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-2xl shrink-0">
-                        {session.user?.name?.charAt(0) || 'U'}
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-2xl shrink-0 overflow-hidden">
+                        {clerkUser.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser.fullName?.charAt(0) || 'U')}
                       </div>
                       <div className="overflow-hidden">
-                        <div className="text-lg font-bold text-white truncate">{session.user?.name}</div>
-                        <div className="text-sm text-slate-400 truncate">{session.user?.email || "user@leadaistudio.ai"}</div>
+                        <div className="text-lg font-bold text-white truncate">{clerkUser.fullName}</div>
+                        <div className="text-sm text-slate-400 truncate">{clerkUser.primaryEmailAddress?.emailAddress || "user@leadaistudio.ai"}</div>
                         <div className="mt-1 inline-block px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs font-bold rounded border border-indigo-500/30 uppercase tracking-wider">
-                          {session.user?.role?.replace('_', ' ')}
+                          {role.replace('_', ' ')}
                         </div>
                       </div>
                     </div>
@@ -179,22 +181,22 @@ export default function Header() {
                 {activeSettingsTab === 'profile' && (
                   <div className="space-y-6 max-w-lg">
                     <div className="flex items-center space-x-6 mb-8">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-4xl">
-                        {session?.user?.name?.charAt(0) || 'U'}
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-4xl overflow-hidden">
+                        {clerkUser?.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser?.fullName?.charAt(0) || 'U')}
                       </div>
                       <button className="px-4 py-2 border border-white/20 rounded-lg text-sm font-bold text-white hover:bg-white/10 transition-colors">Upload new picture</button>
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
-                      <input type="text" defaultValue={session?.user?.name || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" defaultValue={clerkUser?.fullName || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-                      <input type="email" disabled defaultValue={session?.user?.email || 'user@novasync.app'} className="w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 opacity-70 cursor-not-allowed" />
+                      <input type="email" disabled defaultValue={clerkUser?.primaryEmailAddress?.emailAddress || 'user@novasync.app'} className="w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 opacity-70 cursor-not-allowed" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Job Title</label>
-                      <input type="text" defaultValue={session?.user?.role?.replace('_', ' ') || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" defaultValue={role.replace('_', ' ') || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
                     </div>
                   </div>
                 )}
