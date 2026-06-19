@@ -13,12 +13,19 @@ export async function getSessionUser() {
   });
 
   if (!dbUser) {
+    const clerkRole = (user.publicMetadata?.role as string) || "EMPLOYEE";
     dbUser = await prisma.user.create({
       data: {
         email,
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
-        role: "EMPLOYEE",
+        role: clerkRole,
       }
+    });
+  } else if (user.publicMetadata?.role && user.publicMetadata.role !== dbUser.role) {
+    // Keep database in sync with Clerk metadata if it changes
+    dbUser = await prisma.user.update({
+      where: { email },
+      data: { role: user.publicMetadata.role as string }
     });
   }
 
