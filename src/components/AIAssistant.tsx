@@ -24,22 +24,18 @@ export default function AIAssistant({ title, description }: { title: string, des
   };
 
   return (
-    <div className="mt-8 bg-indigo-50 border border-indigo-200 rounded p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-indigo-900 flex items-center">
-          <span className="mr-2">✨</span> AI Resolution Assistant
-        </h3>
-        <button 
-          onClick={handleSuggest} 
-          disabled={loading}
-          className="px-4 py-2 bg-indigo-600 text-white rounded shadow-sm text-sm hover:bg-indigo-700 font-bold disabled:opacity-50"
-        >
-          {loading ? "Analyzing..." : "Suggest Resolution"}
-        </button>
-      </div>
-      
+    <div>
+      <button
+        onClick={handleSuggest}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-lg text-sm hover:brightness-110 transition-all font-bold disabled:opacity-50"
+      >
+        <span>✨</span>
+        {loading ? "Analyzing…" : "Suggest Resolution"}
+      </button>
+
       {suggestion && (
-        <div className="mt-4 p-4 bg-white border border-indigo-100 rounded text-slate-800 whitespace-pre-wrap text-sm">
+        <div className="mt-4 p-4 bg-black/20 border border-white/10 rounded-2xl text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
           {suggestion}
         </div>
       )}

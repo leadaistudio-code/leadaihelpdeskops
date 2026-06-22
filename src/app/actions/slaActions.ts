@@ -3,9 +3,11 @@
 import prisma from "@/lib/prisma";
 import { TicketType, Priority } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getActiveDomain } from "@/lib/tenant";
 
 export async function getSlaDefinitions() {
   return await prisma.slaDefinition.findMany({
+    where: { domain: await getActiveDomain() },
     orderBy: [{ type: "asc" }, { priority: "desc" }],
   });
 }
@@ -17,6 +19,7 @@ export async function createSlaDefinition(data: { name: string; type: TicketType
       type: data.type,
       priority: data.priority,
       durationHours: data.durationHours,
+      domain: await getActiveDomain(),
     },
   });
   revalidatePath("/admin/slas");

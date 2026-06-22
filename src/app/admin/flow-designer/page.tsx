@@ -1,9 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { Workflow, Plus, Trash2, ArrowRight, Play, Save, ChevronDown, CheckCircle2, GitCommit, Settings2, Zap, Clock, User, Mail, Database } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Workflow, Plus, Trash2, ArrowRight, Play, Save, FolderOpen, GitCommit, Settings2, Zap, Clock, User, Mail, Database } from "lucide-react";
+import { getFlows, saveFlow, deleteFlow, type SavedFlow } from "@/app/actions/flowActions";
+import { toast } from "@/components/toast";
+
+// Rebuild a node icon from its type when loading a saved flow.
+function nodeGlyph(type: string): React.ReactElement {
+  if (type === "trigger") return <Zap className="w-5 h-5 text-amber-400" />;
+  if (type === "condition") return <Settings2 className="w-5 h-5 text-sky-400" />;
+  return <Database className="w-5 h-5 text-emerald-400" />;
+}
 
 export default function FlowDesigner() {
+  const [savedFlows, setSavedFlows] = useState<SavedFlow[]>([]);
+  const [showFlows, setShowFlows] = useState(false);
+
+  const loadFlows = () => { getFlows().then(setSavedFlows).catch(() => {}); };
+  useEffect(() => { loadFlows(); }, []);
+
+  const handleSaveFlow = async () => {
+    const name = window.prompt("Save flow as:", "Hardware Provisioning Flow");
+    if (!name) return;
+    try {
+      await saveFlow(name, nodes.map(({ id, type, name, desc }) => ({ id, type, name, desc })));
+      toast("Flow saved");
+      loadFlows();
+    } catch {
+      toast("Couldn't save flow", "error");
+    }
+  };
+
+  const handleLoadFlow = (flow: SavedFlow) => {
+    setNodes(flow.nodes.map((n) => ({ ...n, icon: nodeGlyph(n.type) })));
+    setShowFlows(false);
+    toast(`Loaded "${flow.name}"`);
+  };
+
+  const handleDeleteFlow = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteFlow(id);
+      toast("Flow deleted");
+      loadFlows();
+    } catch {
+      toast("Couldn't delete flow", "error");
+    }
+  };
+
   const [nodes, setNodes] = useState([
     { id: 1, type: "trigger", name: "Service Catalog Request Created", desc: "Triggered when 'MacBook Pro' is requested", icon: <Zap className="w-5 h-5 text-amber-400" /> },
     { id: 2, type: "condition", name: "Check Caller Department", desc: "If Department == 'Engineering'", icon: <Settings2 className="w-5 h-5 text-sky-400" /> },
@@ -13,8 +57,9 @@ export default function FlowDesigner() {
 
   const [showNodeSelector, setShowNodeSelector] = useState(false);
 
-  const addNode = (type: string, name: string, icon: any) => {
-    setNodes([...nodes, { id: Date.now(), type, name, desc: "Configure this node", icon }]);
+  const addNode = (type: string, name: string, icon: React.ReactElement) => {
+    const nextId = nodes.length ? Math.max(...nodes.map((n) => n.id)) + 1 : 1;
+    setNodes([...nodes, { id: nextId, type, name, desc: "Configure this node", icon }]);
     setShowNodeSelector(false);
   };
 
@@ -41,13 +86,45 @@ export default function FlowDesigner() {
         </div>
         
         <div className="flex items-center space-x-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowFlows((s) => !s)}
+              className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl text-white font-bold text-sm transition-colors"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Saved Flows ({savedFlows.length})</span>
+            </button>
+            {showFlows && (
+              <div className="absolute right-0 top-12 w-80 glass-panel border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 bg-slate-900/95">
+                <div className="p-3 border-b border-white/5 text-xs font-bold text-slate-400 uppercase tracking-widest">Saved Flows</div>
+                {savedFlows.length === 0 ? (
+                  <p className="p-4 text-sm text-slate-500 text-center">No saved flows yet. Build one and click Save.</p>
+                ) : (
+                  <div className="p-2 space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
+                    {savedFlows.map((f) => (
+                      <button key={f.id} onClick={() => handleLoadFlow(f)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left group">
+                        <Workflow className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-slate-200 truncate">{f.name}</div>
+                          <div className="text-xs text-slate-500">{f.nodes.length} steps</div>
+                        </div>
+                        <button onClick={(e) => handleDeleteFlow(f.id, e)} className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl text-white font-bold text-sm transition-colors">
             <Play className="w-4 h-4" />
             <span>Test Flow</span>
           </button>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-sm shadow-lg transition-colors">
+          <button onClick={handleSaveFlow} className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-sm shadow-lg transition-colors">
             <Save className="w-4 h-4" />
-            <span>Save & Publish</span>
+            <span>Save Flow</span>
           </button>
         </div>
       </div>
@@ -183,7 +260,7 @@ function LibraryIcon() {
   );
 }
 
-function DraggableItem({ icon, title, desc }: { icon: any, title: string, desc: string }) {
+function DraggableItem({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
     <div className="glass-panel border border-white/5 rounded-xl p-3 flex items-start space-x-3 hover:border-white/20 hover:bg-white/5 transition-colors cursor-grab active:cursor-grabbing">
       <div className="mt-0.5">{icon}</div>

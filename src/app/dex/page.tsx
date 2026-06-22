@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, ShieldCheck, Zap, History, BrainCircuit, AlertTriangle } from "lucide-react";
+import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, type DexEndpoint } from "@/app/actions/dexActions";
+import EnrollDevicePanel from "@/components/EnrollDevicePanel";
+
+const ACTION_MAP: Record<string, string> = { "Clear Cache": "CLEAR_TEMP", "Remote Reboot": "REBOOT" };
 
 export default function DEXDashboard() {
   const [isAutoPilotOn, setIsAutoPilotOn] = useState(false);
@@ -11,12 +15,43 @@ export default function DEXDashboard() {
     { time: '10:45 AM', message: 'Auto-Pilot enabled. System monitoring active.' }
   ]);
 
-  const [endpoints, setEndpoints] = useState([
-    { id: 'WS-1042', user: 'Jane Doe', cpu: '92%', mem: '14GB/16GB', status: 'Critical', latency: '120ms' },
-    { id: 'WS-8831', user: 'John Smith', cpu: '12%', mem: '4GB/16GB', status: 'Healthy', latency: '45ms' },
-    { id: 'WS-9920', user: 'System Admin', cpu: '45%', mem: '8GB/32GB', status: 'Healthy', latency: '30ms' },
-    { id: 'WS-2210', user: 'Alice Chen', cpu: '78%', mem: '15GB/16GB', status: 'Warning', latency: '65ms' },
-  ]);
+  const [endpoints, setEndpoints] = useState<DexEndpoint[]>([]);
+  const [summary, setSummary] = useState({ total: 0, online: 0, avgScore: 0, atRisk: 0 });
+
+  // Charts measure the DOM, so render them client-only to avoid SSR/client
+  // hydration mismatches.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // Auto-Pilot reflects the persisted, tenant-wide self-heal setting.
+  useEffect(() => {
+    getDexSettings().then((s) => setIsAutoPilotOn(s.autoHeal)).catch(() => {});
+  }, []);
+
+  const toggleAutoHeal = async () => {
+    const next = !isAutoPilotOn;
+    setIsAutoPilotOn(next);
+    try {
+      await setAutoHeal(next);
+    } catch {
+      setIsAutoPilotOn(!next); // revert on failure
+    }
+  };
+
+  // Live device fleet from agent telemetry — poll so devices appear and flip
+  // online/offline in near real time.
+  useEffect(() => {
+    const load = () => {
+      getDexEndpoints().then(setEndpoints).catch(() => {});
+      getDexSummary().then(setSummary).catch(() => {});
+    };
+    load();
+    const t = setInterval(load, 15_000);
+    return () => clearInterval(t);
+  }, []);
 
   const [toast, setToast] = useState<{message: string, show: boolean}>({ message: "", show: false });
   const [isRemediating, setIsRemediating] = useState<Record<string, boolean>>({});
@@ -37,60 +72,32 @@ export default function DEXDashboard() {
     { name: 'Critical', value: Math.max(0, 30 - Math.ceil(autoActionsTaken/2)), fill: '#ef4444' },
   ];
 
-  const handleRemediation = (id: string, action: string, isAuto: boolean = false) => {
-    if (isRemediating[id]) return;
-    
-    setIsRemediating(prev => ({ ...prev, [id]: true }));
-    setToast({ message: `${isAuto ? '[AUTO] ' : ''}Executing '${action}' on ${id}...`, show: true });
-    
-    const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setRemediationLogs(prev => [{ time: timeString, message: `${isAuto ? '⚡ Auto-Triggered' : '👤 Manual'}: ${action} on ${id}` }, ...prev]);
+  // Queue a REAL remediation command for the agent to pull and execute on the
+  // endpoint. The device's status updates on its next telemetry report.
+  const handleRemediation = async (deviceId: string, hostname: string, actionLabel: string, isAuto: boolean = false) => {
+    if (isRemediating[hostname]) return;
+    const cmd = ACTION_MAP[actionLabel] ?? actionLabel;
 
-    setTimeout(() => {
-      setToast({ message: `Successfully executed '${action}' on ${id}. Endpoint stabilizing.`, show: true });
-      if (isAuto) {
-        setAutoActionsTaken(prev => prev + 1);
-      }
-      
-      setEndpoints(prev => prev.map(ep => {
-        if (ep.id === id) {
-          return { ...ep, cpu: '15%', mem: '6GB/16GB', status: 'Healthy', latency: '40ms' };
-        }
-        return ep;
-      }));
-      
-      setIsRemediating(prev => ({ ...prev, [id]: false }));
+    setIsRemediating(prev => ({ ...prev, [hostname]: true }));
+    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setRemediationLogs(prev => [{ time: ts, message: `${isAuto ? '⚡ Auto-Triggered' : '👤 Manual'}: ${actionLabel} queued for ${hostname}` }, ...prev]);
+    setToast({ message: `Queued '${actionLabel}' on ${hostname} — the agent will execute on its next check-in.`, show: true });
 
-      setTimeout(() => {
-        setToast({ message: "", show: false });
-      }, 4000);
-    }, 2000);
+    try {
+      await queueRemediation(deviceId, cmd);
+      if (isAuto) setAutoActionsTaken(prev => prev + 1);
+    } catch {
+      setToast({ message: `Couldn't queue '${actionLabel}' on ${hostname}.`, show: true });
+    }
+
+    setTimeout(() => setIsRemediating(prev => ({ ...prev, [hostname]: false })), 3000);
+    setTimeout(() => setToast({ message: "", show: false }), 4500);
   };
 
   // Auto-pilot effect
-  useEffect(() => {
-    if (!isAutoPilotOn) return;
-
-    const interval = setInterval(() => {
-      const issueEndpoint = endpoints.find(ep => ep.status === 'Critical' || ep.status === 'Warning');
-      if (issueEndpoint && !isRemediating[issueEndpoint.id]) {
-        const action = issueEndpoint.status === 'Critical' ? 'Remote Reboot' : 'Clear Cache';
-        handleRemediation(issueEndpoint.id, action, true);
-      } else if (!issueEndpoint && endpoints.length < 6) {
-        // Occasionally spawn a new issue to show auto-pilot working continuously
-        if (Math.random() > 0.7) {
-          const newId = `WS-${Math.floor(Math.random() * 9000) + 1000}`;
-          setEndpoints(prev => [
-            ...prev,
-            { id: newId, user: 'Auto Generated', cpu: '95%', mem: '15GB/16GB', status: 'Critical', latency: '200ms' }
-          ]);
-        }
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAutoPilotOn, endpoints, isRemediating]);
+  // Note: when Auto-Pilot is on, self-heal runs server-side in the metrics
+  // ingest route (queues a safe runbook on detection) — so it works even when
+  // no one has the dashboard open.
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
@@ -109,7 +116,10 @@ export default function DEXDashboard() {
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">DEX Auto-Remediation</h1>
-            <p className="text-slate-400 mt-1">Real-time observability and remote action execution.</p>
+            <p className="text-slate-400 mt-1">
+              Live endpoint telemetry from enrolled devices
+              <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold uppercase tracking-wide align-middle">Live agent data</span>
+            </p>
           </div>
         </div>
 
@@ -122,11 +132,37 @@ export default function DEXDashboard() {
             <span className="text-xs text-slate-400">{isAutoPilotOn ? 'Monitoring and healing automatically' : 'Manual remediation required'}</span>
           </div>
           <button 
-            onClick={() => setIsAutoPilotOn(!isAutoPilotOn)}
+            onClick={toggleAutoHeal}
             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${isAutoPilotOn ? 'bg-emerald-500' : 'bg-slate-700'}`}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${isAutoPilotOn ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
+        </div>
+      </div>
+
+      <EnrollDevicePanel />
+
+      {/* Experience Score + fleet rollup */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="glass-panel rounded-3xl border border-white/10 p-6 relative overflow-hidden">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Experience Score</p>
+          <div className="flex items-end gap-2">
+            <span className={`text-5xl font-black tracking-tighter ${summary.avgScore >= 80 ? 'text-emerald-400' : summary.avgScore >= 55 ? 'text-amber-400' : 'text-rose-400'}`}>{summary.avgScore}</span>
+            <span className="text-slate-500 mb-1.5 font-bold">/ 100</span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">Fleet average (online devices)</p>
+        </div>
+        <div className="glass-panel rounded-3xl border border-white/10 p-6">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Devices</p>
+          <span className="text-5xl font-black text-white tracking-tighter">{summary.total}</span>
+        </div>
+        <div className="glass-panel rounded-3xl border border-white/10 p-6">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Online</p>
+          <span className="text-5xl font-black text-emerald-400 tracking-tighter">{summary.online}</span>
+        </div>
+        <div className="glass-panel rounded-3xl border border-white/10 p-6">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">At Risk</p>
+          <span className={`text-5xl font-black tracking-tighter ${summary.atRisk > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{summary.atRisk}</span>
         </div>
       </div>
 
@@ -175,6 +211,7 @@ export default function DEXDashboard() {
             <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Global Network Latency (ms)</h2>
           </div>
           <div className="flex-1 min-h-[300px]">
+            {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={latencyData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -187,6 +224,7 @@ export default function DEXDashboard() {
                 <Line type="monotone" dataKey="ms" stroke="#22d3ee" strokeWidth={3} dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }} activeDot={{ r: 8 }} />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -204,6 +242,7 @@ export default function DEXDashboard() {
             {isAutoPilotOn && <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-md border border-emerald-500/30 animate-pulse">Auto-Healing Active</span>}
           </div>
           <div className="flex-1 min-h-[220px] relative z-10">
+            {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={deviceHealthData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
@@ -217,6 +256,7 @@ export default function DEXDashboard() {
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
           
           <div className="mt-4 pt-4 border-t border-white/10 relative z-10">
@@ -241,47 +281,62 @@ export default function DEXDashboard() {
             <table className="w-full text-sm text-left text-slate-300">
               <thead className="text-xs text-slate-500 bg-black/20 uppercase tracking-wider">
                 <tr>
-                  <th className="px-8 py-4 font-bold">Endpoint ID</th>
-                  <th className="px-8 py-4 font-bold">Primary User</th>
-                  <th className="px-8 py-4 font-bold">CPU Load</th>
-                  <th className="px-8 py-4 font-bold">Memory</th>
-                  <th className="px-8 py-4 font-bold">Status</th>
-                  <th className="px-8 py-4 font-bold text-right">Quick Actions</th>
+                  <th className="px-6 py-4 font-bold">Endpoint</th>
+                  <th className="px-6 py-4 font-bold">User</th>
+                  <th className="px-6 py-4 font-bold">Score</th>
+                  <th className="px-6 py-4 font-bold">CPU</th>
+                  <th className="px-6 py-4 font-bold">Mem</th>
+                  <th className="px-6 py-4 font-bold">Disk</th>
+                  <th className="px-6 py-4 font-bold">Batt</th>
+                  <th className="px-6 py-4 font-bold">Status</th>
+                  <th className="px-6 py-4 font-bold text-right">Quick Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {endpoints.map((ep, idx) => (
-                  <tr key={idx} className={`hover:bg-white/5 transition-colors ${isRemediating[ep.id] ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <td className="px-8 py-5 font-bold text-cyan-400">{ep.id}</td>
-                    <td className="px-8 py-5 text-slate-200">{ep.user}</td>
-                    <td className="px-8 py-5 font-mono">{ep.cpu}</td>
-                    <td className="px-8 py-5 font-mono">{ep.mem}</td>
-                    <td className="px-8 py-5">
+                {endpoints.length === 0 ? (
+                  <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-500">No devices enrolled yet. Use “Enroll a device” above to add one.</td></tr>
+                ) : endpoints.map((ep) => (
+                  <tr key={ep.deviceId} className={`hover:bg-white/5 transition-colors ${isRemediating[ep.id] ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <td className="px-6 py-5 font-bold text-cyan-400">
+                      {ep.id}
+                      {!ep.online && <span className="ml-2 px-1.5 py-0.5 bg-slate-700/40 text-slate-400 rounded text-[10px] font-bold uppercase">Offline</span>}
+                    </td>
+                    <td className="px-6 py-5 text-slate-200">{ep.user}</td>
+                    <td className="px-6 py-5">
+                      <span className={`font-black ${ep.score >= 80 ? 'text-emerald-400' : ep.score >= 55 ? 'text-amber-400' : 'text-rose-400'}`}>{ep.online ? ep.score : '—'}</span>
+                    </td>
+                    <td className="px-6 py-5 font-mono">{ep.cpu}</td>
+                    <td className="px-6 py-5 font-mono">{ep.mem}</td>
+                    <td className="px-6 py-5 font-mono">{ep.disk}</td>
+                    <td className="px-6 py-5 font-mono">{ep.battery}</td>
+                    <td className="px-6 py-5">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        ep.status === 'Critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+                        ep.status === 'Critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                         ep.status === 'Warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                         'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       }`}>
-                        {isRemediating[ep.id] ? 'Fixing...' : ep.status}
+                        {isRemediating[ep.id] ? 'Queued…' : ep.status}
                       </span>
                     </td>
-                    <td className="px-8 py-5 flex justify-end space-x-2">
-                      <button 
-                        onClick={() => handleRemediation(ep.id, "Clear Cache")}
-                        disabled={ep.status === 'Healthy' || isRemediating[ep.id] || isAutoPilotOn}
-                        className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 disabled:opacity-30 transition-colors tooltip-trigger relative group"
+                    <td className="px-6 py-5">
+                      <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => handleRemediation(ep.deviceId, ep.id, "Clear Cache")}
+                        disabled={!ep.online || isRemediating[ep.id] || isAutoPilotOn}
+                        className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 disabled:opacity-30 transition-colors relative group"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Clear Cache</span>
+                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Clear Temp</span>
                       </button>
-                      <button 
-                        onClick={() => handleRemediation(ep.id, "Remote Reboot")}
-                        disabled={ep.status === 'Healthy' || isRemediating[ep.id] || isAutoPilotOn}
-                        className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-30 transition-colors tooltip-trigger relative group"
+                      <button
+                        onClick={() => handleRemediation(ep.deviceId, ep.id, "Remote Reboot")}
+                        disabled={!ep.online || isRemediating[ep.id] || isAutoPilotOn}
+                        className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-30 transition-colors relative group"
                       >
                         <Power className="w-4 h-4" />
                         <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Remote Reboot</span>
                       </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -1,10 +1,12 @@
 export const dynamic = "force-dynamic";
 
 import { getKnowledgeArticleById } from "@/app/actions/knowledgeActions";
+import { getAttachmentsForArticle } from "@/app/actions/attachmentActions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, BookOpen, Clock, User, Eye } from "lucide-react";
 import KbFeedback from "@/components/KbFeedback";
+import AttachmentPanel from "@/components/AttachmentPanel";
 
 export default async function KnowledgeArticleDetailPage({ params }: { params: { id: string } }) {
   const id = (await Promise.resolve(params)).id;
@@ -13,6 +15,8 @@ export default async function KnowledgeArticleDetailPage({ params }: { params: {
   if (!article) {
     notFound();
   }
+
+  const attachments = await getAttachmentsForArticle(id);
 
   // Mock views for demonstration based on ID
   const viewsCount = parseInt(id) * 142 || 452;
@@ -58,6 +62,10 @@ export default async function KnowledgeArticleDetailPage({ params }: { params: {
 
             <KbFeedback initialViews={viewsCount} />
           </div>
+        </div>
+
+        <div className="mt-6">
+          <AttachmentPanel articleId={article.id} attachments={attachments} />
         </div>
       </div>
     </div>

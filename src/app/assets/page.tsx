@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { getAssets } from "@/app/actions/assetActions";
 import { Laptop, Plus } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 
 export default async function AssetsPage() {
   const assets = await getAssets();
@@ -45,8 +46,15 @@ export default async function AssetsPage() {
             <tbody className="divide-y divide-white/5">
               {assets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-slate-500 italic">
-                    No assets found in the registry.
+                  <td colSpan={5}>
+                    <EmptyState
+                      icon={Laptop}
+                      title="No assets registered"
+                      description="Add your first hardware or software asset to start tracking inventory, assignments, and lifecycle."
+                      ctaHref="/assets/new"
+                      ctaLabel="New Asset"
+                      accent="text-orange-400"
+                    />
                   </td>
                 </tr>
               ) : (

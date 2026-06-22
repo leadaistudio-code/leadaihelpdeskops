@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { AssetStatus } from "@prisma/client";
+import { getActiveDomain } from "@/lib/tenant";
 
 export async function createAsset(formData: FormData) {
   const assetTag = formData.get("assetTag") as string;
@@ -22,6 +23,7 @@ export async function createAsset(formData: FormData) {
       notes,
       status,
       purchaseDate,
+      domain: await getActiveDomain(),
     },
   });
 
@@ -31,6 +33,7 @@ export async function createAsset(formData: FormData) {
 
 export async function getAssets() {
   return await prisma.asset.findMany({
+    where: { domain: await getActiveDomain() },
     include: {
       assignee: true,
     },
@@ -39,8 +42,8 @@ export async function getAssets() {
 }
 
 export async function getAssetById(id: string) {
-  return await prisma.asset.findUnique({
-    where: { id },
+  return await prisma.asset.findFirst({
+    where: { id, domain: await getActiveDomain() },
     include: {
       assignee: true,
     },
@@ -48,7 +51,7 @@ export async function getAssetById(id: string) {
 }
 
 export async function updateAssetStatus(id: string, status: AssetStatus, assigneeId?: string) {
-  const data: any = { status };
+  const data: { status: AssetStatus; assigneeId?: string | null } = { status };
   if (assigneeId !== undefined) {
     data.assigneeId = assigneeId || null;
   }

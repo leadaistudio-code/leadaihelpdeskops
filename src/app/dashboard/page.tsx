@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth-utils";
 import { getIncidents } from "@/app/actions/incidentActions";
 import { Plus, Ticket, Activity, ShieldAlert, Library, BookOpen } from "lucide-react";
 import DashboardChart from "@/components/DashboardChart";
+import { FadeIn, Stagger, StaggerItem, AnimatedCounter } from "@/components/motion";
 
 export default async function Home() {
   const user = await getSessionUser();
@@ -16,7 +17,7 @@ export default async function Home() {
     
     return (
       <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
+        <FadeIn className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
           <div>
             <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {user?.name}</h1>
             <p className="text-slate-400 mt-2 text-lg">Your personalized IT service portal.</p>
@@ -25,25 +26,25 @@ export default async function Home() {
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
             <span>Report an Issue</span>
           </Link>
-        </div>
+        </FadeIn>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="col-span-1 glass-panel rounded-3xl p-8 relative overflow-hidden group">
+        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <StaggerItem className="col-span-1 glass-panel rounded-3xl p-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-40 transition-opacity">
               <Ticket className="w-24 h-24 text-sky-400" />
             </div>
             <div className="relative z-10">
-              <span className="block text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-sky-400 to-indigo-500 mb-2">{activeCount}</span>
+              <AnimatedCounter value={activeCount} className="block text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-sky-400 to-indigo-500 mb-2" />
               <span className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
                 <span>Active Requests</span>
               </span>
             </div>
-          </div>
+          </StaggerItem>
 
-          <div className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Link href="/catalog" className="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:bg-white/5 transition-all group border border-white/5 hover:border-violet-500/30">
+          <StaggerItem lift={false} className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Link href="/catalog" className="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:bg-white/5 transition-all group border border-white/5 hover:border-violet-500/30 hover:-translate-y-1.5 duration-300">
               <div className="w-12 h-12 rounded-full bg-violet-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Library className="w-6 h-6 text-violet-400" />
               </div>
@@ -52,8 +53,8 @@ export default async function Home() {
                 <p className="text-slate-400 text-sm">Request hardware, software, or access.</p>
               </div>
             </Link>
-            
-            <Link href="/knowledge" className="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:bg-white/5 transition-all group border border-white/5 hover:border-emerald-500/30">
+
+            <Link href="/knowledge" className="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:bg-white/5 transition-all group border border-white/5 hover:border-emerald-500/30 hover:-translate-y-1.5 duration-300">
               <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <BookOpen className="w-6 h-6 text-emerald-400" />
               </div>
@@ -62,10 +63,10 @@ export default async function Home() {
                 <p className="text-slate-400 text-sm">Find answers and troubleshooting steps.</p>
               </div>
             </Link>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
-        <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
+        <FadeIn delay={0.15} className="glass-panel rounded-3xl overflow-hidden border border-white/10">
           <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50">
             <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center space-x-2">
               <Activity className="w-4 h-4 text-indigo-400" />
@@ -109,7 +110,7 @@ export default async function Home() {
               </tbody>
             </table>
           </div>
-        </div>
+        </FadeIn>
       </div>
     );
   }
@@ -122,7 +123,7 @@ export default async function Home() {
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
+      <FadeIn className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Command Center</h1>
           <p className="text-slate-400 mt-2 text-lg">Global overview of IT operations.</p>
@@ -131,58 +132,58 @@ export default async function Home() {
           <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
           <span>Create Incident</span>
         </Link>
-      </div>
+      </FadeIn>
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        
+
         {/* KPI Cards */}
-        <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-6">
-          <div className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
+        <Stagger className="col-span-1 md:col-span-2 grid grid-cols-2 gap-6">
+          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
                 <Ticket className="w-5 h-5 text-indigo-400" />
               </div>
             </div>
             <div>
-              <span className="block text-4xl font-black text-white mb-1">{openIncidents.length}</span>
+              <AnimatedCounter value={openIncidents.length} className="block text-4xl font-black text-white mb-1" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Open Incidents</span>
             </div>
-          </div>
-          
-          <div className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between border-rose-500/30">
+          </StaggerItem>
+
+          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between border-rose-500/30">
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center animate-pulse-glow">
                 <ShieldAlert className="w-5 h-5 text-rose-400" />
               </div>
             </div>
             <div>
-              <span className="block text-4xl font-black text-rose-400 mb-1">{criticalCount}</span>
+              <AnimatedCounter value={criticalCount} className="block text-4xl font-black text-rose-400 mb-1" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Critical Priority</span>
             </div>
-          </div>
+          </StaggerItem>
 
-          <div className="col-span-2 glass-panel rounded-3xl p-6 relative overflow-hidden flex items-center justify-between">
+          <StaggerItem className="col-span-2 glass-panel rounded-3xl p-6 relative overflow-hidden flex items-center justify-between">
              <div>
-              <span className="block text-4xl font-black text-emerald-400 mb-1">{myWork.length}</span>
+              <AnimatedCounter value={myWork.length} className="block text-4xl font-black text-emerald-400 mb-1" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Assigned to Me</span>
              </div>
              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
                <Activity className="w-8 h-8 text-emerald-400" />
              </div>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
         {/* Chart Section */}
-        <div className="col-span-1 md:col-span-2 glass-panel rounded-3xl p-6 flex flex-col">
+        <FadeIn delay={0.2} className="col-span-1 md:col-span-2 glass-panel rounded-3xl p-6 flex flex-col">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Incident Volume (7 Days)</h3>
           <div className="flex-1 min-h-[200px]">
              <DashboardChart />
           </div>
-        </div>
+        </FadeIn>
       </div>
 
-      <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
+      <FadeIn delay={0.15} className="glass-panel rounded-3xl overflow-hidden border border-white/10">
         <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 flex justify-between items-center">
           <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">My Active Work</h2>
           <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-slate-400">{myWork.length} Tickets</span>
@@ -220,13 +221,13 @@ export default async function Home() {
               ))}
               {myWork.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-8 py-8 text-center text-slate-500 italic">You're all caught up. No tickets assigned.</td>
+                  <td colSpan={4} className="px-8 py-8 text-center text-slate-500 italic">You&apos;re all caught up. No tickets assigned.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 }

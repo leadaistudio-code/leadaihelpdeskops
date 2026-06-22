@@ -1,13 +1,20 @@
 export const dynamic = "force-dynamic";
 
 import prisma from "@/lib/prisma";
-import { getIncidentById, updateIncidentState } from "@/app/actions/incidentActions";
+import { getIncidentById, updateIncidentState, getAssignableAgents } from "@/app/actions/incidentActions";
+import { draftArticleFromIncident } from "@/app/actions/knowledgeActions";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { IncidentStatus } from "@prisma/client";
 import AIAssistant from "@/components/AIAssistant";
 import SlaDisplay from "@/components/SlaDisplay";
-import { ChevronLeft, Ticket } from "lucide-react";
+import IncidentActivity from "@/components/IncidentActivity";
+import AssignmentControl from "@/components/AssignmentControl";
+import GroupControl from "@/components/GroupControl";
+import AttachmentPanel from "@/components/AttachmentPanel";
+import { getAttachmentsForIncident } from "@/app/actions/attachmentActions";
+import { getGroupOptions } from "@/app/actions/groupActions";
+import { ChevronLeft, Ticket, BookOpenCheck } from "lucide-react";
 
 export default async function IncidentDetailPage({ params }: { params: { id: string } }) {
   // Await the params object (Next.js 15+ requirement, though we are on 16)
@@ -18,9 +25,13 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
     notFound();
   }
 
-  // Fetch dynamic SLA
+  const agents = await getAssignableAgents();
+  const groups = await getGroupOptions();
+  const attachments = await getAttachmentsForIncident(id);
+
+  // Fetch dynamic SLA (scoped to the incident's tenant)
   const slaDef = await prisma.slaDefinition.findFirst({
-    where: { type: incident.type, priority: incident.priority, isActive: true },
+    where: { type: incident.type, priority: incident.priority, isActive: true, domain: incident.domain },
     orderBy: { createdAt: "desc" }
   });
   const slaHours = slaDef?.durationHours || 24; // fallback
@@ -30,6 +41,14 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
     const status = formData.get("status") as IncidentStatus;
     await updateIncidentState(id, status);
   }
+
+  async function handleDraftArticle() {
+    "use server";
+    const article = await draftArticleFromIncident(id);
+    redirect(`/knowledge/${article.id}`);
+  }
+
+  const isResolved = incident.status === "RESOLVED" || incident.status === "CLOSED";
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
@@ -76,10 +95,16 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
                   <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Created</label>
                   <div className="text-slate-200 font-mono text-sm">{incident.createdAt.toLocaleString()}</div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Assigned To</label>
-                  <div className="text-slate-200">{incident.assignee?.name || "Unassigned"}</div>
-                </div>
+                <AssignmentControl
+                  incidentId={incident.id}
+                  currentAssigneeId={incident.assigneeId ?? null}
+                  agents={agents}
+                />
+                <GroupControl
+                  incidentId={incident.id}
+                  currentGroupId={incident.assignmentGroupId ?? null}
+                  groups={groups}
+                />
               </div>
 
               <div className="mb-8">
@@ -115,10 +140,23 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
               </form>
             </div>
           </div>
+
+          <IncidentActivity
+            incidentId={incident.id}
+            notes={incident.notes.map((n) => ({
+              id: n.id,
+              body: n.body,
+              type: n.type,
+              createdAt: n.createdAt,
+              author: n.author ? { name: n.author.name } : null,
+            }))}
+          />
         </div>
 
         <div className="space-y-6">
           <SlaDisplay createdAt={incident.createdAt} slaHours={slaHours} status={incident.status} />
+
+          <AttachmentPanel incidentId={incident.id} attachments={attachments} />
 
           <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden">
             <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 flex justify-between items-center">
@@ -128,6 +166,27 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
               <AIAssistant title={incident.title} description={incident.description} />
             </div>
           </div>
+
+          {isResolved && (
+            <div className="glass-panel border border-emerald-500/20 rounded-3xl overflow-hidden">
+              <div className="px-8 py-6 border-b border-white/5 bg-emerald-500/5">
+                <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Capture Knowledge</h2>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-slate-400 mb-4">
+                  This incident is resolved. Turn the resolution into a reusable knowledge article with one click — our AI drafts it for you to review.
+                </p>
+                <form action={handleDraftArticle}>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 transition-all font-bold text-sm"
+                  >
+                    <BookOpenCheck className="w-4 h-4" /> Generate KB Article
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

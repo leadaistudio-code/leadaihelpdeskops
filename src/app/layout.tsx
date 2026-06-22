@@ -7,8 +7,35 @@ import AppShell from "@/components/AppShell";
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
 export const metadata: Metadata = {
-  title: "ITSM Platform",
-  description: "AI-Driven IT Service Management Platform",
+  title: {
+    default: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    template: "%s · LeadAIStudio",
+  },
+  description:
+    "AI Service Desk, Digital Employee Experience, Knowledge, Catalogue, and Asset Management — unified on a single AI-driven IT service management platform.",
+  applicationName: "LeadAIStudio AIOps",
+  keywords: [
+    "IT helpdesk",
+    "IT service management",
+    "ITSM",
+    "AI service desk",
+    "digital employee experience",
+    "asset management",
+    "AIOps",
+  ],
+  openGraph: {
+    title: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    description:
+      "Replace your tangle of disconnected IT tools with one intelligent platform.",
+    type: "website",
+    siteName: "LeadAIStudio AIOps",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    description:
+      "AI Service Desk, DEX, Knowledge, Catalogue & Asset Management on one platform.",
+  },
 };
 
 export default function RootLayout({

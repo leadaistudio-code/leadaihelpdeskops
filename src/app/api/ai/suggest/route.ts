@@ -1,18 +1,40 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 import prisma from "@/lib/prisma";
+import { rateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
+import { logError } from "@/lib/observability";
+import { scoreArticle } from "@/lib/text-rank";
+import { getActiveDomain } from "@/lib/tenant";
+
+const schema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().max(5000).optional().default(""),
+});
 
 export async function POST(req: Request) {
   try {
-    const { title, description } = await req.json();
+    const limit = rateLimit(await callerKey(req, "suggest"), 15, 60_000);
+    if (!limit.ok) return tooManyRequests(limit.resetMs);
 
-    // Fetch published knowledge articles to provide as context
-    const articles = await prisma.knowledgeArticle.findMany({
-      where: { isPublished: true },
+    const parsed = schema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    const { title, description } = parsed.data;
+
+    // Fetch published articles, then rank by relevance to THIS incident so the
+    // model gets the most useful context rather than an arbitrary five.
+    const all = await prisma.knowledgeArticle.findMany({
+      where: { isPublished: true, domain: await getActiveDomain() },
       select: { title: true, content: true },
-      take: 5,
     });
+    const query = `${title} ${description}`;
+    const articles = all
+      .map((a) => ({ ...a, score: scoreArticle(query, a.title, a.content) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
 
     const kbContext = articles.map(a => `Title: ${a.title}\nContent: ${a.content}`).join("\n\n");
 
@@ -36,7 +58,7 @@ Provide a concise, actionable resolution for the IT Agent to send to the user or
 
     return NextResponse.json({ suggestion: text });
   } catch (error) {
-    console.error("AI Suggestion error:", error);
+    logError(error, { route: "/api/ai/suggest" });
     return NextResponse.json({ error: "Failed to generate suggestion." }, { status: 500 });
   }
 }

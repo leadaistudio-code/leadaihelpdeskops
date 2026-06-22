@@ -52,7 +52,7 @@ export default async function AssignedIncidentsPage() {
               {incidents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-8 py-12 text-center text-slate-500 italic">
-                    No assigned tickets. You're caught up!
+                    No assigned tickets. You&apos;re caught up!
                   </td>
                 </tr>
               ) : (

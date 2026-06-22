@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import AIChatbot from "@/components/AIChatbot";
+import Toaster from "@/components/toast";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isMarketingPage = pathname === "/" || pathname === "/login" || pathname === "/walkup" || pathname?.startsWith("/p/");
+  const isMarketingPage = pathname === "/" || pathname === "/login" || pathname === "/walkup" || pathname === "/onboarding" || pathname?.startsWith("/p/");
 
   if (isMarketingPage) {
     return <>{children}</>;
@@ -27,6 +28,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <AIChatbot />
+      <Toaster />
     </>
   );
 }

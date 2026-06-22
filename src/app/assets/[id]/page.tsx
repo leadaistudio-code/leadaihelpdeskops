@@ -1,18 +1,16 @@
 export const dynamic = "force-dynamic";
 
-import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Laptop, Server, Network, Database } from "lucide-react";
+import { getAssetById } from "@/app/actions/assetActions";
 
 export default async function AssetCMDBPage({ params }: { params: { id: string } }) {
-  // Fix for Next.js 15+ 
+  // Fix for Next.js 15+
   const id = (await Promise.resolve(params)).id;
 
-  const asset = await prisma.asset.findUnique({
-    where: { id },
-    include: { assignee: true }
-  });
+  // Domain-scoped lookup so cross-tenant assets aren't reachable by id.
+  const asset = await getAssetById(id);
 
   if (!asset) {
     notFound();

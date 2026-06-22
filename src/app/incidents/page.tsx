@@ -1,44 +1,111 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { getIncidents } from "@/app/actions/incidentActions";
+import { getIncidentsPaged } from "@/app/actions/incidentActions";
+import { getGroupOptions } from "@/app/actions/groupActions";
 import { getSessionUser } from "@/lib/auth-utils";
-import { Ticket, Plus, Filter } from "lucide-react";
+import { Ticket, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import { IncidentStatus } from "@prisma/client";
 
-export default async function IncidentsPage() {
+const STATUSES: (IncidentStatus | "ALL")[] = ["ALL", "NEW", "IN_PROGRESS", "ON_HOLD", "PENDING_APPROVAL", "RESOLVED", "CLOSED"];
+
+export default async function IncidentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; group?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
   const user = await getSessionUser();
   const isEmployee = user?.role === "EMPLOYEE";
-  
-  const incidents = await getIncidents(isEmployee ? user?.id : undefined);
+
+  const q = sp.q ?? "";
+  const status = (sp.status as IncidentStatus | "ALL") || "ALL";
+  const group = sp.group ?? "ALL";
+  const page = Number(sp.page) || 1;
+
+  const [{ items, total, totalPages }, groups] = await Promise.all([
+    getIncidentsPaged({
+      callerId: isEmployee ? user?.id : undefined,
+      search: q,
+      status,
+      groupId: group,
+      page,
+    }),
+    isEmployee ? Promise.resolve([]) : getGroupOptions(),
+  ]);
+
+  const buildHref = (overrides: Record<string, string | number>) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (status !== "ALL") params.set("status", status);
+    if (group !== "ALL") params.set("group", group);
+    if (page > 1) params.set("page", String(page));
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v === "" || v === "ALL") params.delete(k);
+      else params.set(k, String(v));
+    }
+    const s = params.toString();
+    return `/incidents${s ? `?${s}` : ""}`;
+  };
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 mt-4 gap-6">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
             <Ticket className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">Incidents</h1>
-            <p className="text-slate-400 mt-1">{isEmployee ? "Your active support requests" : "All tickets in the system"}</p>
+            <p className="text-slate-400 mt-1">{isEmployee ? "Your active support requests" : `${total} tickets in the system`}</p>
           </div>
         </div>
-        <div className="flex space-x-3">
-          <button className="flex items-center space-x-2 px-4 py-2 bg-slate-800/50 border border-slate-700/50 text-slate-300 rounded-xl shadow-sm text-sm hover:bg-slate-700/50 hover:text-white transition-colors font-medium">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </button>
-          <Link href="/incidents/new" className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all font-bold">
-            <Plus className="w-4 h-4" />
-            <span>New Incident</span>
-          </Link>
-        </div>
+        <Link href="/incidents/new" className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all font-bold">
+          <Plus className="w-4 h-4" />
+          <span>New Incident</span>
+        </Link>
       </div>
 
-      <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50">
-          <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">{isEmployee ? "My Tickets" : "All Incidents"}</h2>
+      {/* Filter bar */}
+      <form action="/incidents" className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Search by number or title…"
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all placeholder-slate-500 text-sm"
+          />
         </div>
+        <select
+          name="status"
+          defaultValue={status}
+          className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{s === "ALL" ? "All statuses" : s.replace("_", " ")}</option>
+          ))}
+        </select>
+        {!isEmployee && groups.length > 0 && (
+          <select
+            name="group"
+            defaultValue={group}
+            className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+          >
+            <option value="ALL">All groups</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        )}
+        <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-colors">
+          Filter
+        </button>
+      </form>
+
+      <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-slate-300">
             <thead className="text-xs text-slate-500 bg-black/20 uppercase tracking-wider">
@@ -52,14 +119,20 @@ export default async function IncidentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {incidents.length === 0 ? (
+              {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-12 text-center text-slate-500 italic">
-                    No incidents found.
+                  <td colSpan={6}>
+                    <EmptyState
+                      icon={Ticket}
+                      title={q || status !== "ALL" ? "No matching incidents" : isEmployee ? "No open tickets" : "No incidents yet"}
+                      description={q || status !== "ALL" ? "Try adjusting your search or filters." : "New incidents will appear here as they're raised."}
+                      ctaHref="/incidents/new"
+                      ctaLabel="New Incident"
+                    />
                   </td>
                 </tr>
               ) : (
-                incidents.map((inc) => (
+                items.map((inc) => (
                   <tr key={inc.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
                     <td className="px-8 py-5">
                       <Link href={`/incidents/${inc.id}`} className="font-bold text-indigo-400 group-hover:text-indigo-300">
@@ -71,7 +144,7 @@ export default async function IncidentsPage() {
                     <td className="px-8 py-5 text-sky-400 font-medium">{inc.caller?.name || "Unknown"}</td>
                     <td className="px-8 py-5">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.priority === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+                        inc.priority === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                         inc.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                         'bg-slate-500/10 text-slate-400 border-slate-500/20'
                       }`}>
@@ -80,11 +153,11 @@ export default async function IncidentsPage() {
                     </td>
                     <td className="px-8 py-5">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.status === 'NEW' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 
+                        inc.status === 'NEW' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
                         inc.status === 'IN_PROGRESS' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                         'bg-slate-500/10 text-slate-400 border-slate-500/20'
                       }`}>
-                        {inc.status}
+                        {inc.status.replace("_", " ")}
                       </span>
                     </td>
                   </tr>
@@ -94,6 +167,29 @@ export default async function IncidentsPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-slate-500">Page {page} of {totalPages} · {total} total</p>
+          <div className="flex gap-2">
+            <Link
+              href={buildHref({ page: Math.max(1, page - 1) })}
+              aria-disabled={page <= 1}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${page <= 1 ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5"}`}
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Link>
+            <Link
+              href={buildHref({ page: Math.min(totalPages, page + 1) })}
+              aria-disabled={page >= totalPages}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${page >= totalPages ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5"}`}
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

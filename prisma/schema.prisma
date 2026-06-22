@@ -12,6 +12,14 @@ enum Role {
   EMPLOYEE
 }
 
+// A tenant. Every data model carries a `domain` string that references a
+// Domain.slug; all queries are scoped to the caller's active domain.
+model Domain {
+  slug      String   @id
+  name      String
+  createdAt DateTime @default(now())
+}
+
 model User {
   id               String            @id @default(cuid())
   name             String
@@ -23,9 +31,39 @@ model User {
   incidentsAssigned Incident[]       @relation("Assignee")
   articles         KnowledgeArticle[]
   assets           Asset[]           @relation("AssignedAssets")
+  incidentNotes    IncidentNote[]
+  catalogRequests  CatalogRequest[]
+  notifications    Notification[]
+  uploads          Attachment[]
+  groups           AssignmentGroup[] @relation("GroupMembers")
+  emailNotifications Boolean         @default(true)
+  jobTitle         String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   domain           String            @default("global")
+}
+
+enum NotificationType {
+  ASSIGNMENT
+  APPROVAL
+  REJECTION
+  RESOLUTION
+  COMMENT
+  GENERAL
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  type      NotificationType @default(GENERAL)
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
 }
 
 enum IncidentStatus {
@@ -75,21 +113,92 @@ model Incident {
   
   assigneeId  String?
   assignee    User?          @relation("Assignee", fields: [assigneeId], references: [id])
-  
+
+  assignmentGroupId String?
+  assignmentGroup   AssignmentGroup? @relation(fields: [assignmentGroupId], references: [id])
+
+  notes       IncidentNote[]
+  attachments Attachment[]
+
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   domain      String         @default("global")
+
+  @@index([domain, assignmentGroupId])
+}
+
+// A queue/team that incidents route to (Network Support, Hardware, Access…).
+model AssignmentGroup {
+  id        String     @id @default(cuid())
+  name      String
+  domain    String
+  members   User[]     @relation("GroupMembers")
+  incidents Incident[]
+  createdAt DateTime   @default(now())
+
+  @@index([domain])
+}
+
+// Per-tenant DEX settings (server-side self-heal toggle, etc.).
+model TenantSettings {
+  domain    String   @id
+  autoHeal  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  filename     String
+  mimeType     String
+  size         Int
+  data         Bytes
+
+  // An attachment belongs to either an incident or a knowledge article.
+  incidentId   String?
+  incident     Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  articleId    String?
+  article      KnowledgeArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+  @@index([articleId])
+}
+
+enum NoteType {
+  COMMENT
+  WORK_NOTE
+  SYSTEM
+}
+
+model IncidentNote {
+  id         String   @id @default(cuid())
+  body       String
+  type       NoteType @default(COMMENT)
+
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id])
+
+  createdAt  DateTime @default(now())
 }
 
 model KnowledgeArticle {
   id          String   @id @default(cuid())
   title       String
-  content     String   
+  content     String
   isPublished Boolean  @default(false)
-  
+
   authorId    String
   author      User     @relation(fields: [authorId], references: [id])
-  
+  attachments Attachment[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   domain      String   @default("global")
@@ -118,4 +227,131 @@ model Asset {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   domain       String      @default("global")
+}
+
+model CatalogItem {
+  id          String           @id @default(cuid())
+  name        String
+  description String
+  category    String           // e.g., "Hardware", "Software", "Access"
+  icon        String?          // lucide icon key
+  price       Float?           // optional showback cost
+  isActive    Boolean          @default(true)
+  requests    CatalogRequest[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  domain      String           @default("global")
+}
+
+// A real endpoint (laptop/PC) running the DEX agent, scoped to a tenant.
+model Device {
+  id          String   @id @default(cuid())
+  deviceKey   String   @unique // bearer secret the agent uses to post metrics
+  hostname    String
+  os          String?
+  user        String?  // logged-in OS user reported by the agent
+  domain      String   // tenant
+
+  // Latest snapshot (denormalized for a fast dashboard).
+  cpuPct      Float?
+  memUsedMb   Int?
+  memTotalMb  Int?
+  diskPct     Float?
+  uptimeSec   Int?
+  latencyMs   Int?
+  batteryPct  Int?
+  cpuCores    Int?
+  lastSeenAt  DateTime?
+
+  // Proactive monitoring: when we last auto-raised an alert for this device.
+  lastAlertAt DateTime?
+
+  enrolledAt  DateTime @default(now())
+  metrics     DeviceMetric[]
+  commands    RemoteCommand[]
+
+  @@index([domain])
+}
+
+model DeviceMetric {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  cpuPct     Float
+  memUsedMb  Int
+  memTotalMb Int
+  diskPct    Float?
+  uptimeSec  Int?
+  latencyMs  Int?
+  batteryPct Int?
+  createdAt  DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+enum CommandStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+// A remediation action queued for an agent to pull and execute on the endpoint.
+model RemoteCommand {
+  id          String        @id @default(cuid())
+  deviceId    String
+  device      Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  action      String        // FLUSH_DNS | CLEAR_TEMP | RESTART_SPOOLER | REBOOT
+  status      CommandStatus @default(QUEUED)
+  result      String?
+  domain      String
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?
+
+  @@index([deviceId, status])
+}
+
+// One enrollment token per tenant; the agent presents it once to enroll.
+model EnrollmentToken {
+  domain    String   @id
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Flow {
+  id          String   @id @default(cuid())
+  name        String
+  // Serialized node list: [{ id, type, name, desc }]
+  definition  Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  domain      String   @default("global")
+}
+
+enum RequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  FULFILLED
+}
+
+model CatalogRequest {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  requesterId String
+  requester   User          @relation(fields: [requesterId], references: [id])
+
+  status      RequestStatus @default(REQUESTED)
+  notes       String?
+
+  // Links to the work-queue incident opened for this request, so approvals
+  // stay in sync between the request record and the ticket.
+  incidentId  String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  domain      String        @default("global")
 }

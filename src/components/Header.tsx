@@ -2,8 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { ShieldAlert, Zap, LogOut, User, Globe, Moon, Monitor, Settings, ChevronDown, X, Save, Building2 } from "lucide-react";
+import { useUser, useAuth, OrganizationSwitcher } from "@clerk/nextjs";
+import { ShieldAlert, Zap, LogOut, User, Globe, Moon, Monitor, Settings, ChevronDown, X, Save } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
+import { getMyProfile, updateMyProfile } from "@/app/actions/userActions";
+import { toast } from "@/components/toast";
 
 export default function Header() {
   const { user: clerkUser } = useUser();
@@ -12,6 +15,34 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Editable profile form, hydrated from the database when settings opens.
+  const [form, setForm] = useState({ name: "", jobTitle: "", emailNotifications: true });
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (activeSettingsTab && !loaded) {
+      getMyProfile().then((p) => {
+        if (p) {
+          setForm({ name: p.name, jobTitle: p.jobTitle, emailNotifications: p.emailNotifications });
+          setLoaded(true);
+        }
+      });
+    }
+  }, [activeSettingsTab, loaded]);
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      await updateMyProfile(form);
+      toast("Profile saved");
+      setActiveSettingsTab(null);
+    } catch {
+      toast("Couldn't save profile", "error");
+    }
+    setSaving(false);
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -43,18 +74,16 @@ export default function Header() {
         <div className="flex items-center space-x-5">
           {clerkUser ? (
             <div className="flex items-center space-x-4">
-              {role === 'ADMIN' && (
-                <div className="hidden lg:flex items-center space-x-2 bg-slate-900/50 border border-white/10 rounded-xl px-3 py-1.5 text-sm">
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  <select className="bg-transparent text-slate-300 font-bold focus:outline-none appearance-none cursor-pointer pr-4">
-                    <option>Global Domain</option>
-                    <option>Acme Corp (MSP)</option>
-                    <option>Tech Solutions (MSP)</option>
-                  </select>
-                </div>
-              )}
+              {/* Native tenant (organization) switcher: create + switch customer spaces. */}
+              <OrganizationSwitcher
+                hidePersonal
+                afterCreateOrganizationUrl="/dashboard"
+                afterSelectOrganizationUrl="/dashboard"
+                appearance={{ elements: { rootBox: "flex items-center", organizationSwitcherTrigger: "text-slate-200 hover:bg-white/5 rounded-xl px-3 py-1.5 border border-white/10" } }}
+              />
+              <NotificationBell />
               <div className="relative" ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center space-x-3 hover:bg-white/5 p-1.5 pr-3 rounded-full transition-colors border border-transparent hover:border-white/10"
               >
@@ -188,15 +217,15 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
-                      <input type="text" defaultValue={clerkUser?.fullName || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
-                      <input type="email" disabled defaultValue={clerkUser?.primaryEmailAddress?.emailAddress || 'user@novasync.app'} className="w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 opacity-70 cursor-not-allowed" />
+                      <input type="email" disabled defaultValue={clerkUser?.primaryEmailAddress?.emailAddress || ''} className="w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 opacity-70 cursor-not-allowed" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Job Title</label>
-                      <input type="text" defaultValue={role.replace('_', ' ') || ''} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="e.g., Network Engineer" className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors" />
                     </div>
                   </div>
                 )}
@@ -266,7 +295,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-white/10 bg-black/30 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900" />
+                        <input type="checkbox" checked={form.emailNotifications} onChange={(e) => setForm({ ...form, emailNotifications: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-black/30 accent-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900" />
                         <span className="text-sm font-bold text-white">Receive Email Notifications</span>
                       </label>
                       <p className="text-xs text-slate-400 ml-8 mt-1">Get emails when your tickets are updated.</p>
@@ -283,9 +312,9 @@ export default function Header() {
 
               <div className="p-6 border-t border-white/5 bg-black/20 flex justify-end space-x-3">
                 <button onClick={() => setActiveSettingsTab(null)} className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-300 hover:bg-white/5 transition-colors">Cancel</button>
-                <button onClick={() => setActiveSettingsTab(null)} className="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-colors flex items-center space-x-2">
+                <button onClick={saveProfile} disabled={saving} className="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-colors flex items-center space-x-2 disabled:opacity-50">
                   <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
+                  <span>{saving ? "Saving…" : "Save Changes"}</span>
                 </button>
               </div>
             </div>

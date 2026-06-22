@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { QrCode, MonitorSmartphone, BadgeAlert, Laptop, Smartphone, Headphones, HelpCircle, ArrowRight, User, CheckCircle2 } from "lucide-react";
+import { QrCode, MonitorSmartphone, BadgeAlert, Laptop, Smartphone, Headphones, HelpCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { createWalkupTicket, getWalkupQueue } from "@/app/actions/walkupActions";
 
 export default function WalkUpExperience() {
   const [step, setStep] = useState(1);
   const [currentTime, setCurrentTime] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<{ number: string; queue: number; etaMins: number } | null>(null);
+  const [liveQueue, setLiveQueue] = useState<{ queue: number; etaMins: number }>({ queue: 0, etaMins: 4 });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -15,6 +18,13 @@ export default function WalkUpExperience() {
       setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Keep the queue indicator fresh from real open walk-up tickets.
+  useEffect(() => {
+    getWalkupQueue().then(setLiveQueue).catch(() => {});
+    const t = setInterval(() => getWalkupQueue().then(setLiveQueue).catch(() => {}), 15_000);
+    return () => clearInterval(t);
   }, []);
 
   const issueTypes = [
@@ -25,15 +35,24 @@ export default function WalkUpExperience() {
     { id: "other", name: "Something Else", icon: <HelpCircle className="w-12 h-12 mb-4" /> },
   ];
 
-  const handleIssueSelect = (id: string) => {
+  const handleIssueSelect = async (id: string) => {
     setSelectedIssue(id);
     setStep(3);
-    
-    // Auto reset after 5 seconds to simulate finishing
+
+    // Open a real ticket for this walk-up.
+    try {
+      const t = await createWalkupTicket(id);
+      setTicket(t);
+    } catch {
+      setTicket(null);
+    }
+
+    // Auto reset to the welcome screen after a short confirmation.
     setTimeout(() => {
       setStep(1);
       setSelectedIssue(null);
-    }, 5000);
+      setTicket(null);
+    }, 8000);
   };
 
   return (
@@ -105,11 +124,19 @@ export default function WalkUpExperience() {
             <div className="w-32 h-32 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)]">
               <CheckCircle2 className="w-16 h-16 text-emerald-400" />
             </div>
-            <h1 className="text-6xl font-black text-white mb-6">You're checked in!</h1>
+            <h1 className="text-6xl font-black text-white mb-6">You&apos;re checked in!</h1>
             <p className="text-2xl text-slate-300 mb-4 font-medium">Please take a seat in the lounge.</p>
-            <div className="inline-block px-8 py-4 bg-slate-900 border border-white/10 rounded-2xl mt-8">
-              <p className="text-slate-400 uppercase tracking-widest text-sm font-bold mb-2">Estimated Wait Time</p>
-              <p className="text-5xl font-black text-white">~4 mins</p>
+            <div className="flex items-center justify-center gap-4 mt-8">
+              {ticket && (
+                <div className="inline-block px-8 py-4 bg-slate-900 border border-white/10 rounded-2xl">
+                  <p className="text-slate-400 uppercase tracking-widest text-sm font-bold mb-2">Your Ticket</p>
+                  <p className="text-4xl font-black text-indigo-400">{ticket.number}</p>
+                </div>
+              )}
+              <div className="inline-block px-8 py-4 bg-slate-900 border border-white/10 rounded-2xl">
+                <p className="text-slate-400 uppercase tracking-widest text-sm font-bold mb-2">Estimated Wait</p>
+                <p className="text-4xl font-black text-white">~{ticket?.etaMins ?? liveQueue.etaMins} mins</p>
+              </div>
             </div>
           </div>
         )}
@@ -126,8 +153,8 @@ export default function WalkUpExperience() {
                 <span className="text-emerald-400 font-bold uppercase tracking-wider text-sm">TechLounge is Open</span>
               </div>
               <div className="h-6 w-px bg-white/10"></div>
-              <div className="text-slate-300 font-medium">Current Queue: <span className="font-black text-white ml-2">2 People</span></div>
-              <div className="text-slate-300 font-medium">Est. Wait: <span className="font-black text-white ml-2">4 Mins</span></div>
+              <div className="text-slate-300 font-medium">Current Queue: <span className="font-black text-white ml-2">{liveQueue.queue} {liveQueue.queue === 1 ? "Person" : "People"}</span></div>
+              <div className="text-slate-300 font-medium">Est. Wait: <span className="font-black text-white ml-2">{liveQueue.etaMins} Mins</span></div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex -space-x-4">

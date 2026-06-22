@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { getKnowledgeArticles } from "@/app/actions/knowledgeActions";
 import { getSessionUser } from "@/lib/auth-utils";
-import { BookOpen, Plus, Search, FileText } from "lucide-react";
+import { BookOpen, Plus, Search, FileText, SearchX } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 
 export default async function KnowledgePage({
   searchParams,
@@ -61,7 +62,25 @@ export default async function KnowledgePage({
         </div>
         <div className="divide-y divide-white/5">
           {articles.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 italic">No articles found matching your query.</div>
+            q ? (
+              <EmptyState
+                icon={SearchX}
+                title="No matching articles"
+                description={`Nothing found for "${q}". Try a different search term${isEmployee ? "." : ", or create the article yourself."}`}
+                ctaHref={isEmployee ? undefined : "/knowledge/new"}
+                ctaLabel={isEmployee ? undefined : "Create Article"}
+                accent="text-emerald-400"
+              />
+            ) : (
+              <EmptyState
+                icon={BookOpen}
+                title="The knowledge base is empty"
+                description={isEmployee ? "No articles have been published yet. Check back soon." : "Capture your first troubleshooting guide or policy so the AI can surface it on future tickets."}
+                ctaHref={isEmployee ? undefined : "/knowledge/new"}
+                ctaLabel={isEmployee ? undefined : "Create Article"}
+                accent="text-emerald-400"
+              />
+            )
           ) : (
             articles.map((article) => (
               <div key={article.id} className="p-8 hover:bg-white/5 transition-colors group">

@@ -1,0 +1,22 @@
+{
+  "name": "leadaistudio-dex-agent",
+  "version": "1.0.0",
+  "description": "LeadAIStudio DEX endpoint agent — standalone build",
+  "private": true,
+  "bin": "src/dex-agent.cjs",
+  "scripts": {
+    "build": "pkg . --targets node22-win-x64 --output dist/aiops-agent.exe && node patch-gui.cjs dist/aiops-agent.exe",
+    "build:console": "pkg . --targets node22-win-x64 --output dist/aiops-agent.exe"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/systray2/traybin/**/*"
+    ]
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.6.0"
+  },
+  "dependencies": {
+    "systray2": "^2.1.4"
+  }
+}

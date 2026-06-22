@@ -24,6 +24,8 @@ export default function AIChatbot() {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      // Intentional: show the typing indicator when the chat first opens.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsTyping(true);
       setTimeout(() => {
         setMessages([{
@@ -42,7 +44,7 @@ export default function AIChatbot() {
     setIsTyping(true);
     
     setTimeout(() => {
-      let botResponse: Message = {
+      const botResponse: Message = {
         id: Date.now().toString(),
         role: 'assistant',
         content: "I can help with that. Could you provide a bit more detail?"
