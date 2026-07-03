@@ -6,6 +6,7 @@ import { NoteType } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notify } from "@/app/actions/notificationActions";
+import { logAudit } from "@/lib/audit";
 
 // Incidents awaiting an approval decision (catalog access requests, etc.).
 export async function getPendingApprovals() {
@@ -30,7 +31,7 @@ export async function approveRequest(incidentId: string) {
   const inc = await prisma.incident.update({
     where: { id: incidentId },
     data: { status: "IN_PROGRESS", assigneeId: approver.id },
-    select: { callerId: true, number: true, title: true },
+    select: { callerId: true, number: true, title: true, domain: true },
   });
 
   await prisma.incidentNote.create({
@@ -55,6 +56,16 @@ export async function approveRequest(incidentId: string) {
     link: `/incidents/${incidentId}`,
   });
 
+  await logAudit({
+    domain: inc.domain,
+    action: "APPROVE",
+    entityType: "Incident",
+    entityId: incidentId,
+    entityLabel: inc.number,
+    summary: "Approved request",
+    actor: { id: approver.id, name: approver.name, email: approver.email },
+  });
+
   revalidatePath("/approvals");
   revalidatePath(`/incidents/${incidentId}`);
 }
@@ -65,7 +76,7 @@ export async function rejectRequest(incidentId: string, reason?: string) {
   const inc = await prisma.incident.update({
     where: { id: incidentId },
     data: { status: "CLOSED" },
-    select: { callerId: true, number: true, title: true },
+    select: { callerId: true, number: true, title: true, domain: true },
   });
 
   await prisma.incidentNote.create({
@@ -87,6 +98,16 @@ export async function rejectRequest(incidentId: string, reason?: string) {
     body: reason?.trim() || inc.title,
     type: "REJECTION",
     link: `/incidents/${incidentId}`,
+  });
+
+  await logAudit({
+    domain: inc.domain,
+    action: "REJECT",
+    entityType: "Incident",
+    entityId: incidentId,
+    entityLabel: inc.number,
+    summary: reason?.trim() ? `Rejected request: ${reason.trim()}` : "Rejected request",
+    actor: { id: approver.id, name: approver.name, email: approver.email },
   });
 
   revalidatePath("/approvals");

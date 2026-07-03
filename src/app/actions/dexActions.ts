@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
 import { getSessionUser } from "@/lib/auth-utils";
+import { logAudit } from "@/lib/audit";
 
 export type DexEndpoint = {
   deviceId: string;
@@ -102,10 +103,19 @@ export async function queueRemediation(deviceId: string, action: string) {
     throw new Error("Unknown action");
   }
   const domain = await getActiveDomain();
-  const device = await prisma.device.findFirst({ where: { id: deviceId, domain }, select: { id: true } });
+  const device = await prisma.device.findFirst({ where: { id: deviceId, domain }, select: { id: true, hostname: true } });
   if (!device) throw new Error("Device not found");
 
   await prisma.remoteCommand.create({ data: { deviceId, action, domain } });
+  await logAudit({
+    domain,
+    action: "REMEDIATION",
+    entityType: "Device",
+    entityId: deviceId,
+    entityLabel: device.hostname,
+    summary: `Queued remediation: ${action}`,
+    actor: { id: user.id, name: user.name, email: user.email },
+  });
   revalidatePath("/dex");
   return { ok: true };
 }

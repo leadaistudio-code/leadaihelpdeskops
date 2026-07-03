@@ -95,9 +95,9 @@ export default function WalkUpExperience() {
         {step === 2 && (
           <div className="w-full animate-in slide-in-from-right-10 fade-in duration-300">
             <div className="flex items-center space-x-4 mb-12 justify-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400 flex items-center justify-center text-white text-2xl font-bold">JD</div>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400 flex items-center justify-center text-white text-2xl font-bold">PS</div>
               <div className="text-left">
-                <h2 className="text-3xl font-black text-white">Hi, Jane Doe!</h2>
+                <h2 className="text-3xl font-black text-white">Hi, Priya Sharma!</h2>
                 <p className="text-xl text-slate-400">What do you need help with today?</p>
               </div>
             </div>

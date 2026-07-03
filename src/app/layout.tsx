@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs';
 import AppShell from "@/components/AppShell";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
+// Characterful grotesk for display headings — paired with Jakarta for body.
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
 
 export const metadata: Metadata = {
   title: {
@@ -46,7 +48,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark">
-        <body className={`${jakarta.variable} font-sans bg-aurora text-slate-200`}>
+        <body className={`${jakarta.variable} ${bricolage.variable} font-sans bg-aurora text-slate-200`}>
           <AppShell>{children}</AppShell>
         </body>
       </html>

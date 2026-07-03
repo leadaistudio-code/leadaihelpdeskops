@@ -2,15 +2,25 @@
 
 @theme {
   --font-sans: var(--font-jakarta);
+  --font-display: var(--font-bricolage);
+}
+
+/* Characterful display face for headings across the app and marketing site. */
+h1, h2, h3 {
+  font-family: var(--font-bricolage), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+.font-display {
+  font-family: var(--font-bricolage), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer utilities {
   .bg-aurora {
-    background-color: #030712; /* Deepest gray/black */
-    background-image: 
-      radial-gradient(ellipse at top left, rgba(79, 70, 229, 0.15) 0%, transparent 40%),
-      radial-gradient(ellipse at bottom right, rgba(14, 165, 233, 0.1) 0%, transparent 40%),
-      radial-gradient(ellipse at center, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+    /* Mission Control — cool ink ground with signal-mint + ambient violet depth */
+    background-color: #080B11;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(56, 232, 176, 0.10) 0%, transparent 42%),
+      radial-gradient(ellipse at bottom right, rgba(109, 94, 246, 0.12) 0%, transparent 45%),
+      radial-gradient(ellipse at center, rgba(56, 232, 176, 0.04) 0%, transparent 50%);
     background-attachment: fixed;
   }
 
@@ -31,11 +41,11 @@
   }
 
   .glass-panel {
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(15, 20, 29, 0.62);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(56, 232, 176, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.28);
   }
 
   .neon-border {
@@ -47,7 +57,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(to right, rgba(139, 92, 246, 0.5), rgba(56, 189, 248, 0.5));
+    background: linear-gradient(to right, rgba(56, 232, 176, 0.5), rgba(37, 168, 208, 0.5));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -66,9 +76,208 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.6); }
+  0%, 100% { box-shadow: 0 0 15px rgba(56, 232, 176, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(56, 232, 176, 0.6); }
 }
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite;
+}
+
+/*
+  Theme system - surface-scoped light/dark overrides (ASCII only).
+  Defaults are each surface's native look (app = dark, marketing = light),
+  so by default NOTHING below applies. Overrides kick in only when a surface
+  is toggled to its non-native theme. Kept in @layer utilities so they are
+  emitted, and selectors are more specific than Tailwind utilities so they win.
+*/
+@layer utilities {
+  /* ----- Dashboard / app: LIGHT ----- */
+
+  /* Light page background behind the (transparent) app chrome. */
+  .app-root.theme-light::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: #f1f5f9;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(79, 70, 229, 0.08) 0%, transparent 42%),
+      radial-gradient(ellipse at bottom right, rgba(14, 165, 233, 0.06) 0%, transparent 42%);
+  }
+
+  /* Surfaces */
+  .app-root.theme-light .glass-panel {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 4px 30px rgba(15, 23, 42, 0.06);
+  }
+  .app-root.theme-light .bg-slate-900,
+  .app-root.theme-light .bg-slate-950 { background-color: #ffffff; }
+  .app-root.theme-light .bg-slate-950\/20,
+  .app-root.theme-light .bg-slate-950\/30,
+  .app-root.theme-light .bg-slate-950\/40,
+  .app-root.theme-light .bg-slate-900\/40,
+  .app-root.theme-light .bg-slate-900\/50,
+  .app-root.theme-light .bg-slate-900\/60,
+  .app-root.theme-light .bg-slate-900\/95 { background-color: rgba(255, 255, 255, 0.88); }
+  .app-root.theme-light .bg-black\/20,
+  .app-root.theme-light .bg-black\/30,
+  .app-root.theme-light .bg-black\/40 { background-color: rgba(15, 23, 42, 0.035); }
+  .app-root.theme-light .bg-white\/5,
+  .app-root.theme-light .bg-white\/10 { background-color: rgba(15, 23, 42, 0.04); }
+
+  /* Hover surfaces */
+  .app-root.theme-light .hover\:bg-white\/5:hover,
+  .app-root.theme-light .hover\:bg-white\/10:hover,
+  .app-root.theme-light .hover\:bg-slate-800\/50:hover { background-color: rgba(15, 23, 42, 0.06); }
+
+  /* Borders & dividers */
+  .app-root.theme-light .border-white\/5 { border-color: rgba(15, 23, 42, 0.06); }
+  .app-root.theme-light .border-white\/10 { border-color: rgba(15, 23, 42, 0.1); }
+  .app-root.theme-light .border-white\/20 { border-color: rgba(15, 23, 42, 0.14); }
+  .app-root.theme-light .border-slate-700,
+  .app-root.theme-light .border-slate-700\/50 { border-color: rgba(15, 23, 42, 0.12); }
+  .app-root.theme-light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(15, 23, 42, 0.08); }
+
+  /* Text - readable on light surfaces */
+  .app-root.theme-light .text-white,
+  .app-root.theme-light .text-slate-50,
+  .app-root.theme-light .text-slate-100 { color: #0f172a; }
+  .app-root.theme-light .text-slate-200,
+  .app-root.theme-light .text-slate-300 { color: #334155; }
+  .app-root.theme-light .text-slate-400 { color: #475569; }
+  .app-root.theme-light .text-slate-500 { color: #64748b; }
+  .app-root.theme-light .text-slate-600 { color: #94a3b8; }
+
+  /* Inputs / placeholders */
+  .app-root.theme-light .placeholder-slate-500::placeholder,
+  .app-root.theme-light .placeholder-slate-600::placeholder { color: #94a3b8; }
+
+  /* Scrollbar */
+  .app-root.theme-light .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.18); }
+  .app-root.theme-light .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(15, 23, 42, 0.3); }
+
+  /* ----- Marketing / website: DARK ----- */
+
+  .marketing-root.theme-dark .bg-slate-50 { background-color: #020617; }
+  .marketing-root.theme-dark .bg-white { background-color: #0f172a; }
+  .marketing-root.theme-dark .bg-white\/80 { background-color: rgba(15, 23, 42, 0.82); }
+  .marketing-root.theme-dark .bg-slate-100 { background-color: #1e293b; }
+
+  .marketing-root.theme-dark .text-slate-900 { color: #f8fafc; }
+  .marketing-root.theme-dark .text-slate-800 { color: #e2e8f0; }
+  .marketing-root.theme-dark .text-slate-700 { color: #cbd5e1; }
+  .marketing-root.theme-dark .text-slate-600 { color: #94a3b8; }
+  .marketing-root.theme-dark .text-slate-500 { color: #94a3b8; }
+
+  .marketing-root.theme-dark .border-slate-100,
+  .marketing-root.theme-dark .border-slate-200,
+  .marketing-root.theme-dark .border-slate-300 { border-color: rgba(255, 255, 255, 0.1); }
+
+  .marketing-root.theme-dark .bg-blue-50 { background-color: rgba(37, 99, 235, 0.16); }
+  .marketing-root.theme-dark .text-blue-700 { color: #93c5fd; }
+  .marketing-root.theme-dark .border-blue-100 { border-color: rgba(37, 99, 235, 0.3); }
+
+  .marketing-root.theme-dark .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, 0.06); }
+  .marketing-root.theme-dark .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.08); }
+}
+
+/*
+  Mission Control accent remap — shifts the dark app surface's brand accent
+  from blue/violet/sky to signal-mint everywhere at once, without editing
+  individual pages. Scoped to `.app-root.theme-dark` so light mode stays
+  readable. Semantic colors (amber/rose/emerald) are intentionally untouched.
+*/
+@layer utilities {
+  .app-root.theme-dark .text-blue-400,
+  .app-root.theme-dark .text-blue-500,
+  .app-root.theme-dark .text-blue-600,
+  .app-root.theme-dark .text-sky-400,
+  .app-root.theme-dark .text-sky-500,
+  .app-root.theme-dark .text-indigo-400,
+  .app-root.theme-dark .text-indigo-500,
+  .app-root.theme-dark .text-violet-400,
+  .app-root.theme-dark .text-violet-500 { color: #38E8B0; }
+
+  .app-root.theme-dark .border-blue-500,
+  .app-root.theme-dark .border-blue-500\/50,
+  .app-root.theme-dark .border-sky-500,
+  .app-root.theme-dark .border-indigo-500,
+  .app-root.theme-dark .border-violet-500 { border-color: rgba(56, 232, 176, 0.45); }
+
+  /* translucent accent chips (icon backdrops, badges) */
+  .app-root.theme-dark .bg-blue-500\/10,
+  .app-root.theme-dark .bg-blue-600\/10,
+  .app-root.theme-dark .bg-sky-500\/10,
+  .app-root.theme-dark .bg-indigo-500\/10,
+  .app-root.theme-dark .bg-violet-500\/10 { background-color: rgba(56, 232, 176, 0.10); }
+  .app-root.theme-dark .bg-blue-500\/20,
+  .app-root.theme-dark .bg-sky-500\/20,
+  .app-root.theme-dark .bg-violet-500\/20 { background-color: rgba(56, 232, 176, 0.18); }
+
+  /* solid accent fills (primary buttons) -> deep signal teal; keeps bold text legible */
+  .app-root.theme-dark .bg-blue-500 { background-color: #12B489; }
+  .app-root.theme-dark .bg-blue-600 { background-color: #0E9E77; }
+  .app-root.theme-dark .bg-blue-700 { background-color: #0B8968; }
+  .app-root.theme-dark .hover\:bg-blue-500:hover { background-color: #12B489; }
+  .app-root.theme-dark .hover\:bg-blue-600:hover { background-color: #0E9E77; }
+  .app-root.theme-dark .hover\:bg-blue-700:hover { background-color: #0B8968; }
+
+  .app-root.theme-dark .ring-blue-500 { --tw-ring-color: rgba(56, 232, 176, 0.5); }
+}
+
+/* Extended remap: cyan accent, lighter/hover variants, more chips, and gradients. */
+@layer utilities {
+  /* cyan (DEX accent) + lighter 300 tones -> mint */
+  .app-root.theme-dark .text-cyan-400,
+  .app-root.theme-dark .text-cyan-500,
+  .app-root.theme-dark .text-cyan-300,
+  .app-root.theme-dark .text-sky-300,
+  .app-root.theme-dark .text-blue-300,
+  .app-root.theme-dark .text-indigo-300,
+  .app-root.theme-dark .text-violet-300,
+  .app-root.theme-dark .hover\:text-indigo-300:hover,
+  .app-root.theme-dark .hover\:text-sky-300:hover,
+  .app-root.theme-dark .hover\:text-blue-300:hover,
+  .app-root.theme-dark .group:hover .group-hover\:text-indigo-300 { color: #5EEAD4; }
+
+  /* translucent chips / backdrops */
+  .app-root.theme-dark .bg-cyan-500\/10,
+  .app-root.theme-dark .bg-indigo-500\/5,
+  .app-root.theme-dark .bg-violet-500\/5,
+  .app-root.theme-dark .bg-blue-500\/5,
+  .app-root.theme-dark .bg-sky-500\/5 { background-color: rgba(56, 232, 176, 0.07); }
+  .app-root.theme-dark .bg-cyan-500\/20,
+  .app-root.theme-dark .bg-indigo-500\/20 { background-color: rgba(56, 232, 176, 0.18); }
+  .app-root.theme-dark .bg-violet-500\/30,
+  .app-root.theme-dark .bg-cyan-500\/30 { background-color: rgba(56, 232, 176, 0.26); }
+
+  /* borders (incl. hover + opacity variants) */
+  .app-root.theme-dark .border-cyan-500\/30,
+  .app-root.theme-dark .border-cyan-500\/20,
+  .app-root.theme-dark .border-indigo-500\/30,
+  .app-root.theme-dark .border-indigo-500\/20,
+  .app-root.theme-dark .border-sky-500\/20,
+  .app-root.theme-dark .border-blue-500\/20,
+  .app-root.theme-dark .border-violet-500\/30,
+  .app-root.theme-dark .hover\:border-violet-500\/30:hover,
+  .app-root.theme-dark .hover\:border-indigo-500\/30:hover,
+  .app-root.theme-dark .hover\:border-sky-500\/30:hover { border-color: rgba(56, 232, 176, 0.32); }
+
+  /* gradient stops -> mint (from = bright, to/via = deep) */
+  .app-root.theme-dark .from-violet-500, .app-root.theme-dark .from-violet-600,
+  .app-root.theme-dark .from-indigo-500, .app-root.theme-dark .from-indigo-600,
+  .app-root.theme-dark .from-blue-500, .app-root.theme-dark .from-blue-600,
+  .app-root.theme-dark .from-sky-400, .app-root.theme-dark .from-sky-500,
+  .app-root.theme-dark .from-cyan-400, .app-root.theme-dark .from-cyan-500,
+  .app-root.theme-dark .from-purple-500, .app-root.theme-dark .from-purple-600 { --tw-gradient-from: #12B489; }
+  .app-root.theme-dark .via-violet-500, .app-root.theme-dark .via-indigo-500,
+  .app-root.theme-dark .via-blue-500, .app-root.theme-dark .via-sky-500,
+  .app-root.theme-dark .via-cyan-500, .app-root.theme-dark .via-purple-500 { --tw-gradient-via: #16C79A; }
+  .app-root.theme-dark .to-violet-500, .app-root.theme-dark .to-violet-600,
+  .app-root.theme-dark .to-indigo-500, .app-root.theme-dark .to-indigo-600,
+  .app-root.theme-dark .to-blue-500, .app-root.theme-dark .to-blue-600,
+  .app-root.theme-dark .to-sky-400, .app-root.theme-dark .to-sky-500,
+  .app-root.theme-dark .to-cyan-400, .app-root.theme-dark .to-cyan-500,
+  .app-root.theme-dark .to-purple-500, .app-root.theme-dark .to-purple-600 { --tw-gradient-to: #0E9E77; }
 }

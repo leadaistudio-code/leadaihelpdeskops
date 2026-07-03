@@ -6,18 +6,19 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import AIChatbot from "@/components/AIChatbot";
 import Toaster from "@/components/toast";
+import { AppThemeProvider, MarketingThemeProvider } from "@/components/ThemeContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isMarketingPage = pathname === "/" || pathname === "/login" || pathname === "/walkup" || pathname === "/onboarding" || pathname?.startsWith("/p/");
+  const isMarketingPage = pathname === "/" || pathname === "/login" || pathname === "/walkup" || pathname === "/onboarding" || pathname?.startsWith("/p/") || pathname?.startsWith("/guides/");
 
   if (isMarketingPage) {
-    return <>{children}</>;
+    return <MarketingThemeProvider>{children}</MarketingThemeProvider>;
   }
 
   return (
-    <>
+    <AppThemeProvider>
       <Header />
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <main className={`fixed top-[88px] ${isCollapsed ? 'left-24' : 'left-72'} right-8 bottom-8 overflow-hidden rounded-2xl glass-panel flex flex-col transition-all duration-300`}>
@@ -29,6 +30,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <AIChatbot />
       <Toaster />
-    </>
+    </AppThemeProvider>
   );
 }

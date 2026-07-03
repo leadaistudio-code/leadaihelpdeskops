@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getIncidents } from "@/app/actions/incidentActions";
 import { getSessionUser } from "@/lib/auth-utils";
 import { CheckCircle2, Plus } from "lucide-react";
+import SlaBadge from "@/components/SlaBadge";
 
 export default async function ClosedIncidentsPage() {
   const user = await getSessionUser();
@@ -82,6 +83,11 @@ export default async function ClosedIncidentsPage() {
                       }`}>
                         {inc.status}
                       </span>
+                      {inc.slaInstances[0] && (
+                        <div className="mt-1.5">
+                          <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

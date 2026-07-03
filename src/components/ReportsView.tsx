@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { BarChart3, Target, Clock, FileText, LayoutDashboard, CheckCircle2, Inbox, type LucideIcon } from "lucide-react";
 import type { ReportMetrics } from "@/app/actions/reportActions";
+import { useAppTheme } from "@/components/ThemeContext";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "#38bdf8", IN_PROGRESS: "#fbbf24", ON_HOLD: "#a78bfa",
@@ -71,6 +72,10 @@ function EmptyChart({ label }: { label: string }) {
 
 export default function ReportsView({ data }: { data: ReportMetrics }) {
   const hasVolume = data.volumeByDay.some((d) => d.incidents > 0 || d.requests > 0);
+  const { theme } = useAppTheme();
+  const isLight = theme === "light";
+  const axisColor = isLight ? "rgba(15,23,42,0.5)" : "rgba(255,255,255,0.3)";
+  const gridColor = isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.05)";
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10 space-y-8">
@@ -116,9 +121,9 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
                     <stop offset="5%" stopColor="#34d399" stopOpacity={0.8} /><stop offset="95%" stopColor="#34d399" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="date" stroke={axisColor} tickLine={false} axisLine={false} fontSize={12} />
+                <YAxis stroke={axisColor} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="incidents" stackId="1" stroke="#818cf8" fill="url(#cInc)" strokeWidth={2} />
                 <Area type="monotone" dataKey="requests" stackId="1" stroke="#34d399" fill="url(#cReq)" strokeWidth={2} />
@@ -148,10 +153,10 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
           {data.resolvedCount ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.slaByPriority} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="category" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip cursor={{ fill: "rgba(255,255,255,0.05)" }} content={<CustomTooltip />} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="category" stroke={axisColor} tickLine={false} axisLine={false} fontSize={12} />
+                <YAxis stroke={axisColor} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip cursor={{ fill: gridColor }} content={<CustomTooltip />} />
                 <Bar dataKey="met" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
                 <Bar dataKey="breached" stackId="a" fill="#f43f5e" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -164,10 +169,10 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
           {data.priorityBreakdown.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.priorityBreakdown} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} fontSize={12} width={80} />
-                <Tooltip cursor={{ fill: "rgba(255,255,255,0.05)" }} content={<CustomTooltip />} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+                <XAxis type="number" stroke={axisColor} tickLine={false} axisLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" stroke={axisColor} tickLine={false} axisLine={false} fontSize={12} width={80} />
+                <Tooltip cursor={{ fill: gridColor }} content={<CustomTooltip />} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {data.priorityBreakdown.map((e) => <Cell key={e.name} fill={PRIORITY_COLORS[e.name] ?? "#64748b"} />)}
                 </Bar>

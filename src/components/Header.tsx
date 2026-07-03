@@ -3,14 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useUser, useAuth, OrganizationSwitcher } from "@clerk/nextjs";
-import { ShieldAlert, Zap, LogOut, User, Globe, Moon, Monitor, Settings, ChevronDown, X, Save } from "lucide-react";
+import { ShieldAlert, LogOut, User, Globe, Moon, Sun, Monitor, Settings, ChevronDown, X, Save } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import Logo from "@/components/Logo";
 import { getMyProfile, updateMyProfile } from "@/app/actions/userActions";
 import { toast } from "@/components/toast";
+import { useAppTheme, ThemeToggle } from "@/components/ThemeContext";
 
 export default function Header() {
   const { user: clerkUser } = useUser();
   const { signOut } = useAuth();
+  const { theme, toggle: toggleTheme, setTheme } = useAppTheme();
   const role = (clerkUser?.publicMetadata?.role as string) || "EMPLOYEE";
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<string | null>(null);
@@ -62,16 +65,16 @@ export default function Header() {
   return (
     <>
       <header className="h-16 flex items-center justify-between px-6 fixed top-0 w-full z-40 transition-all duration-300 bg-slate-950/40 backdrop-blur-xl border-b border-white/5">
-        <div className="flex items-center space-x-4">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] flex items-center justify-center neon-border">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <div className="text-xl font-extrabold tracking-tight text-white">
-            LeadAIStudio <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-sky-400">AIOps</span>
-          </div>
-        </div>
+        <Link href="/dashboard" className="flex items-center">
+          <Logo size={34} />
+        </Link>
         
         <div className="flex items-center space-x-5">
+          <ThemeToggle
+            theme={theme}
+            toggle={toggleTheme}
+            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors"
+          />
           {clerkUser ? (
             <div className="flex items-center space-x-4">
               {/* Native tenant (organization) switcher: create + switch customer spaces. */}
@@ -267,13 +270,19 @@ export default function Header() {
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Theme</label>
                       <div className="grid grid-cols-2 gap-4">
-                        <button className="p-4 rounded-xl border border-indigo-500/50 bg-indigo-500/10 text-white font-bold flex flex-col items-center justify-center space-y-2">
-                          <Moon className="w-6 h-6 text-indigo-400" />
+                        <button
+                          onClick={() => setTheme('dark')}
+                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'dark' ? 'border-indigo-500/50 bg-indigo-500/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
+                        >
+                          <Moon className={`w-6 h-6 ${theme === 'dark' ? 'text-indigo-400' : ''}`} />
                           <span>Dark Mode</span>
                         </button>
-                        <button className="p-4 rounded-xl border border-white/10 bg-black/30 text-slate-400 hover:text-white font-bold flex flex-col items-center justify-center space-y-2">
-                          <Zap className="w-6 h-6" />
-                          <span>Light Mode (Coming Soon)</span>
+                        <button
+                          onClick={() => setTheme('light')}
+                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'light' ? 'border-indigo-500/50 bg-indigo-500/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
+                        >
+                          <Sun className={`w-6 h-6 ${theme === 'light' ? 'text-amber-400' : ''}`} />
+                          <span>Light Mode</span>
                         </button>
                       </div>
                     </div>

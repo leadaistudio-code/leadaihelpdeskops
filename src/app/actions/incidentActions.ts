@@ -10,6 +10,8 @@ import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notify } from "@/app/actions/notificationActions";
 import { resolveGroupByName } from "@/app/actions/groupActions";
+import { startSlaForIncident, pauseSla, resumeSla, stopSla, escalateIfBreached } from "@/app/actions/slaActions";
+import { logAudit } from "@/lib/audit";
 
 export type CreateIncidentPayload = {
   title: string;
@@ -92,6 +94,18 @@ export async function createIncident(payload: CreateIncidentPayload | FormData) 
     },
   });
 
+  // Start the live SLA clock (no-op if the tenant has no matching SLA).
+  await startSlaForIncident(incident.id, incident.type, incident.priority, domain);
+
+  await logAudit({
+    domain,
+    action: "CREATE",
+    entityType: "Incident",
+    entityId: incident.id,
+    entityLabel: incident.number,
+    summary: `Created ${incident.type === "REQUEST" ? "request" : "incident"} "${incident.title}"`,
+  });
+
   revalidatePath("/incidents");
   return incident;
 }
@@ -103,6 +117,7 @@ export async function getIncidents(callerId?: string) {
     include: {
       caller: true,
       assignee: true,
+      slaInstances: { orderBy: { createdAt: "desc" }, take: 1, select: { dueAt: true, stage: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -113,6 +128,7 @@ export async function getIncidentsPaged(opts: {
   callerId?: string;
   search?: string;
   status?: IncidentStatus | "ALL";
+  priority?: Priority | "ALL";
   groupId?: string;
   page?: number;
   pageSize?: number;
@@ -124,6 +140,7 @@ export async function getIncidentsPaged(opts: {
   const where: Prisma.IncidentWhereInput = { domain: await getActiveDomain() };
   if (opts.callerId) where.callerId = opts.callerId;
   if (opts.status && opts.status !== "ALL") where.status = opts.status;
+  if (opts.priority && opts.priority !== "ALL") where.priority = opts.priority;
   if (opts.groupId && opts.groupId !== "ALL") where.assignmentGroupId = opts.groupId;
   if (search) {
     where.OR = [
@@ -135,7 +152,11 @@ export async function getIncidentsPaged(opts: {
   const [items, total] = await Promise.all([
     prisma.incident.findMany({
       where,
-      include: { caller: true, assignee: true },
+      include: {
+        caller: true,
+        assignee: true,
+        slaInstances: { orderBy: { createdAt: "desc" }, take: 1, select: { dueAt: true, stage: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -147,12 +168,17 @@ export async function getIncidentsPaged(opts: {
 }
 
 export async function getIncidentById(id: string) {
+  const domain = await getActiveDomain();
+  // Lazily detect + escalate an SLA breach when the ticket is opened.
+  await escalateIfBreached(id);
   // Scoped by domain so a ticket from another tenant can't be opened by id.
   return await prisma.incident.findFirst({
-    where: { id, domain: await getActiveDomain() },
+    where: { id, domain },
     include: {
       caller: true,
       assignee: true,
+      slaInstances: { orderBy: { createdAt: "desc" }, take: 1 },
+      problem: { select: { id: true, number: true, title: true, status: true } },
       notes: {
         include: { author: true },
         orderBy: { createdAt: "desc" },
@@ -164,7 +190,7 @@ export async function getIncidentById(id: string) {
 export async function updateIncidentState(id: string, status: IncidentStatus) {
   const existing = await prisma.incident.findUnique({
     where: { id },
-    select: { status: true, callerId: true, number: true, title: true },
+    select: { status: true, callerId: true, number: true, title: true, domain: true },
   });
   const incident = await prisma.incident.update({
     where: { id },
@@ -186,6 +212,23 @@ export async function updateIncidentState(id: string, status: IncidentStatus) {
         link: `/incidents/${id}`,
       });
     }
+
+    // Live SLA clock transitions.
+    if (status === "RESOLVED" || status === "CLOSED") await stopSla(id);
+    else if (status === "ON_HOLD") await pauseSla(id);
+    else if (existing.status === "ON_HOLD") await resumeSla(id);
+
+    await logAudit({
+      domain: existing.domain,
+      action: "STATE_CHANGE",
+      entityType: "Incident",
+      entityId: id,
+      entityLabel: existing.number,
+      summary: `State changed ${existing.status} → ${status}`,
+      field: "status",
+      oldValue: existing.status,
+      newValue: status,
+    });
   }
 
   revalidatePath(`/incidents/${id}`);
@@ -235,7 +278,7 @@ export async function assignIncident(incidentId: string, assigneeId: string | nu
   const inc = await prisma.incident.update({
     where: { id: incidentId },
     data: { assigneeId: assigneeId || null },
-    select: { number: true, title: true },
+    select: { number: true, title: true, domain: true },
   });
 
   await prisma.incidentNote.create({
@@ -255,6 +298,15 @@ export async function assignIncident(incidentId: string, assigneeId: string | nu
       link: `/incidents/${incidentId}`,
     });
   }
+
+  await logAudit({
+    domain: inc.domain,
+    action: "ASSIGN",
+    entityType: "Incident",
+    entityId: incidentId,
+    entityLabel: inc.number,
+    summary: assignee ? `Assigned to ${assignee.name}` : "Unassigned",
+  });
 
   revalidatePath(`/incidents/${incidentId}`);
 }

@@ -6,14 +6,16 @@ import { getGroupOptions } from "@/app/actions/groupActions";
 import { getSessionUser } from "@/lib/auth-utils";
 import { Ticket, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
-import { IncidentStatus } from "@prisma/client";
+import SlaBadge from "@/components/SlaBadge";
+import { IncidentStatus, Priority } from "@prisma/client";
 
 const STATUSES: (IncidentStatus | "ALL")[] = ["ALL", "NEW", "IN_PROGRESS", "ON_HOLD", "PENDING_APPROVAL", "RESOLVED", "CLOSED"];
+const PRIORITIES: (Priority | "ALL")[] = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"];
 
 export default async function IncidentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; group?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; priority?: string; group?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const user = await getSessionUser();
@@ -21,6 +23,7 @@ export default async function IncidentsPage({
 
   const q = sp.q ?? "";
   const status = (sp.status as IncidentStatus | "ALL") || "ALL";
+  const priority = (sp.priority as Priority | "ALL") || "ALL";
   const group = sp.group ?? "ALL";
   const page = Number(sp.page) || 1;
 
@@ -29,6 +32,7 @@ export default async function IncidentsPage({
       callerId: isEmployee ? user?.id : undefined,
       search: q,
       status,
+      priority,
       groupId: group,
       page,
     }),
@@ -39,6 +43,7 @@ export default async function IncidentsPage({
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (status !== "ALL") params.set("status", status);
+    if (priority !== "ALL") params.set("priority", priority);
     if (group !== "ALL") params.set("group", group);
     if (page > 1) params.set("page", String(page));
     for (const [k, v] of Object.entries(overrides)) {
@@ -86,6 +91,15 @@ export default async function IncidentsPage({
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s === "ALL" ? "All statuses" : s.replace("_", " ")}</option>
+          ))}
+        </select>
+        <select
+          name="priority"
+          defaultValue={priority}
+          className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+        >
+          {PRIORITIES.map((p) => (
+            <option key={p} value={p}>{p === "ALL" ? "All priorities" : p}</option>
           ))}
         </select>
         {!isEmployee && groups.length > 0 && (
@@ -159,6 +173,11 @@ export default async function IncidentsPage({
                       }`}>
                         {inc.status.replace("_", " ")}
                       </span>
+                      {inc.slaInstances[0] && (
+                        <div className="mt-1.5">
+                          <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

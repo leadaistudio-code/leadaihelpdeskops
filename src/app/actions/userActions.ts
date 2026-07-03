@@ -6,6 +6,7 @@ import { Role } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { clerkClient } from "@clerk/nextjs/server";
+import { logAudit } from "@/lib/audit";
 
 // --- Current user's own profile ---
 
@@ -65,7 +66,7 @@ export async function updateUserRole(userId: string, role: Role) {
   const admin = await requireAdmin();
   if (userId === admin.id) throw new Error("You can't change your own role");
 
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true } });
   if (!target) throw new Error("User not found");
 
   let clerkSynced = false;
@@ -82,6 +83,19 @@ export async function updateUserRole(userId: string, role: Role) {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { role } });
+
+  await logAudit({
+    domain: admin.domain,
+    action: "ROLE_CHANGE",
+    entityType: "User",
+    entityId: userId,
+    entityLabel: target.name,
+    summary: `Role changed ${target.role} → ${role}`,
+    field: "role",
+    oldValue: target.role,
+    newValue: role,
+    actor: { id: admin.id, name: admin.name, email: admin.email },
+  });
 
   revalidatePath("/admin/users");
   return { ok: true, clerkSynced };

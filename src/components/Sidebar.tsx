@@ -22,6 +22,8 @@ import {
   ClipboardCheck,
   ShoppingBag,
   Users,
+  Boxes,
+  ScrollText,
   type LucideIcon
 } from "lucide-react";
 
@@ -109,6 +111,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
             <NavLink href="/incidents/assigned" icon={Ticket} {...nav}>Assigned to me</NavLink>
             <NavLink href="/incidents/active" icon={FolderClock} {...nav}>Open</NavLink>
             <NavLink href="/incidents/closed" icon={CheckCircle2} {...nav}>Closed</NavLink>
+            <NavLink href="/problems" icon={Boxes} {...nav}>Problems</NavLink>
             <NavLink href="/approvals" icon={ClipboardCheck} {...nav}>Approvals</NavLink>
 
             {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">Asset Management</div>}
@@ -120,6 +123,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
             <NavLink href="/admin/groups" icon={Network} {...nav}>Assignment Groups</NavLink>
             <NavLink href="/admin/slas" icon={Settings} {...nav}>SLA Management</NavLink>
             <NavLink href="/admin/flow-designer" icon={Workflow} {...nav}>Flow Designer</NavLink>
+            {role === "ADMIN" && <NavLink href="/admin/audit" icon={ScrollText} {...nav}>Audit Log</NavLink>}
           </>
         )}
       </div>

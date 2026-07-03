@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, Phone, MapPin, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, PiggyBank, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, Phone, MapPin, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, PiggyBank, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
 import RoiCalculator from "@/components/roi-calculator";
 
 // Individual Page Components
@@ -206,18 +206,6 @@ const CustomersPage = () => (
       <RoiStat icon={<ShieldCheck className="w-5 h-5" />} value="99.9%" label="SLA Compliance" />
     </div>
 
-    {/* Logo wall */}
-    <div className="border-t border-b border-slate-200 py-12 mb-20">
-      <p className="text-center text-sm font-semibold text-slate-500 uppercase tracking-widest mb-8">
-        Trusted by industry leaders globally
-      </p>
-      <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 text-slate-400">
-        {["AcmeCorp", "Globex", "Initech", "Soylent", "Massive Dynamic", "Hooli"].map((name) => (
-          <span key={name} className="font-bold text-xl text-slate-700">{name}</span>
-        ))}
-      </div>
-    </div>
-
     {/* Case study cards */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
       {[
@@ -420,9 +408,6 @@ const ProductPage = () => (
   <div className="max-w-6xl mx-auto py-20 px-6">
     {/* Hero */}
     <div className="text-center mb-16">
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 text-blue-700 font-semibold text-xs uppercase tracking-wider rounded-full mb-6">
-        <Sparkles className="w-3.5 h-3.5" /> The Platform
-      </span>
       <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 mb-6 max-w-4xl mx-auto leading-[1.1]">
         One solution for the entire IT helpdesk.
       </h1>
@@ -645,7 +630,18 @@ const RoiDriver = ({ icon, title, desc }: { icon: React.ReactNode; title: string
   </div>
 );
 
-const RESOURCES = [
+type Resource = {
+  type: string;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  meta: string;
+  cta: string;
+  href?: string;
+  featured?: boolean;
+};
+
+const RESOURCES: Resource[] = [
   {
     type: "Whitepaper",
     icon: <FileText className="w-4 h-4" />,
@@ -653,13 +649,14 @@ const RESOURCES = [
     desc: "A 24-page framework for moving from reactive ticketing to predictive, self-healing infrastructure — with a maturity model and 90-day rollout plan.",
     meta: "12 min read",
     cta: "Download PDF",
+    href: "/guides/cio-autonomous-it",
     featured: true,
   },
   {
     type: "Case Study",
     icon: <TrendingDown className="w-4 h-4" />,
-    title: "How Globex cut MTTR by 52% in six months",
-    desc: "Inside a 14,000-employee rollout: the deflection playbook, the change-management wins, and the hard numbers behind the payback.",
+    title: "How a 14,000-employee enterprise cut MTTR by 52% in six months",
+    desc: "Inside the rollout: the deflection playbook, the change-management wins, and the hard numbers behind the payback.",
     meta: "8 min read",
     cta: "Read the story",
   },
@@ -721,7 +718,7 @@ const ResourcesPage = () => (
           </span>
           <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-4 leading-tight">{r.title}</h2>
           <p className="text-slate-400 mb-6 max-w-xl">{r.desc}</p>
-          <Link href="/p/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 font-semibold rounded-md hover:bg-slate-100 transition-colors">
+          <Link href={r.href ?? "/p/contact"} className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 font-semibold rounded-md hover:bg-slate-100 transition-colors">
             {r.cta} <Download className="w-4 h-4" />
           </Link>
         </div>
@@ -745,7 +742,7 @@ const ResourcesPage = () => (
           </div>
           <h3 className="text-lg font-bold text-slate-900 mb-2 leading-snug">{r.title}</h3>
           <p className="text-sm text-slate-600 leading-relaxed mb-6">{r.desc}</p>
-          <Link href="/p/contact" className="mt-auto inline-flex items-center gap-2 text-blue-600 font-semibold text-sm hover:gap-3 transition-all">
+          <Link href={r.href ?? "/p/contact"} className="mt-auto inline-flex items-center gap-2 text-blue-600 font-semibold text-sm hover:gap-3 transition-all">
             {r.cta} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

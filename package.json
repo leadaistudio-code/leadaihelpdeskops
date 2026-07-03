@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "video:preview": "remotion studio remotion/index.ts",
+    "video:render": "remotion render remotion/index.ts ProductDemo public/leadaistudio-demo.mp4",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -24,15 +26,18 @@
     "motion": "^12.40.0",
     "next": "^16.2.9",
     "openai": "^6.44.0",
+    "pdfkit": "^0.19.1",
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.482",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -40,6 +45,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prisma": "^7.8.0",
+    "remotion": "^4.0.482",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",

@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import prisma from "@/lib/prisma";
 import { getIncidentById, updateIncidentState, getAssignableAgents } from "@/app/actions/incidentActions";
+import { ensureSlaForIncident } from "@/app/actions/slaActions";
+import { createProblemFromIncident, linkIncidentToProblem, unlinkIncidentFromProblem, getLinkableProblems } from "@/app/actions/problemActions";
 import { draftArticleFromIncident } from "@/app/actions/knowledgeActions";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -14,7 +15,7 @@ import GroupControl from "@/components/GroupControl";
 import AttachmentPanel from "@/components/AttachmentPanel";
 import { getAttachmentsForIncident } from "@/app/actions/attachmentActions";
 import { getGroupOptions } from "@/app/actions/groupActions";
-import { ChevronLeft, Ticket, BookOpenCheck } from "lucide-react";
+import { ChevronLeft, Ticket, BookOpenCheck, Boxes, X } from "lucide-react";
 
 export default async function IncidentDetailPage({ params }: { params: { id: string } }) {
   // Await the params object (Next.js 15+ requirement, though we are on 16)
@@ -29,12 +30,20 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
   const groups = await getGroupOptions();
   const attachments = await getAttachmentsForIncident(id);
 
-  // Fetch dynamic SLA (scoped to the incident's tenant)
-  const slaDef = await prisma.slaDefinition.findFirst({
-    where: { type: incident.type, priority: incident.priority, isActive: true, domain: incident.domain },
-    orderBy: { createdAt: "desc" }
-  });
-  const slaHours = slaDef?.durationHours || 24; // fallback
+  const isResolved = incident.status === "RESOLVED" || incident.status === "CLOSED";
+
+  // Live SLA clock (backfilled for tickets created before the SLA engine).
+  let sla: (typeof incident.slaInstances)[number] | null = incident.slaInstances[0] ?? null;
+  if (!sla && !isResolved) {
+    sla = await ensureSlaForIncident({
+      id: incident.id,
+      type: incident.type,
+      priority: incident.priority,
+      domain: incident.domain,
+      createdAt: incident.createdAt,
+    });
+  }
+  const linkableProblems = incident.problem ? [] : await getLinkableProblems();
 
   async function handleUpdate(formData: FormData) {
     "use server";
@@ -48,7 +57,20 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
     redirect(`/knowledge/${article.id}`);
   }
 
-  const isResolved = incident.status === "RESOLVED" || incident.status === "CLOSED";
+  async function handleCreateProblem() {
+    "use server";
+    const p = await createProblemFromIncident(id);
+    redirect(`/problems/${p.id}`);
+  }
+  async function handleLinkProblem(formData: FormData) {
+    "use server";
+    const problemId = formData.get("problemId") as string;
+    if (problemId) await linkIncidentToProblem(problemId, id);
+  }
+  async function handleUnlinkProblem() {
+    "use server";
+    await unlinkIncidentFromProblem(id);
+  }
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
@@ -154,9 +176,67 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
         </div>
 
         <div className="space-y-6">
-          <SlaDisplay createdAt={incident.createdAt} slaHours={slaHours} status={incident.status} />
+          {sla ? (
+            <SlaDisplay
+              dueAt={sla.dueAt.toISOString()}
+              startAt={sla.startAt.toISOString()}
+              stage={sla.stage}
+              name={sla.name}
+              schedule={sla.schedule}
+            />
+          ) : (
+            <div className="glass-panel p-6 rounded-2xl border border-white/10 text-sm text-slate-400">
+              {isResolved
+                ? "SLA clock stopped — ticket resolved."
+                : <>No SLA policy matches this ticket. <Link href="/admin/slas" className="text-indigo-400 font-bold">Define one →</Link></>}
+            </div>
+          )}
 
           <AttachmentPanel incidentId={incident.id} attachments={attachments} />
+
+          {/* Problem linkage */}
+          <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden">
+            <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 flex items-center gap-2">
+              <Boxes className="w-4 h-4 text-indigo-400" />
+              <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Problem</h2>
+            </div>
+            <div className="p-6">
+              {incident.problem ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/problems/${incident.problem.id}`} className="font-bold text-indigo-400 hover:text-indigo-300">{incident.problem.number}</Link>
+                    <div className="text-sm text-slate-300 truncate">{incident.problem.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{incident.problem.status.replace(/_/g, " ")}</div>
+                  </div>
+                  <form action={handleUnlinkProblem}>
+                    <button type="submit" className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors" title="Unlink problem">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-400">Recurring issue? Open a root-cause investigation or link an existing problem.</p>
+                  <form action={handleCreateProblem}>
+                    <button type="submit" className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/50 text-indigo-300 font-bold rounded-xl text-sm transition-colors">
+                      <Boxes className="w-4 h-4" /> Create Problem from Incident
+                    </button>
+                  </form>
+                  {linkableProblems.length > 0 && (
+                    <form action={handleLinkProblem} className="flex gap-2">
+                      <select name="problemId" className="flex-1 px-3 py-2.5 bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                        <option value="">Link existing…</option>
+                        {linkableProblems.map((p) => (
+                          <option key={p.id} value={p.id}>{p.number} — {p.title.slice(0, 40)}</option>
+                        ))}
+                      </select>
+                      <button type="submit" className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold rounded-xl text-sm transition-colors">Link</button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden">
             <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 flex justify-between items-center">

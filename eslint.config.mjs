@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Remotion video project — rendered separately, not part of the Next app.
+    "remotion/**",
   ]),
 ]);
 

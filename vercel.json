@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/sla/sweep", "schedule": "*/15 * * * *" }
+  ]
+}

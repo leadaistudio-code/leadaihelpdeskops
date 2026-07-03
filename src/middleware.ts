@@ -6,10 +6,15 @@ const isPublicRoute = createRouteMatcher([
   '/login(.*)',
   '/walkup(.*)',
   '/p/(.*)',
+  // Public marketing lead-magnet pages and their gated PDF download.
+  '/guides/(.*)',
+  '/api/guides/(.*)',
   '/api/webhook(.*)',
   '/api/chat(.*)',
   // DEX agent ingest — authenticated by device key, not a user session.
   '/api/agent/(.*)',
+  // Scheduled SLA breach sweep — secured by CRON_SECRET, not a user session.
+  '/api/sla/(.*)',
 ]);
 
 // Routes a signed-in user may visit before they belong to a tenant (org).
@@ -31,7 +36,7 @@ export default clerkMiddleware(async (auth, request) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4|webm|mov|m4a|mp3|ogg|wav)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

@@ -54,7 +54,7 @@ export default function AIChatbot() {
         botResponse.content = "It looks like you need help with your password. I found this knowledge article that might help:\n\n[How to reset your AD Password](/knowledge/1)\n\nDid this resolve your issue?";
         botResponse.isActionable = true;
       } else if (lowerText.includes('ticket') || lowerText.includes('status')) {
-        botResponse.content = "You have 1 active ticket: INC0001024 - 'VPN Connection Failing'. It is currently IN PROGRESS and assigned to Jane Doe.";
+        botResponse.content = "You have 1 active ticket: INC0001024 - 'VPN Connection Failing'. It is currently IN PROGRESS and assigned to the Network Support team.";
       } else if (lowerText.includes('broken') || lowerText.includes('issue') || lowerText.includes('laptop')) {
         botResponse.content = "I'm sorry your device is having issues. I can create an incident ticket for you right now. Would you like me to do that?";
         botResponse.isActionable = true;

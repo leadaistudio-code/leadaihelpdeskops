@@ -28,7 +28,7 @@ async function main() {
     update: { password: defaultPassword },
     create: {
       email: 'agent@ithelpdesk.com',
-      name: 'John Smith (IT)',
+      name: 'Marcus Reed',
       password: defaultPassword,
       role: 'IT_AGENT',
       department: 'IT Service Desk',
@@ -40,7 +40,7 @@ async function main() {
     update: { password: defaultPassword },
     create: {
       email: 'jane.doe@company.com',
-      name: 'Jane Doe',
+      name: 'Elena Rossi',
       password: defaultPassword,
       role: 'EMPLOYEE',
       department: 'Marketing',

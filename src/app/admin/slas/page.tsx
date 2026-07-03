@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getSlaDefinitions, toggleSlaStatus, deleteSlaDefinition, createSlaDefinition } from "@/app/actions/slaActions";
 import { ShieldAlert, Settings, Plus, Trash2, Power } from "lucide-react";
-import type { Priority, TicketType } from "@prisma/client";
+import type { Priority, TicketType, SlaSchedule } from "@prisma/client";
 
 export default async function AdminSlaPage() {
   const slas = await getSlaDefinitions();
@@ -26,7 +26,8 @@ export default async function AdminSlaPage() {
     const type = formData.get("type") as TicketType;
     const priority = formData.get("priority") as Priority;
     const durationHours = parseInt(formData.get("durationHours") as string);
-    await createSlaDefinition({ name, type, priority, durationHours });
+    const schedule = (formData.get("schedule") as SlaSchedule) || "ALWAYS";
+    await createSlaDefinition({ name, type, priority, durationHours, schedule });
   };
 
   return (
@@ -74,6 +75,13 @@ export default async function AdminSlaPage() {
               <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Resolution Time (Hours)</label>
               <input required name="durationHours" type="number" min="1" className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50" placeholder="e.g. 4" />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Business Calendar</label>
+              <select name="schedule" className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                <option value="ALWAYS">24×7 — calendar hours</option>
+                <option value="BUSINESS">Business hours — Mon–Fri, 9–5</option>
+              </select>
+            </div>
             <button type="submit" className="w-full py-3 mt-4 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/50 text-indigo-300 font-bold rounded-xl transition-colors">
               Create Policy
             </button>
@@ -94,13 +102,14 @@ export default async function AdminSlaPage() {
                   <th className="px-6 py-4 font-bold">Type</th>
                   <th className="px-6 py-4 font-bold">Priority</th>
                   <th className="px-6 py-4 font-bold">Target</th>
+                  <th className="px-6 py-4 font-bold">Calendar</th>
                   <th className="px-6 py-4 font-bold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {slas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">No SLA policies defined.</td>
+                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">No SLA policies defined.</td>
                   </tr>
                 ) : (
                   slas.map((sla) => (
@@ -117,6 +126,11 @@ export default async function AdminSlaPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 font-mono text-indigo-300">{sla.durationHours} hrs</td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-mono font-bold text-slate-400 border border-white/10 rounded px-2 py-1">
+                          {sla.schedule === "BUSINESS" ? "8×5" : "24×7"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 flex justify-end space-x-2">
                         <form action={handleToggle}>
                           <input type="hidden" name="id" value={sla.id} />

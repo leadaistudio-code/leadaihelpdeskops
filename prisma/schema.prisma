@@ -32,6 +32,8 @@ model User {
   articles         KnowledgeArticle[]
   assets           Asset[]           @relation("AssignedAssets")
   incidentNotes    IncidentNote[]
+  problemsAssigned Problem[]         @relation("ProblemAssignee")
+  problemNotes     ProblemNote[]
   catalogRequests  CatalogRequest[]
   notifications    Notification[]
   uploads          Attachment[]
@@ -87,16 +89,55 @@ enum TicketType {
   REQUEST
 }
 
+enum SlaSchedule {
+  ALWAYS   // 24x7 — calendar hours
+  BUSINESS // Mon–Fri 09:00–17:00 — business hours
+}
+
+enum SlaStage {
+  IN_PROGRESS
+  PAUSED
+  MET
+  BREACHED
+}
+
 model SlaDefinition {
   id            String      @id @default(cuid())
   name          String
   type          TicketType
   priority      Priority
   durationHours Int
+  schedule      SlaSchedule @default(ALWAYS)
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   domain        String      @default("global")
+}
+
+// A live SLA clock attached to an incident: computes an effective due time,
+// pauses while ON_HOLD, and is marked MET or BREACHED when the ticket stops.
+model SlaInstance {
+  id              String      @id @default(cuid())
+  incidentId      String
+  incident        Incident    @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  slaDefinitionId String?
+  name            String
+  targetHours     Int
+  schedule        SlaSchedule @default(ALWAYS)
+  startAt         DateTime    @default(now())
+  dueAt           DateTime
+  stage           SlaStage    @default(IN_PROGRESS)
+  pausedAt        DateTime?
+  pausedMs        Int         @default(0) // accumulated paused business-ms
+  breachedAt      DateTime?
+  stoppedAt       DateTime?
+  escalatedAt     DateTime?
+  domain          String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([domain, stage])
+  @@index([incidentId])
 }
 
 model Incident {
@@ -119,12 +160,18 @@ model Incident {
 
   notes       IncidentNote[]
   attachments Attachment[]
+  slaInstances SlaInstance[]
+
+  // A recurring incident can be linked to a Problem record for root-cause work.
+  problemId   String?
+  problem     Problem?       @relation(fields: [problemId], references: [id])
 
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   domain      String         @default("global")
 
   @@index([domain, assignmentGroupId])
+  @@index([domain, problemId])
 }
 
 // A queue/team that incidents route to (Network Support, Hardware, Access…).
@@ -354,4 +401,100 @@ model CatalogRequest {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   domain      String        @default("global")
+}
+
+// Marketing lead captured by a gated content download (e.g. the CIO's Guide).
+// Not tenant-scoped — these are inbound prospects, not signed-in users.
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String
+  jobTitle  String
+  // Which gated asset they requested, e.g. "cio-autonomous-it".
+  guide     String
+  // Lightweight attribution for where the form was submitted from.
+  source    String?
+  // Set true once the download has been served at least once.
+  downloaded Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([guide, createdAt])
+  @@index([email])
+}
+
+enum ProblemStatus {
+  NEW
+  INVESTIGATING
+  ROOT_CAUSE_IDENTIFIED
+  KNOWN_ERROR
+  RESOLVED
+  CLOSED
+}
+
+// ITIL Problem record: root-cause analysis behind one or more incidents.
+model Problem {
+  id          String        @id @default(cuid())
+  number      String        @unique // e.g., PRB0000001
+  title       String
+  description String
+  status      ProblemStatus @default(NEW)
+  priority    Priority      @default(MEDIUM)
+
+  rootCause   String? // findings of the RCA
+  workaround  String? // interim workaround (a Known Error once published)
+  knownError  Boolean       @default(false)
+
+  assigneeId  String?
+  assignee    User?         @relation("ProblemAssignee", fields: [assigneeId], references: [id])
+
+  incidents   Incident[] // incidents linked to this problem
+  notes       ProblemNote[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  resolvedAt  DateTime?
+  domain      String        @default("global")
+
+  @@index([domain, status])
+}
+
+model ProblemNote {
+  id        String   @id @default(cuid())
+  body      String
+  type      NoteType @default(COMMENT)
+
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// Immutable audit trail — every significant write across the platform records
+// who did what, to which entity, and when. Append-only; never edited.
+model AuditLog {
+  id          String   @id @default(cuid())
+  domain      String
+  // Who (denormalized snapshot; actor may be "System" for automated events)
+  actorId     String?
+  actorName   String?
+  actorEmail  String?
+  // What
+  action      String   // CREATE | UPDATE | STATE_CHANGE | ASSIGN | APPROVE | REJECT | LINK | UNLINK | REMEDIATION | SLA_BREACH | ROLE_CHANGE
+  entityType  String   // Incident | Problem | CatalogRequest | Device | User | SlaInstance
+  entityId    String?
+  entityLabel String?  // e.g. "INC0001234", "PRB0000007"
+  summary     String
+  // Optional structured diff
+  field       String?
+  oldValue    String?
+  newValue    String?
+  createdAt   DateTime @default(now())
+
+  @@index([domain, createdAt])
+  @@index([domain, entityType, entityId])
+  @@index([domain, actorId])
 }

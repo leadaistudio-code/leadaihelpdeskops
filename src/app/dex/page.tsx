@@ -5,10 +5,19 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, ShieldCheck, Zap, History, BrainCircuit, AlertTriangle } from "lucide-react";
 import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, type DexEndpoint } from "@/app/actions/dexActions";
 import EnrollDevicePanel from "@/components/EnrollDevicePanel";
+import { useAppTheme } from "@/components/ThemeContext";
 
 const ACTION_MAP: Record<string, string> = { "Clear Cache": "CLEAR_TEMP", "Remote Reboot": "REBOOT" };
 
 export default function DEXDashboard() {
+  const { theme } = useAppTheme();
+  const isLight = theme === "light";
+  const axisColor = isLight ? "rgba(15,23,42,0.5)" : "rgba(255,255,255,0.3)";
+  const axisStrong = isLight ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.8)";
+  const gridColor = isLight ? "rgba(15,23,42,0.08)" : "rgba(255,255,255,0.05)";
+  const tooltipBg = isLight ? "rgba(255,255,255,0.97)" : "rgba(15, 23, 42, 0.9)";
+  const tooltipBorder = isLight ? "rgba(15,23,42,0.12)" : "rgba(255,255,255,0.1)";
+  const tooltipText = isLight ? "#0f172a" : "#fff";
   const [isAutoPilotOn, setIsAutoPilotOn] = useState(false);
   const [autoActionsTaken, setAutoActionsTaken] = useState(0);
   const [remediationLogs, setRemediationLogs] = useState<{time: string, message: string}[]>([
@@ -214,14 +223,14 @@ export default function DEXDashboard() {
             {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={latencyData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="time" stroke={axisColor} tickLine={false} axisLine={false} />
+                <YAxis stroke={axisColor} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
-                  itemStyle={{ color: "#fff" }}
+                  contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px" }}
+                  itemStyle={{ color: tooltipText }}
                 />
-                <Line type="monotone" dataKey="ms" stroke="#22d3ee" strokeWidth={3} dot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }} activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="ms" stroke="#38E8B0" strokeWidth={3} dot={{ r: 4, fill: "#38E8B0", strokeWidth: 0 }} activeDot={{ r: 8 }} />
               </LineChart>
             </ResponsiveContainer>
             )}
@@ -245,13 +254,13 @@ export default function DEXDashboard() {
             {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={deviceHealthData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" stroke="rgba(255,255,255,0.3)" tickLine={false} axisLine={false} />
-                <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.8)" fontWeight="bold" tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+                <XAxis type="number" stroke={axisColor} tickLine={false} axisLine={false} />
+                <YAxis dataKey="name" type="category" stroke={axisStrong} fontWeight="bold" tickLine={false} axisLine={false} />
                 <Tooltip 
-                  cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                  contentStyle={{ backgroundColor: "rgba(15, 23, 42, 0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
-                  itemStyle={{ color: "#fff" }}
+                  cursor={{fill: gridColor}}
+                  contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px" }}
+                  itemStyle={{ color: tooltipText }}
                 />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} />
               </BarChart>

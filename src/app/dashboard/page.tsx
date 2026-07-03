@@ -22,7 +22,7 @@ export default async function Home() {
             <h1 className="text-4xl font-extrabold text-white tracking-tight">Welcome, {user?.name}</h1>
             <p className="text-slate-400 mt-2 text-lg">Your personalized IT service portal.</p>
           </div>
-          <Link href="/incidents/new" className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:shadow-[0_0_30px_rgba(124,58,237,0.6)] hover:-translate-y-1 transition-all font-bold group">
+          <Link href="/incidents/new" className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#12B489] to-[#0E9E77] text-[#03130d] rounded-xl shadow-[0_0_20px_rgba(56,232,176,0.35)] hover:shadow-[0_0_30px_rgba(56,232,176,0.55)] hover:-translate-y-1 transition-all font-bold group">
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
             <span>Report an Issue</span>
           </Link>
@@ -30,7 +30,8 @@ export default async function Home() {
 
         {/* Bento Grid */}
         <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <StaggerItem className="col-span-1 glass-panel rounded-3xl p-8 relative overflow-hidden group">
+          <StaggerItem className="col-span-1 glass-panel rounded-3xl p-8 relative overflow-hidden group hover:bg-white/5 transition-colors">
+            <Link href="/incidents" aria-label="View my active requests" className="absolute inset-0 z-20" />
             <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-40 transition-opacity">
               <Ticket className="w-24 h-24 text-sky-400" />
             </div>
@@ -128,7 +129,7 @@ export default async function Home() {
           <h1 className="text-4xl font-extrabold text-white tracking-tight">Command Center</h1>
           <p className="text-slate-400 mt-2 text-lg">Global overview of IT operations.</p>
         </div>
-        <Link href="/incidents/new" className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:shadow-[0_0_30px_rgba(124,58,237,0.6)] hover:-translate-y-1 transition-all font-bold group">
+        <Link href="/incidents/new" className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#12B489] to-[#0E9E77] text-[#03130d] rounded-xl shadow-[0_0_20px_rgba(56,232,176,0.35)] hover:shadow-[0_0_30px_rgba(56,232,176,0.55)] hover:-translate-y-1 transition-all font-bold group">
           <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
           <span>Create Incident</span>
         </Link>
@@ -139,7 +140,8 @@ export default async function Home() {
 
         {/* KPI Cards */}
         <Stagger className="col-span-1 md:col-span-2 grid grid-cols-2 gap-6">
-          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
+          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between hover:bg-white/5 transition-colors">
+            <Link href="/incidents/active" aria-label="View open incidents" className="absolute inset-0 z-20" />
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
                 <Ticket className="w-5 h-5 text-indigo-400" />
@@ -151,7 +153,8 @@ export default async function Home() {
             </div>
           </StaggerItem>
 
-          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between border-rose-500/30">
+          <StaggerItem className="glass-panel rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between border-rose-500/30 hover:bg-white/5 transition-colors">
+            <Link href="/incidents?priority=CRITICAL" aria-label="View critical priority incidents" className="absolute inset-0 z-20" />
             <div className="flex justify-between items-start mb-4">
               <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center animate-pulse-glow">
                 <ShieldAlert className="w-5 h-5 text-rose-400" />
@@ -163,7 +166,8 @@ export default async function Home() {
             </div>
           </StaggerItem>
 
-          <StaggerItem className="col-span-2 glass-panel rounded-3xl p-6 relative overflow-hidden flex items-center justify-between">
+          <StaggerItem className="col-span-2 glass-panel rounded-3xl p-6 relative overflow-hidden flex items-center justify-between hover:bg-white/5 transition-colors">
+             <Link href="/incidents/assigned" aria-label="View incidents assigned to me" className="absolute inset-0 z-20" />
              <div>
               <AnimatedCounter value={myWork.length} className="block text-4xl font-black text-emerald-400 mb-1" />
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Assigned to Me</span>

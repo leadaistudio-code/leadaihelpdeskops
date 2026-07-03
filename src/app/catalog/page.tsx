@@ -1,13 +1,25 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { Library } from "lucide-react";
 import { getCatalogItems } from "@/app/actions/catalogActions";
-import CatalogIcon from "@/components/CatalogIcon";
+import CatalogBrowser from "@/components/CatalogBrowser";
 import EmptyState from "@/components/EmptyState";
 
+// Categories whose requests route through an approval step (kept in sync with
+// APPROVAL_CATEGORIES in catalogActions).
+const APPROVAL_CATEGORIES = new Set(["Access"]);
+
 export default async function CatalogPage() {
-  const items = await getCatalogItems();
+  const raw = await getCatalogItems();
+  const items = raw.map((i) => ({
+    id: i.id,
+    name: i.name,
+    description: i.description,
+    category: i.category,
+    icon: i.icon,
+    price: i.price,
+    requiresApproval: APPROVAL_CATEGORIES.has(i.category),
+  }));
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
@@ -17,7 +29,7 @@ export default async function CatalogPage() {
         </div>
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Service Catalog</h1>
-          <p className="text-slate-400 mt-1">Order hardware, request software access, or get help.</p>
+          <p className="text-slate-400 mt-1">Order hardware, request software or access, and get help — browse by category or search.</p>
         </div>
       </div>
 
@@ -31,24 +43,7 @@ export default async function CatalogPage() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={`/catalog/${item.id}`}
-              className="glass-panel rounded-3xl p-8 hover:bg-white/5 transition-all group border border-white/5 hover:border-violet-500/30 flex flex-col hover:-translate-y-1"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                <CatalogIcon icon={item.icon} className="w-7 h-7 text-violet-300" />
-              </div>
-              <div className="inline-flex w-fit px-2.5 py-0.5 bg-white/5 text-slate-400 text-[10px] font-bold rounded uppercase tracking-wider border border-white/10 mb-3">
-                {item.category}
-              </div>
-              <h2 className="text-xl font-bold text-white mb-2">{item.name}</h2>
-              <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
-            </Link>
-          ))}
-        </div>
+        <CatalogBrowser items={items} />
       )}
     </div>
   );
