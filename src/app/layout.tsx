@@ -49,7 +49,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${inter.variable} ${geistMono.variable} font-sans bg-[#f7f7f7] text-[#0a0a0a]`}>
+        <body className={`${inter.variable} ${geistMono.variable} font-sans bg-[#080B11] text-slate-200`}>
           <AppShell>{children}</AppShell>
         </body>
       </html>

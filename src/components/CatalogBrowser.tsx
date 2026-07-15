@@ -80,8 +80,8 @@ export default function CatalogBrowser({ items }: { items: CatalogBrowserItem[] 
   const chip = (active: boolean) =>
     cn(
       "px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-colors whitespace-nowrap",
-      active
-        ? "bg-[#0a0a0a] text-white border-transparent"
+        active
+        ? "bg-[#0a0a0a] !text-white border-transparent"
         : "bg-white/5 text-slate-300 border-white/10 hover:text-white",
       focusRing
     );
