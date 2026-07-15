@@ -15,7 +15,7 @@ import { LogoMark } from "@/components/Logo";
 
 const CSS = `
 .mc-root{
-  --canvas:#ffffff; --surface:#f7f7f7; --surface-2:#fafafa; --panel:#ffffff; --panel-2:#f7f7f7;
+  --canvas:#fcfbf9; --surface:#f4f3f0; --surface-2:#f0efeb; --panel:#ffffff; --panel-2:#f7f7f7;
   --line:#e5e5e5; --line-soft:#ededed; --text:#0a0a0a; --body:#3a3a3c; --muted:#5a5a5c;
   --dimtext:#6b6b6d; --signal:#00926f; --signal-bright:#00d4a4; --signal-deep:#00b48a;
   --signal-tint:#eafaf5; --signal-border:#b7e6d8; --warn:#c37d0d; --crit:#d45656;
@@ -49,7 +49,7 @@ const CSS = `
 .mc-root .navcta{display:flex;align-items:center;gap:16px}
 @media(max-width:860px){.mc-root .navlinks{display:none}.mc-root .navcta .login{display:none}}
 
-.mc-root .hero{position:relative;padding:96px 0 40px;overflow:hidden;background:linear-gradient(180deg,#f4faf8 0%,#ffffff 62%)}
+.mc-root .hero{position:relative;padding:96px 0 40px;overflow:hidden;background:linear-gradient(180deg,#f0f7f5 0%,var(--canvas) 62%)}
 .mc-root #field{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.5}
 .mc-root .hero-glow{position:absolute;z-index:1;pointer-events:none}
 .mc-root .glow-a{top:-140px;right:-100px;width:640px;height:640px;background:radial-gradient(circle,rgba(0,212,164,.10),transparent 64%)}
