@@ -128,3 +128,98 @@ export async function getReportMetrics(): Promise<ReportMetrics> {
     })),
   };
 }
+
+export async function getDexReportData(period: string) {
+  const domain = await getActiveDomain();
+  
+  let days = 7;
+  if (period === 'daily') days = 1;
+  else if (period === 'monthly') days = 30;
+
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  // 1. Device Metrics Aggregation
+  const metrics = await prisma.deviceMetric.findMany({
+    where: { device: { domain }, createdAt: { gte: startDate } },
+    select: { cpuPct: true, memUsedMb: true, memTotalMb: true, latencyMs: true, batteryPct: true, diskPct: true }
+  });
+
+  let avgCpu = 0, avgMemPct = 0, avgLatency = 0, avgDisk = 0;
+  if (metrics.length > 0) {
+    avgCpu = metrics.reduce((acc, m) => acc + m.cpuPct, 0) / metrics.length;
+    avgMemPct = metrics.reduce((acc, m) => acc + (m.memUsedMb / (m.memTotalMb || 1)) * 100, 0) / metrics.length;
+    
+    const latencies = metrics.map(m => m.latencyMs).filter(l => l != null) as number[];
+    if (latencies.length) avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+
+    const disks = metrics.map(m => m.diskPct).filter(d => d != null) as number[];
+    if (disks.length) avgDisk = disks.reduce((a, b) => a + b, 0) / disks.length;
+  }
+
+  // 2. App Crashes
+  const crashes = await prisma.appCrashEvent.findMany({
+    where: { domain, createdAt: { gte: startDate } },
+    include: { device: { select: { hostname: true } } }
+  });
+
+  const topCrashes = crashes.reduce((acc: any, c) => {
+    acc[c.appName] = (acc[c.appName] || 0) + 1;
+    return acc;
+  }, {});
+  const sortedCrashes = Object.entries(topCrashes).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+
+  // 3. Security Drifts
+  const security = await prisma.securityPosture.findMany({
+    where: { domain, createdAt: { gte: startDate }, OR: [{ bitlockerActive: false }, { firewallActive: false }] },
+    include: { device: { select: { hostname: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  // Get unique devices with drift
+  const uniqueSecurityDrifts = Array.from(new Map(security.map(item => [item.deviceId, item])).values());
+
+  // 4. Hardware Lifecycle Arbitrage
+  const predictions = await prisma.hardwareFailurePrediction.findMany({
+    where: { domain },
+    include: { device: { select: { hostname: true } } }
+  });
+  
+  let totalValueAtRisk = 0;
+  const hardwareAlerts = predictions.map(p => {
+    const baseValue = p.component === 'BATTERY' ? 1200 : 1500;
+    const currentResaleValue = p.component === 'BATTERY' ? baseValue * 0.55 : baseValue * 0.60;
+    const valueIfFailed = p.component === 'BATTERY' ? baseValue * 0.40 : baseValue * 0.25;
+    const valueAtRisk = currentResaleValue - valueIfFailed;
+    totalValueAtRisk += valueAtRisk;
+    return { device: p.device.hostname, component: p.component, valueAtRisk: Math.round(valueAtRisk) };
+  });
+
+  return {
+    period,
+    days,
+    generatedAt: new Date().toISOString(),
+    fleetHealth: {
+      samples: metrics.length,
+      avgCpu: Math.round(avgCpu),
+      avgMemPct: Math.round(avgMemPct),
+      avgLatency: Math.round(avgLatency),
+      avgDisk: Math.round(avgDisk)
+    },
+    stability: {
+      totalCrashes: crashes.length,
+      topCrashes: sortedCrashes
+    },
+    security: {
+      driftingDevices: uniqueSecurityDrifts.length,
+      drifts: uniqueSecurityDrifts.map(d => ({
+        hostname: d.device.hostname,
+        bitlocker: d.bitlockerActive,
+        firewall: d.firewallActive
+      }))
+    },
+    hardware: {
+      totalValueAtRisk: Math.round(totalValueAtRisk),
+      alerts: hardwareAlerts
+    }
+  };
+}

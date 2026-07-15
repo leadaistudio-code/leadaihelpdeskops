@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, Copy, Check, TerminalSquare } from "lucide-react";
 import { getEnrollmentInfo } from "@/app/actions/dexActions";
+import { Panel, PanelHeader, Button } from "@/components/ui";
 
 // Admin-only: a 2-step "enroll a laptop" flow — download the agent, then run
 // the install command. Renders nothing for non-admins.
@@ -28,65 +29,57 @@ export default function EnrollDevicePanel() {
   };
 
   return (
-    <div className="glass-panel rounded-3xl border border-white/10 p-6 mb-8">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
-          <Download className="w-5 h-5 text-cyan-400" />
+    <Panel padded={false} className="mb-8">
+      <PanelHeader title="Enroll a device" icon={Download} />
+      <div className="p-6">
+        <p className="text-xs text-slate-500 -mt-1 mb-5">Get a laptop streaming live telemetry into this tenant in under a minute.</p>
+
+        {/* Step 1 — download */}
+        <div className="flex items-start gap-4 mb-6">
+          <StepNum n={1} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-200 mb-1">Download the setup</p>
+            <p className="text-xs text-slate-500 mb-3">
+              A ZIP with the agent and your tenant config baked in — no runtime, no typing.
+            </p>
+            <Button href={`/api/agent/download?token=${encodeURIComponent(token)}`} icon={Download}>
+              Download AIops Agent (setup.zip)
+            </Button>
+          </div>
         </div>
-        <div>
-          <h2 className="text-sm font-black text-slate-200 uppercase tracking-widest">Enroll a device</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Get a laptop streaming live telemetry into this tenant in under a minute.</p>
+
+        {/* Step 2 — double-click */}
+        <div className="flex items-start gap-4">
+          <StepNum n={2} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-slate-200 mb-1">Extract &amp; double-click</p>
+            <p className="text-xs text-slate-500">
+              Unzip on the laptop and double-click <code className="text-slate-300">aiops-agent.exe</code>. It runs silently in the
+              <strong className="text-slate-300"> system tray</strong> (no window) — right-click the tray icon for status, logs, or to pause/quit.
+              It auto-starts on logon and adds a Desktop shortcut. The device appears below within ~30s.
+            </p>
+          </div>
         </div>
+
+        {/* Advanced: CLI for RMM/Intune */}
+        <details className="mt-5 pt-4 border-t border-white/5">
+          <summary className="text-xs font-semibold text-slate-400 cursor-pointer hover:text-slate-200">Advanced: silent deploy via RMM / Intune (command line)</summary>
+          <div className="mt-3">
+            <CommandRow icon={<TerminalSquare className="w-4 h-4 text-slate-400" />} label="Install with arguments" cmd={cliCommand} copied={copied === "cli"} onCopy={() => copy(cliCommand, "cli")} />
+          </div>
+        </details>
+
+        <p className="text-xs text-slate-500 mt-4">
+          Uninstall any time with <code className="text-slate-300">aiops-agent.exe --uninstall</code>. The enrollment token is unique to this tenant — keep it private.
+        </p>
       </div>
-
-      {/* Step 1 — download */}
-      <div className="flex items-start gap-4 mb-6">
-        <StepNum n={1} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-200 mb-1">Download the setup</p>
-          <p className="text-xs text-slate-500 mb-3">
-            A ZIP with the agent and your tenant config baked in — no runtime, no typing.
-          </p>
-          <a
-            href={`/api/agent/download?token=${encodeURIComponent(token)}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl shadow-[0_0_15px_rgba(8,145,178,0.3)] hover:brightness-110 transition-all font-bold text-sm"
-          >
-            <Download className="w-4 h-4" /> Download AIops Agent (setup.zip)
-          </a>
-        </div>
-      </div>
-
-      {/* Step 2 — double-click */}
-      <div className="flex items-start gap-4">
-        <StepNum n={2} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-200 mb-1">Extract &amp; double-click</p>
-          <p className="text-xs text-slate-500">
-            Unzip on the laptop and double-click <code className="text-slate-300">aiops-agent.exe</code>. It runs silently in the
-            <strong className="text-slate-300"> system tray</strong> (no window) — right-click the tray icon for status, logs, or to pause/quit.
-            It auto-starts on logon and adds a Desktop shortcut. The device appears below within ~30s.
-          </p>
-        </div>
-      </div>
-
-      {/* Advanced: CLI for RMM/Intune */}
-      <details className="mt-5 pt-4 border-t border-white/5">
-        <summary className="text-xs font-bold text-slate-400 cursor-pointer hover:text-slate-200">Advanced: silent deploy via RMM / Intune (command line)</summary>
-        <div className="mt-3">
-          <CommandRow icon={<TerminalSquare className="w-4 h-4 text-slate-400" />} label="Install with arguments" cmd={cliCommand} copied={copied === "cli"} onCopy={() => copy(cliCommand, "cli")} />
-        </div>
-      </details>
-
-      <p className="text-xs text-slate-500 mt-4">
-        Uninstall any time with <code className="text-slate-300">aiops-agent.exe --uninstall</code>. The enrollment token is unique to this tenant — keep it private.
-      </p>
-    </div>
+    </Panel>
   );
 }
 
 function StepNum({ n }: { n: number }) {
   return (
-    <div className="w-7 h-7 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 text-slate-300 flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5">
       {n}
     </div>
   );
@@ -95,7 +88,7 @@ function StepNum({ n }: { n: number }) {
 function CommandRow({ icon, label, cmd, copied, onCopy }: { icon: React.ReactNode; label: string; cmd: string; copied: boolean; onCopy: () => void }) {
   return (
     <div>
-      <div className="flex items-center gap-2 mb-1.5 text-xs font-bold text-slate-400">{icon} {label}</div>
+      <div className="flex items-center gap-2 mb-1.5 text-xs font-semibold text-slate-400">{icon} {label}</div>
       <div className="flex items-stretch gap-2">
         <code className="flex-1 min-w-0 px-3 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-slate-300 font-mono overflow-x-auto whitespace-nowrap">{cmd}</code>
         <button onClick={onCopy} className="px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 transition-colors shrink-0" title="Copy">

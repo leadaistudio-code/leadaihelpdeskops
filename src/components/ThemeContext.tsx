@@ -55,8 +55,10 @@ function createSurfaceTheme(storageKey: string, defaultTheme: Theme, rootClass: 
   return { Provider, useSurfaceTheme };
 }
 
+// Mintlify pivot: the app is light-native now. Storage key bumped to v2 so a
+// previously-saved "dark" preference doesn't mask the new default.
 export const { Provider: AppThemeProvider, useSurfaceTheme: useAppTheme } =
-  createSurfaceTheme("leadai-app-theme", "dark", "app-root");
+  createSurfaceTheme("leadai-app-theme-v2", "light", "app-root");
 
 export const { Provider: MarketingThemeProvider, useSurfaceTheme: useMarketingTheme } =
   createSurfaceTheme("leadai-marketing-theme", "light", "marketing-root");

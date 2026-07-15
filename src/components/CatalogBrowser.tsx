@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import { Panel, Input, cn, focusRing } from "@/components/ui";
 
 export type CatalogBrowserItem = {
   id: string;
@@ -28,19 +29,19 @@ export type CatalogBrowserItem = {
   requiresApproval: boolean;
 };
 
-// Preferred category order + per-category accent and section icon. Accents are
-// literal hex (not Tailwind utilities) so the dark-surface accent remap leaves
-// them alone and each category stays visually distinct.
+// Preferred category order + per-category section icon. Colour-coding was
+// dropped for the calm console register: categories are distinguished by icon
+// and label, and the single mint accent is reserved for the active filter.
 const ORDER = ["Hardware", "Peripherals", "Mobile", "Software", "Access", "Services"];
-const META: Record<string, { accent: string; icon: LucideIcon }> = {
-  Hardware: { accent: "#38E8B0", icon: Laptop },
-  Peripherals: { accent: "#7C9CFF", icon: Mouse },
-  Mobile: { accent: "#C79CFF", icon: Smartphone },
-  Software: { accent: "#5AD1E8", icon: Code2 },
-  Access: { accent: "#F5B14C", icon: KeyRound },
-  Services: { accent: "#FF9DB0", icon: Sparkles },
+const META: Record<string, { icon: LucideIcon }> = {
+  Hardware: { icon: Laptop },
+  Peripherals: { icon: Mouse },
+  Mobile: { icon: Smartphone },
+  Software: { icon: Code2 },
+  Access: { icon: KeyRound },
+  Services: { icon: Sparkles },
 };
-const FALLBACK = { accent: "#8D98AC", icon: LayoutGrid };
+const FALLBACK = { icon: LayoutGrid };
 
 export default function CatalogBrowser({ items }: { items: CatalogBrowserItem[] }) {
   const [q, setQ] = useState("");
@@ -77,30 +78,38 @@ export default function CatalogBrowser({ items }: { items: CatalogBrowserItem[] 
   const totalShown = grouped.reduce((n, [, list]) => n + list.length, 0);
 
   const chip = (active: boolean) =>
-    `px-3.5 py-1.5 rounded-xl text-sm font-bold border transition-colors whitespace-nowrap ${
-      active ? "text-[#03130d] border-transparent" : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
-    }`;
+    cn(
+      "px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-colors whitespace-nowrap",
+      active
+        ? "bg-[#0a0a0a] text-white border-transparent"
+        : "bg-white/5 text-slate-300 border-white/10 hover:text-white",
+      focusRing
+    );
 
   return (
     <div>
       {/* Toolbar: search + view toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search the catalog…"
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/40 transition-all placeholder-slate-500"
+            className="pl-11"
           />
         </div>
-        <div className="flex items-center gap-1 p-1 bg-slate-900/50 border border-white/10 rounded-xl self-start">
+        <div className="flex items-center gap-1 p-1 bg-white/[0.02] border border-white/10 rounded-xl self-start">
           {(["list", "grid"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
               aria-label={`${v} view`}
-              className={`p-2 rounded-lg transition-colors ${view === v ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                view === v ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300",
+                focusRing
+              )}
             >
               {v === "list" ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
             </button>
@@ -110,90 +119,88 @@ export default function CatalogBrowser({ items }: { items: CatalogBrowserItem[] 
 
       {/* Category chips */}
       <div className="flex flex-wrap gap-2 mb-8">
-        <button
-          onClick={() => setCat("ALL")}
-          className={chip(cat === "ALL")}
-          style={cat === "ALL" ? { backgroundColor: "#38E8B0" } : undefined}
-        >
+        <button onClick={() => setCat("ALL")} className={chip(cat === "ALL")}>
           All <span className="opacity-70">· {items.length}</span>
         </button>
-        {categories.map((c) => {
-          const accent = (META[c] ?? FALLBACK).accent;
-          const active = cat === c;
-          return (
-            <button key={c} onClick={() => setCat(c)} className={chip(active)} style={active ? { backgroundColor: accent } : undefined}>
-              {c} <span className="opacity-70">· {counts[c]}</span>
-            </button>
-          );
-        })}
+        {categories.map((c) => (
+          <button key={c} onClick={() => setCat(c)} className={chip(cat === c)}>
+            {c} <span className="opacity-70">· {counts[c]}</span>
+          </button>
+        ))}
       </div>
 
       {totalShown === 0 ? (
-        <div className="glass-panel rounded-3xl border border-white/10 p-16 text-center">
+        <Panel className="p-16 text-center">
           <LayoutGrid className="w-10 h-10 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400 font-medium">No items match “{q}”.</p>
-          <button onClick={() => { setQ(""); setCat("ALL"); }} className="mt-4 text-sm font-bold text-emerald-400 hover:text-emerald-300">
+          <button
+            onClick={() => { setQ(""); setCat("ALL"); }}
+            className={cn("mt-4 text-sm font-semibold text-[#00926f] hover:text-[#00b48a] rounded-sm", focusRing)}
+          >
             Clear filters
           </button>
-        </div>
+        </Panel>
       ) : (
         <div className="space-y-8">
           {grouped.map(([c, list]) => {
-            const { accent, icon: SectionIcon } = META[c] ?? FALLBACK;
+            const { icon: SectionIcon } = META[c] ?? FALLBACK;
             return (
               <section key={c}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent + "22", color: accent }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-slate-300">
                     <SectionIcon className="w-[18px] h-[18px]" />
                   </div>
-                  <h2 className="text-base font-extrabold text-white tracking-tight">{c}</h2>
+                  <h2 className="text-base font-semibold text-white tracking-tight">{c}</h2>
                   <span className="text-xs font-mono text-slate-500">{list.length}</span>
                 </div>
 
                 {view === "list" ? (
-                  <div className="glass-panel rounded-2xl border border-white/10 divide-y divide-white/5 overflow-hidden">
+                  <Panel className="divide-y divide-white/5 overflow-hidden">
                     {list.map((item) => (
                       <Link
                         key={item.id}
                         href={`/catalog/${item.id}`}
-                        className="group flex items-center gap-4 px-4 py-2.5 hover:bg-white/5 transition-colors"
+                        className={cn("group flex items-center gap-4 px-4 py-2.5 hover:bg-white/5 transition-colors", focusRing)}
                       >
-                        <div className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: accent + "1f", color: accent }}>
+                        <div className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center bg-white/5 text-slate-300">
                           <CatalogIcon icon={item.icon} className="w-[18px] h-[18px]" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-white text-sm truncate">{item.name}</h3>
+                            <h3 className="font-semibold text-white text-sm truncate">{item.name}</h3>
                             {item.requiresApproval && (
                               <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-label="Requires approval" />
                             )}
                           </div>
                           <p className="text-slate-500 text-xs truncate">{item.description}</p>
                         </div>
-                        <span className="text-xs font-bold shrink-0 hidden sm:block" style={{ color: accent }}>
+                        <span className="text-xs font-semibold text-slate-400 shrink-0 hidden sm:block">
                           {item.price != null ? `$${item.price}` : "Request"}
                         </span>
-                        <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" style={{ color: accent }} />
+                        <ArrowRight className="w-4 h-4 shrink-0 text-slate-500 group-hover:translate-x-1 transition-transform" />
                       </Link>
                     ))}
-                  </div>
+                  </Panel>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                     {list.map((item) => (
                       <Link
                         key={item.id}
                         href={`/catalog/${item.id}`}
-                        className="group glass-panel rounded-xl p-4 border border-white/5 hover:border-white/15 hover:-translate-y-0.5 transition-all flex flex-col"
+                        className={cn(
+                          "group rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04] hover:border-white/15 flex flex-col",
+                          focusRing
+                        )}
                       >
                         <div className="flex items-start justify-between mb-3">
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: accent + "1f", color: accent }}>
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-white/5 text-slate-300">
                             <CatalogIcon icon={item.icon} className="w-[18px] h-[18px]" />
                           </div>
                           {item.requiresApproval && <ShieldCheck className="w-3.5 h-3.5 text-amber-400 mt-1" aria-label="Requires approval" />}
                         </div>
-                        <h3 className="text-sm font-bold text-white mb-1 leading-snug">{item.name}</h3>
+                        <h3 className="text-sm font-semibold text-white mb-1 leading-snug">{item.name}</h3>
                         <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 flex-1">{item.description}</p>
-                        <span className="mt-3 text-xs font-bold" style={{ color: accent }}>
+                        <span className="mt-3 text-xs font-semibold text-slate-400">
                           {item.price != null ? `$${item.price}` : "Request →"}
                         </span>
                       </Link>

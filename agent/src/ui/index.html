@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+  <title>DEX Agent Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --success: #10b981;
+      --danger: #f43f5e;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    /* Make the whole window draggable, except for buttons */
+    .draggable {
+      -webkit-app-region: drag;
+    }
+    .no-drag {
+      -webkit-app-region: no-drag;
+    }
+
+    header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .logo-container {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      color: white;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+    .dot.paused {
+      background: #f59e0b;
+      box-shadow: 0 0 10px #f59e0b;
+    }
+
+    #status-text {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metric-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-val {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    footer {
+      padding: 16px;
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 12px;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: #000;
+    }
+    button.primary:hover {
+      background: #7dd3fc;
+    }
+  </style>
+</head>
+<body class="draggable">
+  
+  <header>
+    <div class="logo-container">L<span style="color: #a5b4fc;">AI</span></div>
+    <div>
+      <h1>Lead AI Solution</h1>
+      <div class="subtitle">DEX Agent &bull; v1.0.0</div>
+    </div>
+  </header>
+
+  <div class="content no-drag">
+    <div class="status-card">
+      <div class="status-indicator">
+        <div id="status-dot" class="dot"></div>
+        <span id="status-main">Connecting...</span>
+      </div>
+      <div id="status-text">Waiting for telemetry</div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <span class="metric-label">Telemetry</span>
+        <span class="metric-val text-success">Active</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">Remediations</span>
+        <span class="metric-val text-primary">Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="no-drag">
+    <button id="btn-pause">Pause</button>
+    <button id="btn-quit" style="background: rgba(244, 63, 94, 0.15); color: #fda4af;">Quit Agent</button>
+  </footer>
+
+  <script>
+    const statusDot = document.getElementById('status-dot');
+    const statusMain = document.getElementById('status-main');
+    const statusText = document.getElementById('status-text');
+    const btnPause = document.getElementById('btn-pause');
+    const btnQuit = document.getElementById('btn-quit');
+
+    function renderStatus(data) {
+      if (data.paused) {
+        statusDot.className = 'dot paused';
+        statusMain.innerText = 'Reporting Paused';
+        statusText.innerText = 'Telemetry collection is temporarily halted.';
+        btnPause.innerText = 'Resume';
+      } else if (data.ok) {
+        statusDot.className = 'dot';
+        statusMain.innerText = 'Online & Healthy';
+        statusText.innerText = data.text;
+        btnPause.innerText = 'Pause';
+      } else {
+        statusDot.className = 'dot offline';
+        statusMain.innerText = 'Offline / Error';
+        statusText.innerText = data.text;
+        btnPause.innerText = 'Pause';
+      }
+    }
+
+    window.electronAPI.getStatus().then(renderStatus);
+
+    window.electronAPI.onStatusUpdate((data) => {
+      renderStatus(data);
+    });
+
+    btnPause.addEventListener('click', () => {
+      window.electronAPI.togglePause();
+    });
+
+    btnQuit.addEventListener('click', () => {
+      window.electronAPI.quitApp();
+    });
+  </script>
+</body>
+</html>

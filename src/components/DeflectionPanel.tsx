@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, FileText, ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
+import { Panel, Button, Input, cn, focusRing } from "@/components/ui";
 
 type Match = { id: string; title: string; excerpt: string };
 
@@ -36,13 +37,13 @@ export default function DeflectionPanel() {
   };
 
   return (
-    <div className="glass-panel border border-indigo-500/20 rounded-3xl max-w-4xl mx-auto overflow-hidden mb-6">
-      <div className="px-8 py-6 border-b border-white/5 bg-indigo-500/5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-indigo-400" />
+    <Panel className="max-w-4xl mx-auto overflow-hidden mb-6">
+      <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+          <Sparkles className="w-5 h-5 text-slate-300" />
         </div>
         <div>
-          <h2 className="text-sm font-black text-slate-200 uppercase tracking-widest">Before you file — try AI self-service</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Before you file — try AI self-service</h2>
           <p className="text-xs text-slate-500 mt-0.5">Many issues resolve instantly from the knowledge base.</p>
         </div>
       </div>
@@ -50,29 +51,30 @@ export default function DeflectionPanel() {
       <div className="p-8">
         <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && search()}
               placeholder="Describe your issue, e.g. 'can't connect to VPN'"
-              className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 text-sm transition-colors"
+              className="pl-11"
             />
           </div>
-          <button
+          <Button
             onClick={search}
             disabled={loading || query.trim().length < 4}
-            className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-lg hover:brightness-110 transition-all font-bold text-sm disabled:opacity-50 whitespace-nowrap"
+            loading={loading}
+            className="whitespace-nowrap"
           >
             {loading ? "Searching…" : "Get Help"}
-          </button>
+          </Button>
         </div>
 
         {searched && !loading && (
           <div className="mt-6 space-y-4">
             {answer && (
-              <div className="p-5 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
-                <div className="flex items-center gap-2 mb-2 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+              <div className="p-5 bg-white/[0.02] border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-semibold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" /> AI Suggestion
                 </div>
                 <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{answer}</p>
@@ -81,22 +83,22 @@ export default function DeflectionPanel() {
 
             {articles.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Related articles</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Related articles</p>
                 {articles.map((a) => (
                   <Link
                     key={a.id}
                     href={`/knowledge/${a.id}`}
                     target="_blank"
-                    className="flex items-start gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/40 hover:bg-white/[0.07] transition-colors group"
+                    className={cn("flex items-start gap-3 p-4 bg-white/[0.02] border border-white/10 rounded-xl hover:border-white/15 hover:bg-white/[0.04] transition-colors group", focusRing)}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-emerald-400" />
+                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-slate-300" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-200 group-hover:text-white truncate">{a.title}</div>
+                      <div className="text-sm font-semibold text-slate-200 group-hover:text-[#00926f] truncate transition-colors">{a.title}</div>
                       <div className="text-xs text-slate-500 line-clamp-1">{a.excerpt}</div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 mt-0.5" />
+                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 shrink-0 mt-0.5" />
                   </Link>
                 ))}
               </div>
@@ -108,6 +110,6 @@ export default function DeflectionPanel() {
           </div>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }

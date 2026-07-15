@@ -21,6 +21,8 @@ const data = [
   { name: "Sun", tickets: 8 },
 ];
 
+const CHART_HEIGHT = 220;
+
 export default function DashboardChart() {
   const { theme } = useAppTheme();
   const isLight = theme === "light";
@@ -30,13 +32,13 @@ export default function DashboardChart() {
   const tooltipBorder = isLight ? "rgba(15,23,42,0.12)" : "rgba(255,255,255,0.1)";
   const tooltipText = isLight ? "#0f172a" : "#fff";
   return (
-    <div className="w-full h-full min-h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full" style={{ height: CHART_HEIGHT }} role="img" aria-label="Incident volume chart for the last seven days">
+      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#38E8B0" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#38E8B0" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#00d4a4" stopOpacity={0.35}/>
+              <stop offset="95%" stopColor="#00d4a4" stopOpacity={0}/>
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
@@ -65,11 +67,11 @@ export default function DashboardChart() {
           <Area 
             type="monotone" 
             dataKey="tickets" 
-            stroke="#38E8B0"
-            strokeWidth={3}
+            stroke="#00d4a4"
+            strokeWidth={2}
             fillOpacity={1} 
             fill="url(#colorTickets)" 
-            activeDot={{ r: 6, fill: "#5EEAD4", stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: "#00d4a4", stroke: "#ffffff", strokeWidth: 1 }}
           />
         </AreaChart>
       </ResponsiveContainer>

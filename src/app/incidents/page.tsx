@@ -7,6 +7,25 @@ import { getSessionUser } from "@/lib/auth-utils";
 import { Ticket, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import SlaBadge from "@/components/SlaBadge";
+import {
+  PageHeader,
+  Button,
+  Panel,
+  Input,
+  Select,
+  Badge,
+  statusTone,
+  priorityTone,
+  humanize,
+  DataTable,
+  THead,
+  TH,
+  TBody,
+  TR,
+  TD,
+  focusRing,
+  cn,
+} from "@/components/ui";
 import { IncidentStatus, Priority } from "@prisma/client";
 
 const STATUSES: (IncidentStatus | "ALL")[] = ["ALL", "NEW", "IN_PROGRESS", "ON_HOLD", "PENDING_APPROVAL", "RESOLVED", "CLOSED"];
@@ -56,153 +75,127 @@ export default async function IncidentsPage({
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 mt-4 gap-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-            <Ticket className="w-6 h-6 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Incidents</h1>
-            <p className="text-slate-400 mt-1">{isEmployee ? "Your active support requests" : `${total} tickets in the system`}</p>
-          </div>
-        </div>
-        <Link href="/incidents/new" className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all font-bold">
-          <Plus className="w-4 h-4" />
-          <span>New Incident</span>
-        </Link>
-      </div>
+      <PageHeader
+        title="Incidents"
+        description={isEmployee ? "Your active support requests" : `${total} tickets in the system`}
+        action={
+          <Button href="/incidents/new" icon={Plus}>
+            New Incident
+          </Button>
+        }
+      />
 
       {/* Filter bar */}
       <form action="/incidents" className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          <Input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Search by number or title…"
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all placeholder-slate-500 text-sm"
+            className="pl-11"
           />
         </div>
-        <select
-          name="status"
-          defaultValue={status}
-          className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
-        >
+        <Select name="status" defaultValue={status} className="sm:w-48">
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s === "ALL" ? "All statuses" : s.replace("_", " ")}</option>
+            <option key={s} value={s}>{s === "ALL" ? "All statuses" : humanize(s)}</option>
           ))}
-        </select>
-        <select
-          name="priority"
-          defaultValue={priority}
-          className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
-        >
+        </Select>
+        <Select name="priority" defaultValue={priority} className="sm:w-44">
           {PRIORITIES.map((p) => (
             <option key={p} value={p}>{p === "ALL" ? "All priorities" : p}</option>
           ))}
-        </select>
+        </Select>
         {!isEmployee && groups.length > 0 && (
-          <select
-            name="group"
-            defaultValue={group}
-            className="px-4 py-2.5 bg-slate-900/50 border border-white/10 text-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
-          >
+          <Select name="group" defaultValue={group} className="sm:w-44">
             <option value="ALL">All groups</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
-          </select>
+          </Select>
         )}
-        <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-colors">
-          Filter
-        </button>
+        <Button type="submit" variant="secondary">Filter</Button>
       </form>
 
-      <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-slate-300">
-            <thead className="text-xs text-slate-500 bg-black/20 uppercase tracking-wider">
+      <Panel className="overflow-hidden">
+        <DataTable>
+          <THead>
+            <tr>
+              <TH>Number</TH>
+              <TH>Opened</TH>
+              <TH>Short description</TH>
+              <TH>Caller</TH>
+              <TH>Priority</TH>
+              <TH>State</TH>
+            </tr>
+          </THead>
+          <TBody>
+            {items.length === 0 ? (
               <tr>
-                <th className="px-8 py-4 font-bold">Number</th>
-                <th className="px-8 py-4 font-bold">Opened</th>
-                <th className="px-8 py-4 font-bold">Short description</th>
-                <th className="px-8 py-4 font-bold">Caller</th>
-                <th className="px-8 py-4 font-bold">Priority</th>
-                <th className="px-8 py-4 font-bold">State</th>
+                <TD colSpan={6}>
+                  <EmptyState
+                    icon={Ticket}
+                    title={q || status !== "ALL" ? "No matching incidents" : isEmployee ? "No open tickets" : "No incidents yet"}
+                    description={q || status !== "ALL" ? "Try adjusting your search or filters." : "New incidents will appear here as they're raised."}
+                    ctaHref="/incidents/new"
+                    ctaLabel="New Incident"
+                  />
+                </TD>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      icon={Ticket}
-                      title={q || status !== "ALL" ? "No matching incidents" : isEmployee ? "No open tickets" : "No incidents yet"}
-                      description={q || status !== "ALL" ? "Try adjusting your search or filters." : "New incidents will appear here as they're raised."}
-                      ctaHref="/incidents/new"
-                      ctaLabel="New Incident"
-                    />
-                  </td>
-                </tr>
-              ) : (
-                items.map((inc) => (
-                  <tr key={inc.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
-                    <td className="px-8 py-5">
-                      <Link href={`/incidents/${inc.id}`} className="font-bold text-indigo-400 group-hover:text-indigo-300">
-                        {inc.number}
-                      </Link>
-                    </td>
-                    <td className="px-8 py-5 text-slate-400">{inc.createdAt.toLocaleString()}</td>
-                    <td className="px-8 py-5 font-medium text-slate-200">{inc.title}</td>
-                    <td className="px-8 py-5 text-sky-400 font-medium">{inc.caller?.name || "Unknown"}</td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.priority === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        inc.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                      }`}>
-                        {inc.priority}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.status === 'NEW' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
-                        inc.status === 'IN_PROGRESS' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                      }`}>
-                        {inc.status.replace("_", " ")}
-                      </span>
-                      {inc.slaInstances[0] && (
-                        <div className="mt-1.5">
-                          <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            ) : (
+              items.map((inc) => (
+                <TR key={inc.id} className="cursor-pointer">
+                  <TD>
+                    <Link href={`/incidents/${inc.id}`} className={cn("font-semibold text-slate-100 hover:text-[#00926f] transition-colors rounded-sm", focusRing)}>
+                      {inc.number}
+                    </Link>
+                  </TD>
+                  <TD className="text-slate-400">{inc.createdAt.toLocaleString()}</TD>
+                  <TD className="font-medium text-slate-200">{inc.title}</TD>
+                  <TD className="text-slate-400">{inc.caller?.name || "Unknown"}</TD>
+                  <TD>
+                    <Badge tone={priorityTone(inc.priority)}>{inc.priority}</Badge>
+                  </TD>
+                  <TD>
+                    <Badge tone={statusTone(inc.status)}>{humanize(inc.status)}</Badge>
+                    {inc.slaInstances[0] && (
+                      <div className="mt-1.5">
+                        <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
+                      </div>
+                    )}
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </DataTable>
+      </Panel>
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-slate-500">Page {page} of {totalPages} · {total} total</p>
+          <p className="text-sm text-slate-500 tabular-nums">Page {page} of {totalPages} · {total} total</p>
           <div className="flex gap-2">
             <Link
               href={buildHref({ page: Math.max(1, page - 1) })}
               aria-disabled={page <= 1}
-              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${page <= 1 ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5"}`}
+              className={cn(
+                "inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors",
+                page <= 1 ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5",
+                focusRing
+              )}
             >
               <ChevronLeft className="w-4 h-4" /> Prev
             </Link>
             <Link
               href={buildHref({ page: Math.min(totalPages, page + 1) })}
               aria-disabled={page >= totalPages}
-              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${page >= totalPages ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5"}`}
+              className={cn(
+                "inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors",
+                page >= totalPages ? "text-slate-600 border-white/5 pointer-events-none" : "text-slate-300 border-white/10 hover:bg-white/5",
+                focusRing
+              )}
             >
               Next <ChevronRight className="w-4 h-4" />
             </Link>

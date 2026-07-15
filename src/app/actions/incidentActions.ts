@@ -8,7 +8,7 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
-import { notify } from "@/app/actions/notificationActions";
+import { notify, notifyGroup } from "@/app/actions/notificationActions";
 import { resolveGroupByName } from "@/app/actions/groupActions";
 import { startSlaForIncident, pauseSla, resumeSla, stopSla, escalateIfBreached } from "@/app/actions/slaActions";
 import { logAudit } from "@/lib/audit";
@@ -96,6 +96,24 @@ export async function createIncident(payload: CreateIncidentPayload | FormData) 
 
   // Start the live SLA clock (no-op if the tenant has no matching SLA).
   await startSlaForIncident(incident.id, incident.type, incident.priority, domain);
+
+  // Notify caller
+  await notify(incident.callerId, {
+    title: `Ticket Created: ${incident.number}`,
+    body: `Your ${incident.type.toLowerCase()} "${incident.title}" has been successfully created.`,
+    type: "GENERAL",
+    link: `/incidents/${incident.id}`,
+  });
+
+  // Notify group if assigned
+  if (incident.assignmentGroupId) {
+    await notifyGroup(incident.assignmentGroupId, {
+      title: `New Ticket Assigned: ${incident.number}`,
+      body: incident.title,
+      type: "ASSIGNMENT",
+      link: `/incidents/${incident.id}`,
+    });
+  }
 
   await logAudit({
     domain,

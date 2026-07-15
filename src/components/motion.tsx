@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useInView,
-  useMotionValue,
-  useTransform,
+  useReducedMotion,
   animate,
   type Variants,
 } from "motion/react";
@@ -25,13 +24,14 @@ export function FadeIn({
   delay?: number;
   y?: number;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, y }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, ease: EASE, delay }}
+      transition={{ duration: reduceMotion ? 0 : 0.6, ease: EASE, delay: reduceMotion ? 0 : delay }}
     >
       {children}
     </motion.div>
@@ -56,12 +56,13 @@ export function Stagger({
   children: React.ReactNode;
   className?: string;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       className={className}
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
+      variants={reduceMotion ? undefined : staggerContainer}
+      initial={reduceMotion ? false : "hidden"}
+      whileInView={reduceMotion ? undefined : "visible"}
       viewport={{ once: true, margin: "-60px" }}
     >
       {children}
@@ -79,11 +80,12 @@ export function StaggerItem({
   className?: string;
   lift?: boolean;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       className={className}
-      variants={staggerChild}
-      whileHover={lift ? { y: -6 } : undefined}
+      variants={reduceMotion ? undefined : staggerChild}
+      whileHover={!reduceMotion && lift ? { y: -6 } : undefined}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
     >
       {children}
@@ -106,18 +108,26 @@ export function AnimatedCounter({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  const count = useMotionValue(0);
-  const text = useTransform(count, (v) => v.toFixed(decimals));
+  const reduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
-    const controls = animate(count, value, { duration: 1.4, ease: "easeOut" });
+    if (reduceMotion) {
+      setDisplay(value);
+      return;
+    }
+    const controls = animate(0, value, {
+      duration: 1,
+      ease: "easeOut",
+      onUpdate: (v) => setDisplay(v),
+    });
     return () => controls.stop();
-  }, [inView, count, value]);
+  }, [inView, value, reduceMotion]);
 
   return (
-    <motion.span ref={ref} className={className}>
-      {text}
-    </motion.span>
+    <span ref={ref} className={className}>
+      {display.toFixed(decimals)}
+    </span>
   );
 }

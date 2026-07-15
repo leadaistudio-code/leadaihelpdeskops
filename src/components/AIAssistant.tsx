@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export default function AIAssistant({ title, description }: { title: string, description: string }) {
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -25,17 +27,17 @@ export default function AIAssistant({ title, description }: { title: string, des
 
   return (
     <div>
-      <button
+      <Button
         onClick={handleSuggest}
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-lg text-sm hover:brightness-110 transition-all font-bold disabled:opacity-50"
+        loading={loading}
+        icon={Sparkles}
+        className="w-full"
       >
-        <span>✨</span>
         {loading ? "Analyzing…" : "Suggest Resolution"}
-      </button>
+      </Button>
 
       {suggestion && (
-        <div className="mt-4 p-4 bg-black/20 border border-white/10 rounded-2xl text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
+        <div className="mt-4 p-4 bg-white/[0.02] border border-white/10 rounded-2xl text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
           {suggestion}
         </div>
       )}

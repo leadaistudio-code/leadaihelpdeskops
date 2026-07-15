@@ -1,11 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getCatalogItemById } from "@/app/actions/catalogActions";
-import CatalogIcon from "@/components/CatalogIcon";
 import CatalogRequestForm from "@/components/CatalogRequestForm";
+import { PageHeader, Button } from "@/components/ui";
 
 const APPROVAL_CATEGORIES = new Set(["Access"]);
 
@@ -21,20 +20,13 @@ export default async function CatalogItemPage({ params }: { params: Promise<{ id
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-      <div className="flex items-center space-x-4 mb-10 mt-4">
-        <Link href="/catalog" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10 group">
-          <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
-        </Link>
-        <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
-          <CatalogIcon icon={item.icon} className="w-6 h-6 text-violet-300" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">{item.name}</h1>
-          <p className="text-slate-400 mt-1">{item.category} Request</p>
-        </div>
-      </div>
+      <Button href="/catalog" variant="ghost" size="sm" icon={ChevronLeft} className="-ml-2 mb-4">
+        Back to Catalog
+      </Button>
 
-      <CatalogRequestForm itemId={item.id} description={item.description} requiresApproval={requiresApproval} />
+      <PageHeader eyebrow={`${item.category} Request`} title={item.name} />
+
+      <CatalogRequestForm itemId={item.id} description={item.description} requiresApproval={requiresApproval} formSchema={item.formSchema as any[]} />
     </div>
   );
 }

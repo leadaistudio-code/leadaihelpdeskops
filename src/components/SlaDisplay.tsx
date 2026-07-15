@@ -62,18 +62,18 @@ export default function SlaDisplay({
   });
 
   return (
-    <div className={`glass-panel p-6 rounded-2xl border ${theme.ring} flex flex-col justify-center`}>
+    <div className={`bg-white/[0.02] p-6 rounded-2xl border ${theme.ring} flex flex-col justify-center`}>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center space-x-2 min-w-0">
           <Icon className={`w-5 h-5 shrink-0 ${theme.text}`} />
-          <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest truncate">{name}</h3>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">{name}</h3>
         </div>
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border border-white/10 rounded px-1.5 py-0.5 shrink-0">
+        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500 border border-white/10 rounded px-1.5 py-0.5 shrink-0">
           {schedule === "BUSINESS" ? "8×5" : "24×7"}
         </span>
       </div>
 
-      <div className={`text-2xl font-black font-mono tabular-nums mb-3 ${theme.text}`}>{headline}</div>
+      <div className={`text-2xl font-semibold font-mono tabular-nums mb-3 ${theme.text}`}>{headline}</div>
 
       <div className="w-full bg-black/40 rounded-full h-2.5 overflow-hidden">
         <div

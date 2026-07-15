@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { NoteType } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
-
+import { notifyGroup } from "@/app/actions/notificationActions";
 async function requireAgent() {
   const user = await getSessionUser();
   if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
@@ -76,7 +76,7 @@ export async function setGroupMembers(groupId: string, userIds: string[]) {
 export async function assignIncidentGroup(incidentId: string, groupId: string | null) {
   await requireAgent();
   const domain = await getActiveDomain();
-  const incident = await prisma.incident.findFirst({ where: { id: incidentId, domain }, select: { id: true } });
+  const incident = await prisma.incident.findFirst({ where: { id: incidentId, domain }, select: { id: true, number: true, title: true } });
   if (!incident) throw new Error("Incident not found");
 
   const group = groupId
@@ -91,6 +91,16 @@ export async function assignIncidentGroup(incidentId: string, groupId: string | 
       body: group ? `Routed to group: ${group.name}.` : "Removed from assignment group.",
     },
   });
+
+  if (groupId && group) {
+    await notifyGroup(groupId, {
+      title: `Ticket Routed to Group: ${incident.number}`,
+      body: incident.title,
+      type: "ASSIGNMENT",
+      link: `/incidents/${incidentId}`,
+    });
+  }
+
   revalidatePath(`/incidents/${incidentId}`);
 }
 

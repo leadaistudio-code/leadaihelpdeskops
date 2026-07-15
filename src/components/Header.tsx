@@ -94,7 +94,7 @@ export default function Header() {
                   <div className="text-sm font-bold text-slate-100">{clerkUser.fullName}</div>
                   <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">{role.replace('_', ' ')}</div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center justify-center font-bold text-white text-lg overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center font-semibold text-slate-100 text-sm overflow-hidden">
                   {clerkUser.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser.fullName?.charAt(0) || 'U')}
                 </div>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
@@ -102,15 +102,15 @@ export default function Header() {
 
               {isProfileOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
-                  <div className="p-6 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
+                  <div className="p-6 border-b border-white/5">
                     <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-2xl shrink-0 overflow-hidden">
+                      <div className="w-14 h-14 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center font-semibold text-slate-100 text-xl shrink-0 overflow-hidden">
                         {clerkUser.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser.fullName?.charAt(0) || 'U')}
                       </div>
                       <div className="overflow-hidden">
-                        <div className="text-lg font-bold text-white truncate">{clerkUser.fullName}</div>
+                        <div className="text-base font-semibold text-white truncate">{clerkUser.fullName}</div>
                         <div className="text-sm text-slate-400 truncate">{clerkUser.primaryEmailAddress?.emailAddress || "user@leadaistudio.ai"}</div>
-                        <div className="mt-1 inline-block px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs font-bold rounded border border-indigo-500/30 uppercase tracking-wider">
+                        <div className="mt-1.5 inline-block px-2 py-0.5 bg-white/5 text-slate-300 text-xs font-semibold rounded border border-white/10 uppercase tracking-wider">
                           {role.replace('_', ' ')}
                         </div>
                       </div>
@@ -119,7 +119,7 @@ export default function Header() {
 
                   <div className="p-2">
                     <button onClick={() => openSettings('profile')} className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white group">
-                      <User className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                      <User className="w-5 h-5 text-slate-500 group-hover:text-slate-200 transition-colors" />
                       <div className="text-left flex-1">
                         <div className="text-sm font-bold">Profile Details</div>
                         <div className="text-xs text-slate-500">Manage your personal information</div>
@@ -127,7 +127,7 @@ export default function Header() {
                     </button>
                     
                     <button onClick={() => openSettings('region')} className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white group">
-                      <Globe className="w-5 h-5 text-slate-500 group-hover:text-sky-400 transition-colors" />
+                      <Globe className="w-5 h-5 text-slate-500 group-hover:text-slate-200 transition-colors" />
                       <div className="text-left flex-1">
                         <div className="text-sm font-bold">Region & Language</div>
                         <div className="text-xs text-slate-500">English (US) • PST Time Zone</div>
@@ -135,7 +135,7 @@ export default function Header() {
                     </button>
 
                     <button onClick={() => openSettings('display')} className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-slate-300 hover:text-white group">
-                      <Monitor className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                      <Monitor className="w-5 h-5 text-slate-500 group-hover:text-slate-200 transition-colors" />
                       <div className="text-left flex-1">
                         <div className="text-sm font-bold">Display Preferences</div>
                         <div className="text-xs text-slate-500">Dark Mode • Compact Density</div>
@@ -180,21 +180,21 @@ export default function Header() {
             
             {/* Sidebar */}
             <div className="w-64 border-r border-white/5 bg-slate-950/30 p-4 flex flex-col space-y-2">
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest px-4 py-2 mb-2">User Settings</div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-2 mb-2">User Settings</div>
               
-              <button onClick={() => setActiveSettingsTab('profile')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'profile' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+              <button onClick={() => setActiveSettingsTab('profile')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'profile' ? 'bg-[#00d4a4]/10 text-[#00926f]' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
                 <User className="w-4 h-4" />
                 <span>Profile Details</span>
               </button>
-              <button onClick={() => setActiveSettingsTab('region')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'region' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+              <button onClick={() => setActiveSettingsTab('region')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'region' ? 'bg-[#00d4a4]/10 text-[#00926f]' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
                 <Globe className="w-4 h-4" />
                 <span>Region & Language</span>
               </button>
-              <button onClick={() => setActiveSettingsTab('display')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'display' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+              <button onClick={() => setActiveSettingsTab('display')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'display' ? 'bg-[#00d4a4]/10 text-[#00926f]' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
                 <Monitor className="w-4 h-4" />
                 <span>Display Preferences</span>
               </button>
-              <button onClick={() => setActiveSettingsTab('account')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'account' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
+              <button onClick={() => setActiveSettingsTab('account')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-bold ${activeSettingsTab === 'account' ? 'bg-[#00d4a4]/10 text-[#00926f]' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}>
                 <Settings className="w-4 h-4" />
                 <span>Account Settings</span>
               </button>
@@ -220,7 +220,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
-                      <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Address</label>
@@ -228,7 +228,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Job Title</label>
-                      <input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="e.g., Network Engineer" className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors" />
+                      <input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="e.g., Network Engineer" className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors" />
                     </div>
                   </div>
                 )}
@@ -237,7 +237,7 @@ export default function Header() {
                   <div className="space-y-6 max-w-lg">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Language</label>
-                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors">
                         <option>English (US)</option>
                         <option>English (UK)</option>
                         <option>Spanish</option>
@@ -247,7 +247,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Time Zone</label>
-                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors">
                         <option>(UTC-08:00) Pacific Time (US & Canada)</option>
                         <option>(UTC-05:00) Eastern Time (US & Canada)</option>
                         <option>(UTC+00:00) Greenwich Mean Time</option>
@@ -256,7 +256,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Date Format</label>
-                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors">
                         <option>YYYY-MM-DD</option>
                         <option>MM/DD/YYYY</option>
                         <option>DD/MM/YYYY</option>
@@ -272,14 +272,14 @@ export default function Header() {
                       <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => setTheme('dark')}
-                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'dark' ? 'border-indigo-500/50 bg-indigo-500/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
+                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'dark' ? 'border-[#00d4a4]/40 bg-[#00d4a4]/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
                         >
                           <Moon className={`w-6 h-6 ${theme === 'dark' ? 'text-indigo-400' : ''}`} />
                           <span>Dark Mode</span>
                         </button>
                         <button
                           onClick={() => setTheme('light')}
-                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'light' ? 'border-indigo-500/50 bg-indigo-500/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
+                          className={`p-4 rounded-xl border font-bold flex flex-col items-center justify-center space-y-2 transition-colors ${theme === 'light' ? 'border-[#00d4a4]/40 bg-[#00d4a4]/10 text-white' : 'border-white/10 bg-black/30 text-slate-400 hover:text-white'}`}
                         >
                           <Sun className={`w-6 h-6 ${theme === 'light' ? 'text-amber-400' : ''}`} />
                           <span>Light Mode</span>
@@ -288,7 +288,7 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">UI Density</label>
-                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                      <select className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#00d4a4]/60 focus:ring-2 focus:ring-[#00d4a4]/20 transition-colors">
                         <option>Compact (Recommended)</option>
                         <option>Spacious</option>
                       </select>
@@ -304,14 +304,14 @@ export default function Header() {
                     </div>
                     <div>
                       <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" checked={form.emailNotifications} onChange={(e) => setForm({ ...form, emailNotifications: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-black/30 accent-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900" />
+                        <input type="checkbox" checked={form.emailNotifications} onChange={(e) => setForm({ ...form, emailNotifications: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-black/30 accent-[#00b48a] focus:ring-[#00d4a4]/40 focus:ring-offset-slate-900" />
                         <span className="text-sm font-bold text-white">Receive Email Notifications</span>
                       </label>
                       <p className="text-xs text-slate-400 ml-8 mt-1">Get emails when your tickets are updated.</p>
                     </div>
                     <div>
                       <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/10 bg-black/30 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900" />
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/10 bg-black/30 accent-[#00b48a] focus:ring-[#00d4a4]/40 focus:ring-offset-slate-900" />
                         <span className="text-sm font-bold text-white">SMS Alerts for P1 Critical Incidents</span>
                       </label>
                     </div>
@@ -321,7 +321,7 @@ export default function Header() {
 
               <div className="p-6 border-t border-white/5 bg-black/20 flex justify-end space-x-3">
                 <button onClick={() => setActiveSettingsTab(null)} className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-300 hover:bg-white/5 transition-colors">Cancel</button>
-                <button onClick={saveProfile} disabled={saving} className="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition-colors flex items-center space-x-2 disabled:opacity-50">
+                <button onClick={saveProfile} disabled={saving} className="px-5 py-2.5 rounded-xl font-semibold text-sm bg-[#0a0a0a] hover:bg-[#1c1c1e] text-white transition-colors flex items-center space-x-2 disabled:opacity-50">
                   <Save className="w-4 h-4" />
                   <span>{saving ? "Saving…" : "Save Changes"}</span>
                 </button>

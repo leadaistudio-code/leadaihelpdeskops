@@ -3,99 +3,94 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { getIncidents } from "@/app/actions/incidentActions";
 import { getSessionUser } from "@/lib/auth-utils";
-import { CheckCircle2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import SlaBadge from "@/components/SlaBadge";
+import {
+  PageHeader,
+  Button,
+  Panel,
+  PanelHeader,
+  Badge,
+  statusTone,
+  priorityTone,
+  humanize,
+  DataTable,
+  THead,
+  TH,
+  TBody,
+  TR,
+  TD,
+  focusRing,
+  cn,
+} from "@/components/ui";
 
 export default async function ClosedIncidentsPage() {
   const user = await getSessionUser();
-  
+
   // Fetch all incidents and filter by closed status
   const allIncidents = await getIncidents();
   const incidents = allIncidents.filter(i => i.status === "RESOLVED" || i.status === "CLOSED");
 
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 mt-4 gap-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Closed Incidents</h1>
-            <p className="text-slate-400 mt-1">Resolved and historically closed tickets</p>
-          </div>
-        </div>
-        <div className="flex space-x-3">
-          <Link href="/incidents/new" className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] hover:-translate-y-0.5 transition-all font-bold">
-            <Plus className="w-4 h-4" />
-            <span>New Incident</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Closed Incidents"
+        description="Resolved and historically closed tickets"
+        action={
+          <Button href="/incidents/new" icon={Plus}>
+            New Incident
+          </Button>
+        }
+      />
 
-      <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50">
-          <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Closed Queue</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-slate-300">
-            <thead className="text-xs text-slate-500 bg-black/20 uppercase tracking-wider">
+      <Panel className="overflow-hidden">
+        <PanelHeader title="Closed Queue" />
+        <DataTable>
+          <THead>
+            <tr>
+              <TH>Number</TH>
+              <TH>Opened</TH>
+              <TH>Short description</TH>
+              <TH>Caller</TH>
+              <TH>Priority</TH>
+              <TH>State</TH>
+            </tr>
+          </THead>
+          <TBody>
+            {incidents.length === 0 ? (
               <tr>
-                <th className="px-8 py-4 font-bold">Number</th>
-                <th className="px-8 py-4 font-bold">Opened</th>
-                <th className="px-8 py-4 font-bold">Short description</th>
-                <th className="px-8 py-4 font-bold">Caller</th>
-                <th className="px-8 py-4 font-bold">Priority</th>
-                <th className="px-8 py-4 font-bold">State</th>
+                <TD colSpan={6} align="center" className="text-slate-500">
+                  No closed tickets found.
+                </TD>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {incidents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-8 py-12 text-center text-slate-500 italic">
-                    No closed tickets found.
-                  </td>
-                </tr>
-              ) : (
-                incidents.map((inc) => (
-                  <tr key={inc.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
-                    <td className="px-8 py-5">
-                      <Link href={`/incidents/${inc.id}`} className="font-bold text-indigo-400 group-hover:text-indigo-300">
-                        {inc.number}
-                      </Link>
-                    </td>
-                    <td className="px-8 py-5 text-slate-400">{inc.createdAt.toLocaleString()}</td>
-                    <td className="px-8 py-5 font-medium text-slate-200">{inc.title}</td>
-                    <td className="px-8 py-5 text-sky-400 font-medium">{inc.caller?.name || "Unknown"}</td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.priority === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
-                        inc.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                      }`}>
-                        {inc.priority}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        inc.status === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                      }`}>
-                        {inc.status}
-                      </span>
-                      {inc.slaInstances[0] && (
-                        <div className="mt-1.5">
-                          <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            ) : (
+              incidents.map((inc) => (
+                <TR key={inc.id} className="cursor-pointer">
+                  <TD>
+                    <Link href={`/incidents/${inc.id}`} className={cn("font-semibold text-slate-100 hover:text-[#00926f] transition-colors rounded-sm", focusRing)}>
+                      {inc.number}
+                    </Link>
+                  </TD>
+                  <TD className="text-slate-400">{inc.createdAt.toLocaleString()}</TD>
+                  <TD className="font-medium text-slate-200">{inc.title}</TD>
+                  <TD className="text-slate-400">{inc.caller?.name || "Unknown"}</TD>
+                  <TD>
+                    <Badge tone={priorityTone(inc.priority)}>{inc.priority}</Badge>
+                  </TD>
+                  <TD>
+                    <Badge tone={statusTone(inc.status)}>{humanize(inc.status)}</Badge>
+                    {inc.slaInstances[0] && (
+                      <div className="mt-1.5">
+                        <SlaBadge dueAt={inc.slaInstances[0].dueAt} stage={inc.slaInstances[0].stage} />
+                      </div>
+                    )}
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </DataTable>
+      </Panel>
     </div>
   );
 }

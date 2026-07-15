@@ -33,7 +33,7 @@ export default function HeroDemoVideo() {
   }, []);
 
   return (
-    <div className="relative bg-slate-950 aspect-video">
+    <div className="relative bg-[#f7f7f7] aspect-video">
       <video
         ref={videoRef}
         src="/leadaistudio-demo.mp4"
@@ -49,12 +49,12 @@ export default function HeroDemoVideo() {
           type="button"
           onClick={start}
           aria-label="Play the 60-second product demo"
-          className="group absolute inset-0 flex flex-col items-center justify-center bg-slate-950/30 hover:bg-slate-950/20 transition-colors cursor-pointer"
+          className="group absolute inset-0 flex flex-col items-center justify-center bg-black/5 hover:bg-black/10 transition-colors cursor-pointer"
         >
-          <span className="flex items-center justify-center w-20 h-20 rounded-full bg-white/95 shadow-2xl ring-1 ring-black/5 group-hover:scale-110 transition-transform">
-            <Play className="w-9 h-9 text-blue-600 fill-blue-600 ml-1" />
+          <span className="flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)] ring-1 ring-black/5 group-hover:scale-110 transition-transform">
+            <Play className="w-9 h-9 text-[#00926f] fill-[#00926f] ml-1" />
           </span>
-          <span className="mt-5 px-4 py-2 rounded-full bg-slate-900/80 text-white text-sm font-semibold backdrop-blur">
+          <span className="mt-5 px-4 py-2 rounded-full bg-[#0a0a0a] text-white text-sm font-semibold">
             Watch the 60-second narrated tour
           </span>
         </button>

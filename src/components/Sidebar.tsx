@@ -45,14 +45,15 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+      aria-current={isActive ? "page" : undefined}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/40 ${
         isActive
-          ? "bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20 shadow-[inset_0_0_12px_rgba(99,102,241,0.1)]"
-          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+          ? "bg-[#00d4a4]/10 text-[#00926f] font-semibold"
+          : "text-slate-400 hover:text-slate-100 hover:bg-white/5 font-medium"
       } ${isCollapsed ? 'justify-center px-0' : ''}`}
       title={isCollapsed ? (children as string) : undefined}
     >
-      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+      <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#00926f]" : "text-slate-500 group-hover:text-slate-300"}`} />
       {!isCollapsed && <span className="truncate">{children}</span>}
     </Link>
   );
@@ -63,6 +64,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
   const pathname = usePathname();
   const role = (user?.publicMetadata?.role as string) || "EMPLOYEE";
   const isAgent = role === "IT_AGENT" || role === "ADMIN";
+  const modules = Array.isArray(user?.publicMetadata?.modules) ? (user.publicMetadata.modules as string[]) : ["SELF_SERVICE"];
+  
+  const hasModule = (modId: string) => role === "ADMIN" || modules.includes(modId);
 
   // Common props threaded into each NavLink.
   const nav = { pathname, isCollapsed };
@@ -70,54 +74,72 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: 
   return (
     <aside className={`fixed left-0 top-16 bottom-0 overflow-hidden flex flex-col text-sm font-medium z-40 bg-slate-950/20 backdrop-blur-md border-r border-white/5 transition-all duration-300 ${isCollapsed ? 'w-24' : 'w-64'}`}>
       <div className={`p-4 border-b border-white/5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-        {!isCollapsed && <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Navigation</span>}
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)} 
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        {!isCollapsed && <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Navigation</span>}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/40"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
         </button>
       </div>
 
-      <div className="overflow-y-auto custom-scrollbar flex-1 px-4 py-4 space-y-2">
+      <div className="overflow-y-auto custom-scrollbar flex-1 px-3 py-4 space-y-1">
         {!isCollapsed && (
-          <form action="/search" className="mb-6">
+          <form action="/search" className="mb-5 px-1">
             <input
               type="text"
               name="q"
               placeholder="Search everything…"
-              className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder-slate-500"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 text-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#00d4a4]/20 focus:border-[#00d4a4]/60 transition-colors placeholder-slate-500"
             />
           </form>
         )}
-        {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Self-Service</div>}
-        <NavLink href="/dashboard" icon={LayoutDashboard} {...nav}>Dashboard</NavLink>
-        <NavLink href="/catalog" icon={Library} {...nav}>Service Catalog</NavLink>
-        <NavLink href="/my-requests" icon={ShoppingBag} {...nav}>My Requests</NavLink>
-        <NavLink href="/knowledge" icon={BookOpen} {...nav}>Knowledge Base</NavLink>
-        {!isAgent && (
-          <NavLink href="/incidents" icon={Ticket} {...nav}>My Tickets</NavLink>
+        {hasModule("SELF_SERVICE") && (
+          <>
+            {!isCollapsed && <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-2">Self-Service</div>}
+            <NavLink href="/dashboard" icon={LayoutDashboard} {...nav}>Dashboard</NavLink>
+            <NavLink href="/catalog" icon={Library} {...nav}>Service Catalog</NavLink>
+            <NavLink href="/my-requests" icon={ShoppingBag} {...nav}>My Requests</NavLink>
+            <NavLink href="/knowledge" icon={BookOpen} {...nav}>Knowledge Base</NavLink>
+            {!hasModule("SERVICE_DESK") && (
+              <NavLink href="/incidents" icon={Ticket} {...nav}>My Tickets</NavLink>
+            )}
+          </>
         )}
 
-        {isAgent && (
+        {hasModule("DEX") && (
           <>
-            {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">Observability</div>}
+            {!isCollapsed && <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8">Observability</div>}
             <NavLink href="/dex" icon={Activity} {...nav}>DEX Monitoring</NavLink>
-            <NavLink href="/reports" icon={BarChart3} {...nav}>Analytics</NavLink>
+            <NavLink href="/reports" icon={BarChart3} {...nav}>Fleet Reports</NavLink>
+            <NavLink href="/analytics" icon={Activity} {...nav}>Shadow IT Analytics</NavLink>
             <NavLink href="/cmdb" icon={Network} {...nav}>CMDB Dependency Map</NavLink>
+          </>
+        )}
 
-            {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">Service Desk</div>}
+        {hasModule("SERVICE_DESK") && (
+          <>
+            {!isCollapsed && <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8">Service Desk</div>}
             <NavLink href="/incidents" icon={Inbox} {...nav}>All Incidents</NavLink>
             <NavLink href="/incidents/assigned" icon={Ticket} {...nav}>Assigned to me</NavLink>
             <NavLink href="/incidents/active" icon={FolderClock} {...nav}>Open</NavLink>
             <NavLink href="/incidents/closed" icon={CheckCircle2} {...nav}>Closed</NavLink>
             <NavLink href="/problems" icon={Boxes} {...nav}>Problems</NavLink>
             <NavLink href="/approvals" icon={ClipboardCheck} {...nav}>Approvals</NavLink>
+          </>
+        )}
 
-            {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">Asset Management</div>}
+        {hasModule("ASSET_MANAGEMENT") && (
+          <>
+            {!isCollapsed && <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8">Asset Management</div>}
             <NavLink href="/assets" icon={Laptop} {...nav}>Hardware Assets</NavLink>
+          </>
+        )}
 
-            {!isCollapsed && <div className="px-2 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest mt-8">Administration</div>}
+        {isAgent && (
+          <>
+            {!isCollapsed && <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-8">Administration</div>}
             {role === "ADMIN" && <NavLink href="/admin/team" icon={Users} {...nav}>Team &amp; Invites</NavLink>}
             {role === "ADMIN" && <NavLink href="/admin/users" icon={Users} {...nav}>User Management</NavLink>}
             <NavLink href="/admin/groups" icon={Network} {...nav}>Assignment Groups</NavLink>

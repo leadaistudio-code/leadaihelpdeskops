@@ -39,6 +39,7 @@ model User {
   uploads          Attachment[]
   groups           AssignmentGroup[] @relation("GroupMembers")
   emailNotifications Boolean         @default(true)
+  moduleAccess     String[]          @default(["SELF_SERVICE"])
   jobTitle         String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -282,6 +283,9 @@ model CatalogItem {
   description String
   category    String           // e.g., "Hardware", "Software", "Access"
   icon        String?          // lucide icon key
+  imageUrl    String?          // product image
+  specs       Json?            // ["16GB RAM", "512GB SSD"]
+  formSchema  Json?            // custom request form schema
   price       Float?           // optional showback cost
   isActive    Boolean          @default(true)
   requests    CatalogRequest[]
@@ -298,6 +302,7 @@ model Device {
   os          String?
   user        String?  // logged-in OS user reported by the agent
   domain      String   // tenant
+  persona     String?  // e.g., "Developer", "Sales"
 
   // Latest snapshot (denormalized for a fast dashboard).
   cpuPct      Float?
@@ -309,13 +314,21 @@ model Device {
   batteryPct  Int?
   cpuCores    Int?
   lastSeenAt  DateTime?
+  extendedInfo Json?
 
   // Proactive monitoring: when we last auto-raised an alert for this device.
   lastAlertAt DateTime?
 
   enrolledAt  DateTime @default(now())
-  metrics     DeviceMetric[]
-  commands    RemoteCommand[]
+  metrics             DeviceMetric[]
+  commands            RemoteCommand[]
+  appCrashes          AppCrashEvent[]
+  hardwarePredictions HardwareFailurePrediction[]
+  installations       SoftwareInstallation[]
+  softwareUsage       SoftwareUsage[]
+  microSurveys        MicroSurveyResponse[]
+  bootProfiles        BootProfile[]
+  securityPostures    SecurityPosture[]
 
   @@index([domain])
 }
@@ -330,8 +343,12 @@ model DeviceMetric {
   diskPct    Float?
   uptimeSec  Int?
   latencyMs  Int?
-  batteryPct Int?
-  createdAt  DateTime @default(now())
+  batteryPct    Int?
+  wifiSsid      String?
+  wifiSignalDbm Int?
+  packetLossPct Float?
+  extendedInfo  Json?
+  createdAt     DateTime @default(now())
 
   @@index([deviceId, createdAt])
 }
@@ -497,4 +514,131 @@ model AuditLog {
   @@index([domain, createdAt])
   @@index([domain, entityType, entityId])
   @@index([domain, actorId])
+}
+
+model AppCrashEvent {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  appName    String   // e.g., "zoom.exe"
+  appVersion String?  // e.g., "5.14.2"
+  eventType  String   // "CRASH" or "HANG"
+  domain     String   // Tenant isolation
+  createdAt  DateTime @default(now())
+
+  @@index([domain, appName])
+  @@index([deviceId, createdAt])
+}
+
+model HardwareFailurePrediction {
+  id            String   @id @default(cuid())
+  deviceId      String
+  device        Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  component     String   // "BATTERY", "DISK", "CPU_THERMAL"
+  probability   Float    // 0-1
+  predictedDate DateTime?
+  status        String   // "WARNING", "CRITICAL", "RESOLVED"
+  domain        String
+  createdAt     DateTime @default(now())
+
+  @@index([deviceId, component])
+}
+
+model SoftwareInstallation {
+  id           String   @id @default(cuid())
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  softwareName String
+  version      String?
+  domain       String
+  installedAt  DateTime @default(now())
+
+  @@unique([deviceId, softwareName])
+  @@index([domain, softwareName])
+}
+
+model SoftwareUsage {
+  id                String   @id @default(cuid())
+  deviceId          String
+  device            Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  softwareName      String
+  foregroundMinutes Int      @default(0)
+  lastUsedAt        DateTime?
+  domain            String
+  updatedAt         DateTime @updatedAt
+
+  @@unique([deviceId, softwareName])
+  @@index([domain, softwareName])
+}
+
+model RemediationCampaign {
+  id             String   @id @default(cuid())
+  name           String
+  runbook        String
+  targetCriteria String   // e.g., JSON representation of filter criteria
+  status         String   // "DRAFT", "RUNNING", "COMPLETED"
+  totalTargeted  Int      @default(0)
+  successCount   Int      @default(0)
+  domain         String
+  createdAt      DateTime @default(now())
+
+  @@index([domain, status])
+}
+
+model MicroSurveyResponse {
+  id           String   @id @default(cuid())
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  triggerEvent String   // e.g., "APP_CRASH_zoom.exe"
+  question     String
+  rating       Int      // 1-5
+  comment      String?
+  domain       String
+  createdAt    DateTime @default(now())
+
+  @@index([deviceId, triggerEvent])
+  @@index([domain, triggerEvent])
+}
+
+model BootProfile {
+  id             String   @id @default(cuid())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  totalBootSec   Int
+  biosSec        Int?
+  osBootSec      Int?
+  profileLoadSec Int?
+  gpoSec         Int?
+  domain         String
+  createdAt      DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+model SecurityPosture {
+  id              String   @id @default(cuid())
+  deviceId        String
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  bitlockerActive Boolean  @default(false)
+  avUpdated       Boolean  @default(false)
+  firewallActive  Boolean  @default(false)
+  domain          String
+  createdAt       DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+model SmartContract {
+  id              String   @id @default(cuid())
+  name            String
+  metric          String   // "CPU", "RAM", "DISK"
+  operator        String   // ">", "<"
+  threshold       Float
+  action          String   // "CLEAR_TEMP", "RESTART_SPOOLER", "REBOOT", "FLUSH_DNS"
+  isActive        Boolean  @default(true)
+  triggersCount   Int      @default(0)
+  domain          String
+  createdAt       DateTime @default(now())
+
+  @@index([domain, isActive])
 }

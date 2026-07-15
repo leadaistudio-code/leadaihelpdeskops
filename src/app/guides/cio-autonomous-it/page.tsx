@@ -47,11 +47,11 @@ const CONTENTS = [
 
 export default function CioGuidePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50/40">
+    <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-6xl px-6 py-10">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6b6b6d] transition hover:text-[#0a0a0a]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
@@ -60,16 +60,16 @@ export default function CioGuidePage() {
         <div className="mt-8 grid gap-12 lg:grid-cols-[1.15fr_1fr] lg:items-start">
           {/* Left: the pitch */}
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#00d4a4]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#00926f]">
               <BookOpen className="h-3.5 w-3.5" />
               CIO Playbook · Free PDF
             </span>
 
-            <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-[#0a0a0a] sm:text-5xl">
               The CIO&apos;s Guide to Autonomous IT Operations
             </h1>
 
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#3a3a3c]">
               A 24-page framework for moving from reactive ticketing to predictive, self-healing
               infrastructure — with a maturity model and a 90-day rollout plan.
             </p>
@@ -78,23 +78,23 @@ export default function CioGuidePage() {
               {HIGHLIGHTS.map((h) => (
                 <div
                   key={h.title}
-                  className="rounded-2xl border border-slate-200 bg-white/70 p-5 backdrop-blur"
+                  className="rounded-xl border border-[#e5e5e5] bg-[#f7f7f7] p-5"
                 >
-                  <h.icon className="h-6 w-6 text-indigo-600" />
-                  <h3 className="mt-3 text-sm font-semibold text-slate-900">{h.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{h.body}</p>
+                  <h.icon className="h-6 w-6 text-[#00926f]" />
+                  <h3 className="mt-3 text-sm font-semibold text-[#0a0a0a]">{h.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#6b6b6d]">{h.body}</p>
                 </div>
               ))}
             </div>
 
             <div className="mt-10">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#6b6b6d]">
                 What&apos;s inside
               </h2>
               <ul className="mt-4 space-y-2.5">
                 {CONTENTS.map((c) => (
-                  <li key={c} className="flex items-start gap-3 text-sm text-slate-600">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+                  <li key={c} className="flex items-start gap-3 text-sm text-[#3a3a3c]">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#00926f]" />
                     <span>{c}</span>
                   </li>
                 ))}

@@ -5,6 +5,17 @@ import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { approveRequest, rejectRequest } from "@/app/actions/approvalActions";
 import { toast } from "@/components/toast";
+import { Button, Input, cn, focusRing } from "@/components/ui";
+
+// Calm emerald "approve" action. Mirrors the Button primitive's shape and focus
+// treatment; emerald is the semantic success intent (Button has no success
+// variant, so we style it here while keeping the same geometry).
+const approveClasses = cn(
+  "inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-colors duration-150",
+  "text-sm px-4 py-2.5 select-none disabled:opacity-50 disabled:pointer-events-none",
+  "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/20",
+  focusRing
+);
 
 export default function ApprovalActions({ incidentId }: { incidentId: string }) {
   const router = useRouter();
@@ -37,28 +48,29 @@ export default function ApprovalActions({ incidentId }: { incidentId: string }) 
   if (rejecting) {
     return (
       <div className="flex flex-col gap-2 w-full sm:w-80">
-        <input
+        <Input
           autoFocus
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Reason (optional)"
-          className="px-3 py-2 bg-slate-900/50 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-rose-500"
         />
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={reject}
             disabled={pending}
-            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
+            variant="danger"
+            icon={X}
+            className="flex-1"
           >
-            <X className="w-4 h-4" /> Confirm Reject
-          </button>
-          <button
+            Confirm Reject
+          </Button>
+          <Button
             onClick={() => setRejecting(false)}
             disabled={pending}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-sm transition-colors"
+            variant="secondary"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -66,20 +78,17 @@ export default function ApprovalActions({ incidentId }: { incidentId: string }) 
 
   return (
     <div className="flex gap-2 shrink-0">
-      <button
-        onClick={approve}
-        disabled={pending}
-        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
-      >
-        <Check className="w-4 h-4" /> Approve
+      <button onClick={approve} disabled={pending} className={approveClasses}>
+        <Check className="w-4 h-4" aria-hidden /> Approve
       </button>
-      <button
+      <Button
         onClick={() => setRejecting(true)}
         disabled={pending}
-        className="flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-rose-600/20 text-slate-300 hover:text-rose-300 border border-white/10 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
+        variant="secondary"
+        icon={X}
       >
-        <X className="w-4 h-4" /> Reject
-      </button>
+        Reject
+      </Button>
     </div>
   );
 }

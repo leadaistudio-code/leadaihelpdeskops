@@ -88,3 +88,24 @@ export async function markAllNotificationsRead() {
   });
   revalidatePath("/");
 }
+
+export async function notifyGroup(
+  groupId: string | null | undefined,
+  data: { title: string; body?: string; type?: NotificationType; link?: string }
+) {
+  if (!groupId) return;
+  try {
+    const group = await prisma.assignmentGroup.findUnique({
+      where: { id: groupId },
+      include: { members: { select: { id: true } } },
+    });
+    if (!group) return;
+    
+    // Notify all members asynchronously
+    await Promise.all(
+      group.members.map(member => notify(member.id, data))
+    );
+  } catch (e) {
+    console.error("notifyGroup failed:", e);
+  }
+}

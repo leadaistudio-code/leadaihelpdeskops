@@ -21,6 +21,10 @@ export async function getSessionUser() {
   });
 
   const clerkRole = toRole(user.publicMetadata?.role);
+  const clerkModules = Array.isArray(user.publicMetadata?.modules)
+    ? (user.publicMetadata.modules as string[])
+    : ["SELF_SERVICE"];
+  
   // The active organization is the tenant; mirror it onto the user row so
   // per-tenant user lists resolve correctly.
   const { orgId } = await auth();
@@ -32,17 +36,19 @@ export async function getSessionUser() {
         email,
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
         role: clerkRole,
+        moduleAccess: clerkModules,
         domain: activeDomain,
       }
     });
   } else if (
     (user.publicMetadata?.role && clerkRole !== dbUser.role) ||
-    dbUser.domain !== activeDomain
+    dbUser.domain !== activeDomain ||
+    (user.publicMetadata?.modules && JSON.stringify(clerkModules) !== JSON.stringify(dbUser.moduleAccess))
   ) {
     // Keep the database in sync with Clerk (role + active tenant).
     dbUser = await prisma.user.update({
       where: { email },
-      data: { role: clerkRole, domain: activeDomain }
+      data: { role: clerkRole, moduleAccess: clerkModules, domain: activeDomain }
     });
   }
 

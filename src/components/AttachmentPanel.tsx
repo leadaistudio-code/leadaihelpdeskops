@@ -6,6 +6,7 @@ import { Paperclip, Upload, FileText, Image as ImageIcon, File as FileIcon, Down
 import { deleteAttachment } from "@/app/actions/attachmentActions";
 import { toast } from "@/components/toast";
 import { formatBytes } from "@/lib/text-rank";
+import { Panel, PanelHeader, focusRing, cn } from "@/components/ui";
 
 type Attachment = {
   id: string;
@@ -19,7 +20,7 @@ type Attachment = {
 const MAX_BYTES = 5 * 1024 * 1024;
 
 function FileGlyph({ mime }: { mime: string }) {
-  if (mime.startsWith("image/")) return <ImageIcon className="w-5 h-5 text-sky-400" />;
+  if (mime.startsWith("image/")) return <ImageIcon className="w-5 h-5 text-slate-300" />;
   if (mime === "application/pdf") return <FileText className="w-5 h-5 text-rose-400" />;
   if (mime.startsWith("text/")) return <FileText className="w-5 h-5 text-emerald-400" />;
   return <FileIcon className="w-5 h-5 text-slate-400" />;
@@ -74,13 +75,12 @@ export default function AttachmentPanel({
     });
 
   return (
-    <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden">
-      <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 flex items-center justify-between">
-        <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
-          <Paperclip className="w-4 h-4" /> Attachments
-        </h2>
-        <span className="text-xs text-slate-500">{attachments.length}</span>
-      </div>
+    <Panel className="overflow-hidden">
+      <PanelHeader
+        title="Attachments"
+        icon={Paperclip}
+        action={<span className="text-xs text-slate-500">{attachments.length}</span>}
+      />
 
       <div className="p-6">
         <input
@@ -92,7 +92,10 @@ export default function AttachmentPanel({
         <button
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 border-2 border-dashed border-white/10 hover:border-indigo-500/40 rounded-2xl text-sm font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-4 py-3 mb-4 border-2 border-dashed border-white/10 hover:border-white/20 rounded-2xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50",
+            focusRing
+          )}
         >
           <Upload className="w-4 h-4" />
           {uploading ? "Uploading…" : "Upload file (max 5MB)"}
@@ -108,7 +111,7 @@ export default function AttachmentPanel({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={`/api/attachments/${a.id}`} alt={a.filename} className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-slate-900/60 border border-white/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                     <FileGlyph mime={a.mimeType} />
                   </div>
                 )}
@@ -123,7 +126,7 @@ export default function AttachmentPanel({
                   href={`/api/attachments/${a.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg transition-colors"
+                  className={cn("p-2 text-slate-400 hover:text-[#00926f] hover:bg-white/5 rounded-lg transition-colors", focusRing)}
                   title="Download"
                 >
                   <Download className="w-4 h-4" />
@@ -131,7 +134,7 @@ export default function AttachmentPanel({
                 <button
                   onClick={() => remove(a.id)}
                   disabled={pending}
-                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+                  className={cn("p-2 text-slate-400 hover:text-rose-400 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50", focusRing)}
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -141,6 +144,6 @@ export default function AttachmentPanel({
           </ul>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }

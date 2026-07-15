@@ -101,26 +101,27 @@ export default function AIChatbot() {
   return (
     <>
       {!isOpen && (
-        <button 
+        <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-violet-600 to-indigo-600 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.4)] flex items-center justify-center text-white hover:scale-110 transition-transform z-50 group border border-white/20"
+          aria-label="Open Now Assist"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0a0a0a] hover:bg-[#1c1c1e] rounded-full shadow-lg shadow-black/30 flex items-center justify-center text-white transition-colors z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#ffffff]"
         >
-          <Sparkles className="w-6 h-6 group-hover:animate-pulse" />
+          <Sparkles className="w-6 h-6" />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-3xl border border-white/10 flex flex-col z-50 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] transform transition-all duration-300">
-          <div className="bg-slate-900/80 backdrop-blur-md p-4 flex justify-between items-center border-b border-white/10">
+        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-2xl border border-white/10 flex flex-col z-50 overflow-hidden shadow-2xl shadow-black/40 transition-all duration-300">
+          <div className="bg-white/[0.02] p-4 flex justify-between items-center border-b border-white/10">
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-lg ${isLiveAgent ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-white/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-gradient-to-br from-violet-500 to-indigo-600 border-white/20 shadow-[0_0_15px_rgba(139,92,246,0.5)]'}`}>
-                {isLiveAgent ? <Headset className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isLiveAgent ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[#00d4a4]/10 text-[#00926f]'}`}>
+                {isLiveAgent ? <Headset className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
               <div>
-                <h3 className="font-extrabold text-white text-sm tracking-wide">{isLiveAgent ? 'Live Agent (Mike)' : 'Now Assist'}</h3>
+                <h3 className="font-semibold text-white text-sm">{isLiveAgent ? 'Live Agent (Mike)' : 'Now Assist'}</h3>
                 <div className="flex items-center space-x-1.5 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Online</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Online</span>
                 </div>
               </div>
             </div>
@@ -133,14 +134,14 @@ export default function AIChatbot() {
             {messages.map(m => (
               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role === 'assistant' && (
-                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center mr-3 shrink-0 mt-1 ${isLiveAgent ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-indigo-500/20 border-indigo-500/30'}`}>
-                    {isLiveAgent ? <Headset className={`w-4 h-4 ${isLiveAgent ? 'text-emerald-400' : 'text-indigo-400'}`} /> : <Bot className={`w-4 h-4 ${isLiveAgent ? 'text-emerald-400' : 'text-indigo-400'}`} />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 shrink-0 mt-1 ${isLiveAgent ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[#00d4a4]/10 text-[#00926f]'}`}>
+                    {isLiveAgent ? <Headset className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
                 )}
                 <div className={`max-w-[75%] rounded-2xl p-4 text-sm leading-relaxed ${
-                  m.role === 'user' 
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-br-none shadow-lg' 
-                    : 'glass-panel border border-white/10 text-slate-200 rounded-bl-none shadow-md'
+                  m.role === 'user'
+                    ? 'bg-[#0a0a0a] text-white font-medium rounded-br-none'
+                    : 'bg-white/[0.04] border border-white/10 text-slate-200 rounded-bl-none'
                 }`}>
                   {m.content.split('\n\n').map((paragraph, i) => {
                     // Check for links
@@ -148,8 +149,8 @@ export default function AIChatbot() {
                       const text = paragraph.match(/\[(.*?)\]/)?.[1];
                       return (
                         <div key={i} className="mt-3 mb-1 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center space-x-3 cursor-pointer hover:bg-white/10 transition-colors">
-                          <FileText className="w-4 h-4 text-sky-400" />
-                          <span className="font-bold text-sky-400">{text}</span>
+                          <FileText className="w-4 h-4 text-[#00926f]" />
+                          <span className="font-semibold text-[#00926f]">{text}</span>
                         </div>
                       );
                     }
@@ -158,11 +159,11 @@ export default function AIChatbot() {
                   
                   {m.isActionable && (
                     <div className="flex space-x-2 mt-4">
-                      <button onClick={() => handleSimulatedResponse("yes")} className="flex-1 py-2 bg-emerald-500/20 text-emerald-400 font-bold rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors flex items-center justify-center space-x-1">
+                      <button onClick={() => handleSimulatedResponse("yes")} className="flex-1 py-2 bg-emerald-500/10 text-emerald-400 font-semibold rounded-lg border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors flex items-center justify-center space-x-1">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Yes</span>
                       </button>
-                      <button onClick={() => handleSimulatedResponse("no")} className="flex-1 py-2 bg-rose-500/20 text-rose-400 font-bold rounded-lg border border-rose-500/30 hover:bg-rose-500/30 transition-colors flex items-center justify-center space-x-1">
+                      <button onClick={() => handleSimulatedResponse("no")} className="flex-1 py-2 bg-rose-500/10 text-rose-400 font-semibold rounded-lg border border-rose-500/25 hover:bg-rose-500/20 transition-colors flex items-center justify-center space-x-1">
                         <X className="w-4 h-4" />
                         <span>No</span>
                       </button>
@@ -174,31 +175,32 @@ export default function AIChatbot() {
             
             {isTyping && (
               <div className="flex justify-start">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mr-3 shrink-0">
-                  <Bot className="w-4 h-4 text-indigo-400" />
+                <div className="w-8 h-8 rounded-full bg-[#00d4a4]/10 text-[#00926f] flex items-center justify-center mr-3 shrink-0">
+                  <Bot className="w-4 h-4" />
                 </div>
-                <div className="glass-panel border border-white/10 rounded-2xl rounded-bl-none p-4 flex space-x-2 items-center w-20">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="bg-white/[0.04] border border-white/10 rounded-2xl rounded-bl-none p-4 flex space-x-2 items-center w-20">
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="p-4 bg-slate-900/80 backdrop-blur-md border-t border-white/10">
+          <form onSubmit={handleSubmit} className="p-4 bg-white/[0.02] border-t border-white/10">
             <div className="relative flex items-center">
-              <input 
+              <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything..." 
-                className="w-full bg-black/40 border border-white/10 rounded-full pl-5 pr-12 py-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent placeholder-slate-500"
+                placeholder="Ask me anything..."
+                className="w-full bg-black/20 border border-white/10 rounded-full pl-5 pr-12 py-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#00d4a4]/30 focus:border-[#00d4a4]/50 placeholder-slate-500 transition-colors"
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
+                aria-label="Send message"
                 disabled={!input.trim() || isTyping}
-                className="absolute right-2 w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white hover:bg-indigo-400 disabled:opacity-50 disabled:hover:bg-indigo-500 transition-colors"
+                className="absolute right-2 w-8 h-8 rounded-full bg-[#0a0a0a] flex items-center justify-center text-white hover:bg-[#1c1c1e] disabled:opacity-50 disabled:hover:bg-[#0a0a0a] transition-colors"
               >
                 <Send className="w-4 h-4 ml-0.5" />
               </button>

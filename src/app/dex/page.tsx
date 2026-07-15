@@ -2,10 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, ShieldCheck, Zap, History, BrainCircuit, AlertTriangle } from "lucide-react";
-import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, type DexEndpoint } from "@/app/actions/dexActions";
+import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, Zap, History, BrainCircuit, AlertTriangle } from "lucide-react";
+import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, getAppCrashStats, getRecentCrashes, getSoftwareUsageStats, getSecurityPostures, getRemediationCampaigns, createRemediationCampaign, getShadowItSavings, getBurnoutRisks, getSmartContracts, createSmartContract, toggleSmartContract, deleteSmartContract, getLifecycleArbitrage, generateGlobalAgenticScript, deployGlobalAgenticScript, type DexEndpoint } from "@/app/actions/dexActions";
 import EnrollDevicePanel from "@/components/EnrollDevicePanel";
 import { useAppTheme } from "@/components/ThemeContext";
+import {
+  PageHeader,
+  Button,
+  Panel,
+  PanelHeader,
+  StatTile,
+  Badge,
+  DataTable,
+  THead,
+  TH,
+  TBody,
+  TR,
+  TD,
+  Field,
+  Input,
+  Textarea,
+  Select,
+  cn,
+  focusRing,
+} from "@/components/ui";
 
 const ACTION_MAP: Record<string, string> = { "Clear Cache": "CLEAR_TEMP", "Remote Reboot": "REBOOT" };
 
@@ -26,6 +46,114 @@ export default function DEXDashboard() {
 
   const [endpoints, setEndpoints] = useState<DexEndpoint[]>([]);
   const [summary, setSummary] = useState({ total: 0, online: 0, avgScore: 0, atRisk: 0 });
+  const [crashStats, setCrashStats] = useState<{appName: string, appVersion: string, eventType: string, count: number}[]>([]);
+  const [recentCrashes, setRecentCrashes] = useState<{id: string, device: string, appName: string, appVersion: string, eventType: string, time: string}[]>([]);
+  const [softwareUsage, setSoftwareUsage] = useState<{softwareName: string, foregroundMinutes: number, device: {hostname: string, persona: string | null} | null}[]>([]);
+  const [securityPostures, setSecurityPostures] = useState<{bitlockerActive: boolean, firewallActive: boolean, device: {hostname: string, user: string | null} | null}[]>([]);
+  const [campaigns, setCampaigns] = useState<{name: string, status: string, totalTargeted: number}[]>([]);
+  const [shadowIt, setShadowIt] = useState<{totalSavings: number, unusedLicenses: any[]}>({ totalSavings: 0, unusedLicenses: [] });
+  
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [newCampaign, setNewCampaign] = useState({ name: "", targetCriteria: "ALL", action: "CLEAR_TEMP" });
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+
+  const [burnoutRisks, setBurnoutRisks] = useState<any[]>([]);
+  const [smartContracts, setSmartContracts] = useState<any[]>([]);
+  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+  const [newContract, setNewContract] = useState({ name: "", metric: "CPU", operator: ">", threshold: 90, action: "CLEAR_TEMP" });
+  const [isCreatingContract, setIsCreatingContract] = useState(false);
+  const [arbitrageData, setArbitrageData] = useState<any[]>([]);
+  
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportPeriod, setReportPeriod] = useState("weekly");
+
+  const [isGlobalAgentModalOpen, setIsGlobalAgentModalOpen] = useState(false);
+  const [globalAgentPrompt, setGlobalAgentPrompt] = useState("");
+  const [globalAgentModel, setGlobalAgentModel] = useState("gpt-4o-mini");
+  const [isExecutingGlobalAgent, setIsExecutingGlobalAgent] = useState(false);
+  const [generatedScriptData, setGeneratedScriptData] = useState<{script: string, explanation: string} | null>(null);
+
+  const handleGenerateGlobalAgentScript = async () => {
+    if (!globalAgentPrompt.trim()) return;
+    setIsExecutingGlobalAgent(true);
+    setGeneratedScriptData(null);
+    try {
+      const res = await generateGlobalAgenticScript(globalAgentPrompt, globalAgentModel);
+      setGeneratedScriptData(res);
+    } catch (e: any) {
+      setToast({ message: e.message || "Failed to generate script.", show: true });
+      setTimeout(() => setToast({ message: "", show: false }), 4500);
+    } finally {
+      setIsExecutingGlobalAgent(false);
+    }
+  };
+
+  const handleDeployGlobalAgentScript = async () => {
+    if (!globalAgentPrompt.trim() || !generatedScriptData?.script) return;
+    setIsExecutingGlobalAgent(true);
+    try {
+      const res = await deployGlobalAgenticScript(globalAgentPrompt, generatedScriptData.script);
+      setToast({ message: `Success! Queued agentic script on ${res.deviceCount} devices.`, show: true });
+      setIsGlobalAgentModalOpen(false);
+      setGlobalAgentPrompt("");
+      setGeneratedScriptData(null);
+    } catch (e: any) {
+      setToast({ message: e.message || "Failed to deploy script.", show: true });
+    } finally {
+      setIsExecutingGlobalAgent(false);
+      setTimeout(() => setToast({ message: "", show: false }), 4500);
+    }
+  };
+
+  const handleCreateContract = async () => {
+    if (!newContract.name.trim()) return;
+    setIsCreatingContract(true);
+    try {
+      const sc = await createSmartContract(newContract.name, newContract.metric, newContract.operator, Number(newContract.threshold), newContract.action);
+      setSmartContracts([sc, ...smartContracts]);
+      setIsContractModalOpen(false);
+      setToast({ message: "Smart Contract deployed successfully!", show: true });
+    } catch (e) {
+      setToast({ message: "Failed to deploy contract.", show: true });
+    } finally {
+      setIsCreatingContract(false);
+    }
+  };
+
+  const handleToggleContract = async (id: string, current: boolean) => {
+    try {
+      const updated = await toggleSmartContract(id, !current);
+      setSmartContracts(smartContracts.map(sc => sc.id === id ? updated : sc));
+    } catch {
+      setToast({ message: "Failed to toggle contract.", show: true });
+    }
+  };
+
+  const handleDeleteContract = async (id: string) => {
+    try {
+      await deleteSmartContract(id);
+      setSmartContracts(smartContracts.filter(sc => sc.id !== id));
+      setToast({ message: "Contract deleted.", show: true });
+    } catch {
+      setToast({ message: "Failed to delete contract.", show: true });
+    }
+  };
+
+
+  const handleCreateCampaign = async () => {
+    if (!newCampaign.name.trim()) return;
+    setIsCreatingCampaign(true);
+    try {
+      const c = await createRemediationCampaign(newCampaign.name, newCampaign.action, newCampaign.targetCriteria);
+      setCampaigns([c, ...campaigns]);
+      setIsCampaignModalOpen(false);
+      setToast({ message: "Campaign created and commands queued!", show: true });
+    } catch (e) {
+      setToast({ message: "Failed to create campaign.", show: true });
+    } finally {
+      setIsCreatingCampaign(false);
+    }
+  };
 
   // Charts measure the DOM, so render them client-only to avoid SSR/client
   // hydration mismatches.
@@ -56,6 +184,15 @@ export default function DEXDashboard() {
     const load = () => {
       getDexEndpoints().then(setEndpoints).catch(() => {});
       getDexSummary().then(setSummary).catch(() => {});
+      getAppCrashStats().then(setCrashStats).catch(() => {});
+      getRecentCrashes().then(setRecentCrashes).catch(() => {});
+      getSoftwareUsageStats().then(setSoftwareUsage).catch(() => {});
+      getSecurityPostures().then(setSecurityPostures).catch(() => {});
+      getRemediationCampaigns().then(setCampaigns).catch(() => {});
+      getShadowItSavings().then(setShadowIt).catch(() => {});
+      getBurnoutRisks().then(setBurnoutRisks).catch(() => {});
+      getSmartContracts().then(setSmartContracts).catch(() => {});
+      getLifecycleArbitrage().then(setArbitrageData).catch(() => {});
     };
     load();
     const t = setInterval(load, 15_000);
@@ -112,112 +249,114 @@ export default function DEXDashboard() {
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10">
       
       {toast.show && (
-        <div className="fixed bottom-8 right-8 z-[9999] glass-panel border border-emerald-500/30 rounded-xl p-4 shadow-[0_0_30px_rgba(16,185,129,0.3)] flex items-center space-x-3 animate-in slide-in-from-bottom-10 fade-in duration-300">
+        <div className="fixed bottom-8 right-8 z-[9999] rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 flex items-center space-x-3 animate-in slide-in-from-bottom-10 fade-in duration-300">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           <span className="text-white font-medium">{toast.message}</span>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 mt-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-            <Activity className="w-6 h-6 text-cyan-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">DEX Auto-Remediation</h1>
-            <p className="text-slate-400 mt-1">
-              Live endpoint telemetry from enrolled devices
-              <span className="ml-2 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold uppercase tracking-wide align-middle">Live agent data</span>
-            </p>
-          </div>
-        </div>
-
-        <div className={`glass-panel border px-5 py-3 rounded-2xl flex items-center space-x-4 transition-all duration-300 ${isAutoPilotOn ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)] bg-emerald-500/5' : 'border-white/10'}`}>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-white flex items-center space-x-2">
-              <Zap className={`w-4 h-4 ${isAutoPilotOn ? 'text-emerald-400' : 'text-slate-500'}`} />
-              <span>Proactive Auto-Pilot</span>
-            </span>
-            <span className="text-xs text-slate-400">{isAutoPilotOn ? 'Monitoring and healing automatically' : 'Manual remediation required'}</span>
-          </div>
-          <button 
-            onClick={toggleAutoHeal}
-            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${isAutoPilotOn ? 'bg-emerald-500' : 'bg-slate-700'}`}
-          >
-            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${isAutoPilotOn ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="DEX Auto-Remediation"
+        description={
+          <span className="inline-flex items-center gap-2">
+            Live endpoint telemetry from enrolled devices
+            <Badge tone="success">Live agent data</Badge>
+          </span>
+        }
+        action={
+          <>
+            <Button variant="secondary" icon={BrainCircuit} onClick={() => setIsGlobalAgentModalOpen(true)}>
+              Global Agent Instruction
+            </Button>
+            <Button variant="secondary" icon={History} onClick={() => setIsReportModalOpen(true)}>
+              Generate Report
+            </Button>
+            <div className={cn(
+              "rounded-2xl border px-5 py-3 flex items-center space-x-4 transition-colors",
+              isAutoPilotOn ? "border-emerald-500/30 bg-emerald-500/[0.06]" : "border-white/10 bg-white/[0.02]"
+            )}>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white flex items-center space-x-2">
+                  <Zap className={cn("w-4 h-4", isAutoPilotOn ? "text-emerald-400" : "text-slate-500")} />
+                  <span>Proactive Auto-Pilot</span>
+                </span>
+                <span className="text-xs text-slate-400">{isAutoPilotOn ? 'Monitoring and healing automatically' : 'Manual remediation required'}</span>
+              </div>
+              <button
+                onClick={toggleAutoHeal}
+                aria-label="Toggle Proactive Auto-Pilot"
+                className={cn(
+                  "relative inline-flex h-7 w-12 items-center rounded-full transition-colors",
+                  isAutoPilotOn ? "bg-emerald-500" : "bg-slate-700",
+                  focusRing
+                )}
+              >
+                <span className={cn("inline-block h-5 w-5 transform rounded-full bg-white transition-transform", isAutoPilotOn ? "translate-x-6" : "translate-x-1")} />
+              </button>
+            </div>
+          </>
+        }
+      />
 
       <EnrollDevicePanel />
 
       {/* Experience Score + fleet rollup */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="glass-panel rounded-3xl border border-white/10 p-6 relative overflow-hidden">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Experience Score</p>
-          <div className="flex items-end gap-2">
-            <span className={`text-5xl font-black tracking-tighter ${summary.avgScore >= 80 ? 'text-emerald-400' : summary.avgScore >= 55 ? 'text-amber-400' : 'text-rose-400'}`}>{summary.avgScore}</span>
-            <span className="text-slate-500 mb-1.5 font-bold">/ 100</span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Fleet average (online devices)</p>
-        </div>
-        <div className="glass-panel rounded-3xl border border-white/10 p-6">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Devices</p>
-          <span className="text-5xl font-black text-white tracking-tighter">{summary.total}</span>
-        </div>
-        <div className="glass-panel rounded-3xl border border-white/10 p-6">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Online</p>
-          <span className="text-5xl font-black text-emerald-400 tracking-tighter">{summary.online}</span>
-        </div>
-        <div className="glass-panel rounded-3xl border border-white/10 p-6">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">At Risk</p>
-          <span className={`text-5xl font-black tracking-tighter ${summary.atRisk > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{summary.atRisk}</span>
-        </div>
+        <StatTile
+          label="Experience Score"
+          tone={summary.avgScore >= 80 ? "success" : summary.avgScore >= 55 ? "warning" : "critical"}
+          value={<span>{summary.avgScore}<span className="text-slate-500 text-lg font-normal ml-1">/ 100</span></span>}
+          hint="Fleet average (online devices)"
+        />
+        <StatTile label="Devices" value={summary.total} />
+        <StatTile label="Online" value={summary.online} />
+        <StatTile
+          label="At Risk"
+          tone={summary.atRisk > 0 ? "warning" : "neutral"}
+          value={summary.atRisk}
+        />
       </div>
 
       {/* AIOps Predictive Intelligence Panel */}
-      <div className="mb-6 glass-panel border border-indigo-500/30 bg-indigo-500/5 rounded-3xl p-6 relative overflow-hidden group">
-        <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <BrainCircuit className="w-48 h-48 text-indigo-400" />
-        </div>
-        <div className="flex items-start space-x-4 relative z-10">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
-            <BrainCircuit className="w-6 h-6 text-indigo-400" />
+      <Panel padded className="mb-6">
+        <div className="flex items-start space-x-4">
+          <div className="w-9 h-9 rounded-lg bg-white/5 text-slate-300 flex items-center justify-center flex-shrink-0">
+            <BrainCircuit className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-extrabold text-white flex items-center space-x-3">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-3">
               <span>Predictive Intelligence (AIOps)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider animate-pulse">Scanning</span>
+              <Badge tone="neutral" dot>Scanning</Badge>
             </h2>
             <p className="text-slate-400 text-sm mt-1">Analyzing historical telemetry to predict hardware failures before they occur.</p>
-            
+
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-black/30 border border-white/5 rounded-xl p-4 flex items-start space-x-4">
+              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
                 <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-sm font-bold text-white">Memory Leak Detected: WS-8831</div>
-                  <div className="text-xs text-slate-400 mt-1">Based on current trajectory, system memory will exhaust in <span className="text-amber-400 font-bold">~4.2 hours</span>. Recommend scheduling background restart.</div>
-                  <button className="mt-3 text-xs font-bold px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors">Queue Restart</button>
+                  <div className="text-sm font-semibold text-white">Memory Leak Detected: WS-8831</div>
+                  <div className="text-xs text-slate-400 mt-1">Based on current trajectory, system memory will exhaust in <span className="text-amber-400 font-semibold">~4.2 hours</span>. Recommend scheduling background restart.</div>
+                  <Button variant="secondary" size="sm" className="mt-3">Queue Restart</Button>
                 </div>
               </div>
-              <div className="bg-black/30 border border-white/5 rounded-xl p-4 flex items-start space-x-4">
+              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
                 <Cpu className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-sm font-bold text-white">Thermal Degradation: WS-2210</div>
-                  <div className="text-xs text-slate-400 mt-1">CPU thermal paste likely degraded. Temperature averaging 15% higher than fleet baseline. <span className="text-rose-400 font-bold">78% probability of failure</span> in 30 days.</div>
-                  <button className="mt-3 text-xs font-bold px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors">Create Hardware Ticket</button>
+                  <div className="text-sm font-semibold text-white">Thermal Degradation: WS-2210</div>
+                  <div className="text-xs text-slate-400 mt-1">CPU thermal paste likely degraded. Temperature averaging 15% higher than fleet baseline. <span className="text-rose-400 font-semibold">78% probability of failure</span> in 30 days.</div>
+                  <Button variant="secondary" size="sm" className="mt-3">Create Hardware Ticket</Button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        <div className="glass-panel rounded-3xl p-8 lg:col-span-2 flex flex-col border border-white/10">
-          <div className="flex items-center space-x-2 mb-6">
-            <Radio className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Global Network Latency (ms)</h2>
+        <Panel padded className="lg:col-span-2 flex flex-col">
+          <div className="flex items-center gap-2 mb-6">
+            <Radio className="w-4 h-4 text-slate-500" />
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Global Network Latency (ms)</h2>
           </div>
           <div className="flex-1 min-h-[300px]">
             {mounted && (
@@ -230,27 +369,22 @@ export default function DEXDashboard() {
                   contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px" }}
                   itemStyle={{ color: tooltipText }}
                 />
-                <Line type="monotone" dataKey="ms" stroke="#38E8B0" strokeWidth={3} dot={{ r: 4, fill: "#38E8B0", strokeWidth: 0 }} activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="ms" stroke="#00d4a4" strokeWidth={3} dot={{ r: 4, fill: "#00d4a4", strokeWidth: 0 }} activeDot={{ r: 8 }} />
               </LineChart>
             </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div className="glass-panel rounded-3xl p-8 flex flex-col border border-white/10 relative overflow-hidden group">
-          {isAutoPilotOn && (
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <ShieldCheck className="w-32 h-32 text-emerald-500" />
+        <Panel padded className="flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-slate-500" />
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fleet Health</h2>
             </div>
-          )}
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div className="flex items-center space-x-2">
-              <Cpu className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Fleet Health</h2>
-            </div>
-            {isAutoPilotOn && <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-md border border-emerald-500/30 animate-pulse">Auto-Healing Active</span>}
+            {isAutoPilotOn && <Badge tone="success" dot>Auto-Healing Active</Badge>}
           </div>
-          <div className="flex-1 min-h-[220px] relative z-10">
+          <div className="flex-1 min-h-[220px]">
             {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={deviceHealthData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -268,71 +402,111 @@ export default function DEXDashboard() {
             )}
           </div>
           
-          <div className="mt-4 pt-4 border-t border-white/10 relative z-10">
+          <div className="mt-4 pt-4 border-t border-white/10">
              <div className="flex justify-between items-center text-sm">
                <span className="text-slate-400 font-medium">Auto-Remediations Today</span>
-               <span className="font-black text-emerald-400 text-lg">{autoActionsTaken}</span>
+               <span className="font-semibold text-emerald-400 text-lg tabular-nums">{autoActionsTaken}</span>
              </div>
              <div className="flex justify-between items-center text-xs mt-1">
                <span className="text-slate-500">Estimated Admin Time Saved</span>
-               <span className="font-bold text-slate-300">{(autoActionsTaken * 15).toFixed(0)} mins</span>
+               <span className="font-semibold text-slate-300 tabular-nums">{(autoActionsTaken * 15).toFixed(0)} mins</span>
              </div>
           </div>
-        </div>
+        </Panel>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 glass-panel rounded-3xl overflow-visible border border-white/10">
-          <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50 rounded-t-3xl">
-            <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Active Anomalies & Remediation</h2>
+      {/* App-DEX: Application Reliability Analytics Panel */}
+      <Panel className="mb-6 overflow-hidden">
+        <PanelHeader title="App-DEX: Application Reliability" icon={Activity} />
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Top Crashing Applications</h3>
+            <div className="space-y-3">
+              {crashStats.length === 0 ? (
+                <div className="text-slate-500 text-sm italic">No application crashes detected recently.</div>
+              ) : (
+                crashStats.map((stat, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/10">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{stat.appName}</div>
+                      <div className="text-xs text-slate-400">v{stat.appVersion} &bull; <span className={stat.eventType === "CRASH" ? "text-rose-400" : "text-amber-400"}>{stat.eventType}</span></div>
+                    </div>
+                    <div className="text-xl font-semibold text-slate-300 tabular-nums">{stat.count}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Recent Crash Events</h3>
+            <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+              {recentCrashes.length === 0 ? (
+                <div className="text-slate-500 text-sm italic">No recent events.</div>
+              ) : (
+                recentCrashes.map((crash, i) => (
+                  <div key={i} className="flex flex-col p-3 rounded-xl bg-white/[0.02] border border-white/10">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-semibold text-slate-300">{crash.device}</span>
+                      <span className="text-[10px] text-slate-500">{new Date(crash.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="text-sm text-slate-300">
+                      <span className="font-semibold text-white">{crash.appName}</span> (v{crash.appVersion})
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Panel className="xl:col-span-2 overflow-visible">
+          <PanelHeader title="Active Anomalies & Remediation" />
           <div className="overflow-visible">
             <table className="w-full text-sm text-left text-slate-300">
-              <thead className="text-xs text-slate-500 bg-black/20 uppercase tracking-wider">
+              <THead>
                 <tr>
-                  <th className="px-6 py-4 font-bold">Endpoint</th>
-                  <th className="px-6 py-4 font-bold">User</th>
-                  <th className="px-6 py-4 font-bold">Score</th>
-                  <th className="px-6 py-4 font-bold">CPU</th>
-                  <th className="px-6 py-4 font-bold">Mem</th>
-                  <th className="px-6 py-4 font-bold">Disk</th>
-                  <th className="px-6 py-4 font-bold">Batt</th>
-                  <th className="px-6 py-4 font-bold">Status</th>
-                  <th className="px-6 py-4 font-bold text-right">Quick Actions</th>
+                  <TH>Endpoint</TH>
+                  <TH>User</TH>
+                  <TH>Score</TH>
+                  <TH>CPU</TH>
+                  <TH>Mem</TH>
+                  <TH>Disk</TH>
+                  <TH>Batt</TH>
+                  <TH>Status</TH>
+                  <TH align="right">Quick Actions</TH>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
+              </THead>
+              <TBody>
                 {endpoints.length === 0 ? (
-                  <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-500">No devices enrolled yet. Use “Enroll a device” above to add one.</td></tr>
+                  <tr><TD colSpan={9} align="center" className="py-12 text-slate-500">No devices enrolled yet. Use “Enroll a device” above to add one.</TD></tr>
                 ) : endpoints.map((ep) => (
-                  <tr key={ep.deviceId} className={`hover:bg-white/5 transition-colors ${isRemediating[ep.id] ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <td className="px-6 py-5 font-bold text-cyan-400">
+                  <TR key={ep.deviceId} className={isRemediating[ep.id] ? 'opacity-50 pointer-events-none' : ''}>
+                    <TD className="font-semibold text-slate-100">
                       {ep.id}
-                      {!ep.online && <span className="ml-2 px-1.5 py-0.5 bg-slate-700/40 text-slate-400 rounded text-[10px] font-bold uppercase">Offline</span>}
-                    </td>
-                    <td className="px-6 py-5 text-slate-200">{ep.user}</td>
-                    <td className="px-6 py-5">
-                      <span className={`font-black ${ep.score >= 80 ? 'text-emerald-400' : ep.score >= 55 ? 'text-amber-400' : 'text-rose-400'}`}>{ep.online ? ep.score : '—'}</span>
-                    </td>
-                    <td className="px-6 py-5 font-mono">{ep.cpu}</td>
-                    <td className="px-6 py-5 font-mono">{ep.mem}</td>
-                    <td className="px-6 py-5 font-mono">{ep.disk}</td>
-                    <td className="px-6 py-5 font-mono">{ep.battery}</td>
-                    <td className="px-6 py-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        ep.status === 'Critical' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        ep.status === 'Warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      }`}>
+                      {!ep.online && <span className="ml-2 px-1.5 py-0.5 bg-white/5 text-slate-400 rounded text-[10px] font-semibold uppercase">Offline</span>}
+                    </TD>
+                    <TD className="text-slate-200">{ep.user}</TD>
+                    <TD>
+                      <span className={cn("font-semibold tabular-nums", ep.score >= 80 ? 'text-emerald-400' : ep.score >= 55 ? 'text-amber-400' : 'text-rose-400')}>{ep.online ? ep.score : '—'}</span>
+                    </TD>
+                    <TD className="font-mono">{ep.cpu}</TD>
+                    <TD className="font-mono">{ep.mem}</TD>
+                    <TD className="font-mono">{ep.disk}</TD>
+                    <TD className="font-mono">{ep.battery}</TD>
+                    <TD>
+                      <Badge tone={ep.status === 'Critical' ? 'critical' : ep.status === 'Warning' ? 'warning' : 'success'}>
                         {isRemediating[ep.id] ? 'Queued…' : ep.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
+                      </Badge>
+                    </TD>
+                    <TD align="right">
                       <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleRemediation(ep.deviceId, ep.id, "Clear Cache")}
                         disabled={!ep.online || isRemediating[ep.id] || isAutoPilotOn}
-                        className="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 disabled:opacity-30 transition-colors relative group"
+                        aria-label="Clear Temp"
+                        className={cn("p-2 rounded-lg bg-white/[0.04] text-slate-300 border border-white/10 hover:bg-white/[0.08] disabled:opacity-30 transition-colors relative group", focusRing)}
                       >
                         <Trash2 className="w-4 h-4" />
                         <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Clear Temp</span>
@@ -340,39 +514,478 @@ export default function DEXDashboard() {
                       <button
                         onClick={() => handleRemediation(ep.deviceId, ep.id, "Remote Reboot")}
                         disabled={!ep.online || isRemediating[ep.id] || isAutoPilotOn}
-                        className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-30 transition-colors relative group"
+                        aria-label="Remote Reboot"
+                        className={cn("p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/25 hover:bg-rose-500/20 disabled:opacity-30 transition-colors relative group", focusRing)}
                       >
                         <Power className="w-4 h-4" />
                         <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Remote Reboot</span>
                       </button>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ))}
-              </tbody>
+              </TBody>
             </table>
           </div>
-        </div>
+        </Panel>
 
-        <div className="glass-panel rounded-3xl border border-white/10 flex flex-col overflow-hidden">
-          <div className="px-6 py-6 border-b border-white/5 bg-slate-900/50 flex items-center space-x-3">
-            <History className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Remediation History</h2>
-          </div>
+        <Panel className="flex flex-col overflow-hidden">
+          <PanelHeader title="Remediation History" icon={History} />
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar max-h-[400px]">
             <div className="space-y-3">
               {remediationLogs.map((log, i) => (
-                <div key={i} className="flex items-start space-x-3 p-3 rounded-xl bg-white/5 border border-white/5 animate-in slide-in-from-top-2">
-                  <div className="text-xs font-bold text-slate-500 mt-0.5 w-16 shrink-0">{log.time}</div>
-                  <div className={`text-sm font-medium ${log.message.includes('Auto-Triggered') ? 'text-emerald-400' : 'text-slate-300'}`}>
+                <div key={i} className="flex items-start space-x-3 p-3 rounded-xl bg-white/[0.02] border border-white/10 animate-in slide-in-from-top-2">
+                  <div className="text-xs font-semibold text-slate-500 mt-0.5 w-16 shrink-0">{log.time}</div>
+                  <div className={cn("text-sm font-medium", log.message.includes('Auto-Triggered') ? 'text-emerald-400' : 'text-slate-300')}>
                     {log.message}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </Panel>
       </div>
+
+      {/* Shadow IT Cost-Killer Panel */}
+      <Panel padded className="mb-6">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-3 mb-2">
+              <span className="w-8 h-8 rounded-lg bg-white/5 text-slate-300 flex items-center justify-center">
+                <Activity className="w-4 h-4" />
+              </span>
+              <span>Shadow IT Cost-Killer</span>
+            </h2>
+            <p className="text-sm text-slate-400 mb-6">Unused paid SaaS licenses detected on endpoints (inactive &gt; 72h).</p>
+
+            <div className="bg-white/[0.02] rounded-2xl p-6 border border-white/10 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Waste Found</p>
+                <div className="text-4xl font-semibold text-rose-400 tabular-nums">${shadowIt.totalSavings}<span className="text-lg text-slate-500 ml-1 font-normal">/mo</span></div>
+              </div>
+              <Button variant="danger">Revoke All Licenses</Button>
+            </div>
+          </div>
+
+          <div className="flex-[1.5]">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Wasted Licenses</h3>
+            <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
+              {shadowIt.unusedLicenses.length === 0 ? (
+                <div className="text-slate-500 text-sm italic">No wasted licenses detected!</div>
+              ) : (
+                shadowIt.unusedLicenses.map((lic: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white/10">
+                    <div>
+                      <div className="text-sm font-semibold text-white capitalize">{lic.software}</div>
+                      <div className="text-xs text-slate-400">{lic.device} ({lic.user}) &bull; Last seen: {lic.lastUsedAt ? new Date(lic.lastUsedAt).toLocaleDateString() : 'Never'}</div>
+                    </div>
+                    <div className="text-right flex items-center gap-4">
+                      <div className="text-sm font-semibold text-rose-400 tabular-nums">${lic.cost}/mo</div>
+                      <Button variant="secondary" size="sm">Revoke</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Self-Healing Smart Contracts */}
+        <Panel padded>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-white/5 text-slate-300 flex items-center justify-center">
+                <BrainCircuit className="w-4 h-4" />
+              </span>
+              <span>Self-Healing Smart Contracts</span>
+            </h2>
+            <Button size="sm" onClick={() => setIsContractModalOpen(true)}>Deploy Contract</Button>
+          </div>
+          <p className="text-sm text-slate-400 mb-4">Autonomous runbooks triggered instantly by local endpoint telemetry.</p>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+            {smartContracts.length === 0 ? (
+              <div className="text-slate-500 text-sm italic p-4 bg-white/[0.02] rounded-xl border border-white/10 text-center">No active contracts. Deploy one to automate remediation.</div>
+            ) : (
+              smartContracts.map((sc: any) => (
+                <div key={sc.id} className="flex flex-col p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-sm font-semibold text-white">{sc.name}</div>
+                    <div className="flex items-center space-x-3">
+                      <Badge tone="neutral">{sc.triggersCount} executions</Badge>
+                      <button onClick={() => handleToggleContract(sc.id, sc.isActive)} aria-label="Toggle contract" className={cn("w-8 h-4 rounded-full transition-colors relative", sc.isActive ? 'bg-[#0a0a0a]' : 'bg-slate-700', focusRing)}>
+                        <div className={cn("absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform", sc.isActive ? 'translate-x-4' : 'translate-x-0')} />
+                      </button>
+                      <button onClick={() => handleDeleteContract(sc.id)} aria-label="Delete contract" className={cn("text-slate-500 hover:text-rose-400 transition-colors rounded-sm", focusRing)}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-xs text-slate-300 font-mono bg-black/20 p-2 rounded border border-white/10">
+                    <span className="text-slate-500 mr-2">IF</span> {sc.metric} {sc.operator} {sc.threshold} <span className="text-slate-500 mx-2">THEN</span> {sc.action}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
+
+        {/* Predictive Burnout Engine (HR) */}
+        <Panel padded>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-white/5 text-slate-300 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4" />
+              </span>
+              <span>Predictive Burnout Risk (HR)</span>
+            </h2>
+          </div>
+          <p className="text-sm text-slate-400 mb-4">Employees with critical IT friction flagged for proactive intervention.</p>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+            {burnoutRisks.length === 0 ? (
+              <div className="text-slate-500 text-sm italic p-4 bg-white/[0.02] rounded-xl border border-white/10 text-center">No high-risk employees detected.</div>
+            ) : (
+              burnoutRisks.map((risk: any, i: number) => (
+                <div key={i} className="flex flex-col p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="text-sm font-semibold text-white flex items-center gap-2">
+                        {risk.user} <span className="text-xs font-mono text-slate-500">({risk.hostname})</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">{risk.reason}</div>
+                    </div>
+                    <Badge tone={risk.riskLevel === 'CRITICAL' ? 'critical' : 'warning'}>{risk.riskLevel}</Badge>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button variant="secondary" size="sm">Approve Upgrade</Button>
+                    <Button variant="secondary" size="sm">Alert HR</Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
+      </div>
+
+      {/* Hardware Lifecycle Arbitrage Panel */}
+      <Panel padded className="mb-6">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-3 mb-2">
+              <span className="w-8 h-8 rounded-lg bg-white/5 text-slate-300 flex items-center justify-center">
+                <Zap className="w-4 h-4" />
+              </span>
+              <span>Hardware Lifecycle Arbitrage</span>
+            </h2>
+            <p className="text-sm text-slate-400 mb-6">Predictive resale value optimization. Sell hardware at peak refurbished value right before predicted component failure.</p>
+
+            <div className="bg-white/[0.02] rounded-2xl p-6 border border-white/10 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Value at Risk</p>
+                <div className="text-4xl font-semibold text-white tabular-nums">${arbitrageData.reduce((acc, a) => acc + a.valueAtRisk, 0)}</div>
+                <p className="text-xs text-slate-500 mt-1">If these devices fail before resale.</p>
+              </div>
+              <Button variant="secondary">Bulk Resale Process</Button>
+            </div>
+          </div>
+
+          <div className="flex-[1.5]">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Optimal Resale Window</h3>
+            <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
+              {arbitrageData.length === 0 ? (
+                <div className="text-slate-500 text-sm italic">No devices currently in their optimal resale window.</div>
+              ) : (
+                arbitrageData.map((a: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 transition-colors">
+                    <div>
+                      <div className="text-sm font-semibold text-white flex items-center gap-2">
+                        {a.device} <span className="text-xs font-mono text-slate-500">({a.persona})</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        Predicting <span className="font-semibold text-rose-400">{a.component}</span> failure in <span className="font-semibold text-amber-400">{a.daysUntilFailure} days</span> ({a.probability}% confidence).
+                      </div>
+                    </div>
+                    <div className="text-right flex items-center gap-4">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-100 tabular-nums">${a.currentResaleValue}</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Est. Value</div>
+                      </div>
+                      <Button variant="secondary" size="sm">Sell Asset</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      {/* Enterprise AIOps Modules */}
+      <Panel className="mt-6 mb-6 overflow-hidden">
+        <PanelHeader title="Enterprise AIOps Modules" icon={BrainCircuit} />
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* FinOps */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">FinOps (Software Usage)</h3>
+            <div className="space-y-3">
+              {softwareUsage.length === 0 ? <div className="text-slate-500 text-sm italic">No usage data.</div> :
+                softwareUsage.map((u, i) => (
+                  <div key={i} className="flex justify-between items-center p-3 bg-white/[0.02] rounded-xl border border-white/10">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{u.softwareName}</div>
+                      <div className="text-xs text-slate-400">{u.device?.hostname} ({u.device?.persona || 'Unknown'})</div>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-200 tabular-nums">{u.foregroundMinutes}m</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+          {/* Security */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Security Posture Drift</h3>
+            <div className="space-y-3">
+              {securityPostures.length === 0 ? <div className="text-slate-500 text-sm italic">No security events.</div> :
+                securityPostures.map((s, i) => (
+                  <div key={i} className="p-3 bg-white/[0.02] rounded-xl border border-white/10">
+                    <div className="text-sm font-semibold text-white mb-1">{s.device?.hostname}</div>
+                    <div className="flex gap-2 text-xs font-mono">
+                      <span className={s.bitlockerActive ? 'text-emerald-400' : 'text-rose-400'}>BitLocker:{s.bitlockerActive ? 'ON' : 'OFF'}</span>
+                      <span className={s.firewallActive ? 'text-emerald-400' : 'text-rose-400'}>Firewall:{s.firewallActive ? 'ON' : 'OFF'}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+          {/* Campaigns */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Campaigns</h3>
+              <Button size="sm" onClick={() => setIsCampaignModalOpen(true)}>New</Button>
+            </div>
+            <div className="space-y-3">
+              {campaigns.length === 0 ? <div className="text-slate-500 text-sm italic">No active campaigns.</div> :
+                campaigns.map((c, i) => (
+                  <div key={i} className="p-3 bg-white/[0.02] rounded-xl border border-white/10">
+                    <div className="flex justify-between items-center mb-1 gap-2">
+                      <span className="text-sm font-semibold text-white">{c.name}</span>
+                      <Badge tone="warning">{c.status}</Badge>
+                    </div>
+                    <div className="text-xs text-slate-400">Targeting {c.totalTargeted} devices</div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      </Panel>
+      
+      {isCampaignModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <Panel className="p-6 w-full max-w-md bg-slate-900 shadow-2xl animate-in fade-in zoom-in-95">
+            <h2 className="text-lg font-semibold text-white mb-4">Create Campaign</h2>
+            <div className="space-y-4">
+              <Field label="Campaign Name">
+                <Input type="text" value={newCampaign.name} onChange={e => setNewCampaign({...newCampaign, name: e.target.value})} placeholder="e.g. Enforce Firewall" />
+              </Field>
+              <Field label="Target Devices">
+                <Select value={newCampaign.targetCriteria} onChange={e => setNewCampaign({...newCampaign, targetCriteria: e.target.value})}>
+                  <option value="ALL">All Enrolled Devices</option>
+                  <option value="FIREWALL_OFF">Devices with Firewall Disabled</option>
+                  <option value="BITLOCKER_OFF">Devices with BitLocker Disabled</option>
+                </Select>
+              </Field>
+              <Field label="Runbook Action">
+                <Select value={newCampaign.action} onChange={e => setNewCampaign({...newCampaign, action: e.target.value})}>
+                  <option value="CLEAR_TEMP">Clear Temporary Files</option>
+                  <option value="FLUSH_DNS">Flush DNS Cache</option>
+                  <option value="RESTART_SPOOLER">Restart Print Spooler</option>
+                  <option value="RESTART_EXPLORER">Restart Windows Explorer</option>
+                  <option value="UPDATE_GPO">Force Group Policy Update (gpupdate)</option>
+                  <option value="SYNC_TIME">Resync System Clock (w32tm)</option>
+                  <option value="EMPTY_RECYCLE_BIN">Empty Recycle Bin</option>
+                  <option value="RESTART_AUDIO">Restart Audio Services</option>
+                  <option value="KILL_HIGH_MEM">Kill High Memory Apps (&gt;2GB)</option>
+                  <option value="RESET_NETWORK">Release/Renew IP (Network Reset)</option>
+                  <option value="REBOOT">Force Reboot (Dangerous)</option>
+                </Select>
+              </Field>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <Button variant="ghost" onClick={() => setIsCampaignModalOpen(false)}>Cancel</Button>
+              <Button disabled={!newCampaign.name || isCreatingCampaign} loading={isCreatingCampaign} onClick={handleCreateCampaign}>
+                {isCreatingCampaign ? "Creating..." : "Launch Campaign"}
+              </Button>
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {isContractModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <Panel className="p-6 w-full max-w-md bg-slate-900 shadow-2xl animate-in fade-in zoom-in-95">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <BrainCircuit className="w-5 h-5 text-slate-400" /> Deploy Smart Contract
+            </h2>
+            <div className="space-y-4">
+              <Field label="Contract Name">
+                <Input type="text" value={newContract.name} onChange={e => setNewContract({...newContract, name: e.target.value})} placeholder="e.g. Prevent CPU Thermal Event" />
+              </Field>
+              <div className="grid grid-cols-3 gap-2">
+                <Field label="Metric">
+                  <Select value={newContract.metric} onChange={e => setNewContract({...newContract, metric: e.target.value})}>
+                    <option value="CPU">CPU %</option>
+                    <option value="RAM">RAM %</option>
+                    <option value="DISK">Disk %</option>
+                  </Select>
+                </Field>
+                <Field label="Operator">
+                  <Select value={newContract.operator} onChange={e => setNewContract({...newContract, operator: e.target.value})}>
+                    <option value=">">Greater (&gt;)</option>
+                    <option value="<">Less (&lt;)</option>
+                  </Select>
+                </Field>
+                <Field label="Threshold">
+                  <Input type="number" value={newContract.threshold} onChange={e => setNewContract({...newContract, threshold: Number(e.target.value)})} />
+                </Field>
+              </div>
+              <Field label="Execution Action">
+                <Select value={newContract.action} onChange={e => setNewContract({...newContract, action: e.target.value})}>
+                  <option value="CLEAR_TEMP">Clear Temporary Files</option>
+                  <option value="FLUSH_DNS">Flush DNS Cache</option>
+                  <option value="RESTART_SPOOLER">Restart Print Spooler</option>
+                  <option value="RESTART_EXPLORER">Restart Windows Explorer</option>
+                  <option value="UPDATE_GPO">Force Group Policy Update (gpupdate)</option>
+                  <option value="SYNC_TIME">Resync System Clock (w32tm)</option>
+                  <option value="EMPTY_RECYCLE_BIN">Empty Recycle Bin</option>
+                  <option value="RESTART_AUDIO">Restart Audio Services</option>
+                  <option value="KILL_HIGH_MEM">Kill High Memory Apps (&gt;2GB)</option>
+                  <option value="RESET_NETWORK">Release/Renew IP (Network Reset)</option>
+                  <option value="REBOOT">Force Reboot (Dangerous)</option>
+                </Select>
+              </Field>
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <Button variant="ghost" onClick={() => setIsContractModalOpen(false)}>Cancel</Button>
+              <Button disabled={!newContract.name || isCreatingContract} loading={isCreatingContract} onClick={handleCreateContract}>
+                {isCreatingContract ? "Deploying..." : "Deploy Contract"}
+              </Button>
+            </div>
+          </Panel>
+        </div>
+      )}
+
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Panel className="p-6 w-full max-w-md bg-slate-900 shadow-2xl relative">
+            <h3 className="text-lg font-semibold text-white mb-2">Generate DEX Report</h3>
+            <p className="text-slate-400 text-sm mb-6">Create a comprehensive, printable summary of endpoint telemetry, stability, security drift, and hardware risks.</p>
+
+            <div className="space-y-4 mb-8">
+              <Field label="Timeframe">
+                <Select value={reportPeriod} onChange={(e) => setReportPeriod(e.target.value)}>
+                  <option value="daily">Daily (Last 24 Hours)</option>
+                  <option value="weekly">Weekly (Last 7 Days)</option>
+                  <option value="monthly">Monthly (Last 30 Days)</option>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setIsReportModalOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  window.open(`/dex/report?period=${reportPeriod}`, '_blank');
+                  setIsReportModalOpen(false);
+                }}
+              >
+                Generate Report
+              </Button>
+            </div>
+          </Panel>
+        </div>
+      )}
+      {isGlobalAgentModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Panel className="p-6 w-full max-w-lg bg-slate-900 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+              <BrainCircuit className="w-5 h-5 text-slate-400" />
+              Global Agentic Instruction
+            </h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Enter a natural language instruction and select an AI model. The AI will generate a script for you to preview before deploying to <strong>ALL</strong> enrolled devices.
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <Field label="Model">
+                <Select
+                  value={globalAgentModel}
+                  onChange={(e) => setGlobalAgentModel(e.target.value)}
+                  disabled={!!generatedScriptData || isExecutingGlobalAgent}
+                >
+                  <option value="gpt-4o-mini">GPT-4o Mini (Fast)</option>
+                  <option value="gpt-4o">GPT-4o (Most Capable)</option>
+                </Select>
+              </Field>
+
+              <Field label="Instruction Prompt">
+                <Textarea
+                  value={globalAgentPrompt}
+                  onChange={(e) => {
+                    setGlobalAgentPrompt(e.target.value);
+                    setGeneratedScriptData(null); // Reset preview on edit
+                  }}
+                  className="min-h-[100px] resize-none"
+                  placeholder="e.g. Empty the recycle bin for all users"
+                  disabled={isExecutingGlobalAgent && !generatedScriptData}
+                />
+              </Field>
+
+              {generatedScriptData && (
+                <div className="mt-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] animate-in fade-in slide-in-from-top-2">
+                  <h4 className="text-sm font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> Script Generated
+                  </h4>
+                  <p className="text-sm text-slate-300 mb-3">{generatedScriptData.explanation}</p>
+                  <div className="bg-black/50 border border-white/10 rounded-lg p-3 overflow-x-auto">
+                    <pre className="text-xs font-mono text-slate-300">{generatedScriptData.script}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsGlobalAgentModalOpen(false);
+                  setGeneratedScriptData(null);
+                }}
+                disabled={isExecutingGlobalAgent}
+              >
+                Cancel
+              </Button>
+
+              {!generatedScriptData ? (
+                <Button
+                  onClick={handleGenerateGlobalAgentScript}
+                  disabled={!globalAgentPrompt.trim() || isExecutingGlobalAgent}
+                  loading={isExecutingGlobalAgent}
+                >
+                  {isExecutingGlobalAgent ? "Generating..." : "Generate Preview"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleDeployGlobalAgentScript}
+                  disabled={isExecutingGlobalAgent}
+                  loading={isExecutingGlobalAgent}
+                >
+                  {isExecutingGlobalAgent ? "Deploying..." : "Deploy Globally"}
+                </Button>
+              )}
+            </div>
+          </Panel>
+        </div>
+      )}
     </div>
   );
 }

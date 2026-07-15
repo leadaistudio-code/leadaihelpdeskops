@@ -5,6 +5,7 @@ import { ProblemStatus, Priority, NoteType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
 import { getSessionUser } from "@/lib/auth-utils";
+import { notify } from "@/app/actions/notificationActions";
 import { logAudit } from "@/lib/audit";
 
 async function nextProblemNumber(domain: string) {
@@ -64,6 +65,14 @@ export async function createProblem(data: { title: string; description: string; 
       domain,
     },
   });
+  if (problem.assigneeId) {
+    await notify(problem.assigneeId, {
+      title: `Major Incident Assigned: ${problem.number}`,
+      body: problem.title,
+      type: "ASSIGNMENT",
+      link: `/problems/${problem.id}`,
+    });
+  }
   await logAudit({ domain, action: "CREATE", entityType: "Problem", entityId: problem.id, entityLabel: problem.number, summary: `Created problem "${problem.title}"` });
   revalidatePath("/problems");
   return problem;
@@ -90,6 +99,14 @@ export async function createProblemFromIncident(incidentId: string) {
       incidents: { connect: { id: inc.id } },
     },
   });
+  if (problem.assigneeId) {
+    await notify(problem.assigneeId, {
+      title: `Major Incident Assigned: ${problem.number}`,
+      body: problem.title,
+      type: "ASSIGNMENT",
+      link: `/problems/${problem.id}`,
+    });
+  }
   await prisma.incidentNote.create({
     data: { incidentId, type: NoteType.SYSTEM, body: `Linked to problem ${problem.number}.` },
   });
@@ -128,7 +145,7 @@ export async function unlinkIncidentFromProblem(incidentId: string) {
 
 export async function updateProblemState(id: string, status: ProblemStatus) {
   const domain = await getActiveDomain();
-  const p = await prisma.problem.findFirst({ where: { id, domain }, select: { status: true, number: true } });
+  const p = await prisma.problem.findFirst({ where: { id, domain }, select: { status: true, number: true, assigneeId: true, title: true } });
   if (!p) throw new Error("Not found");
   await prisma.problem.update({
     where: { id },
@@ -142,6 +159,16 @@ export async function updateProblemState(id: string, status: ProblemStatus) {
     await prisma.problemNote.create({
       data: { problemId: id, type: NoteType.SYSTEM, body: `State changed from ${p.status} to ${status}.` },
     });
+    
+    if ((status === "RESOLVED" || status === "CLOSED") && p.assigneeId) {
+      await notify(p.assigneeId, {
+        title: `Major Incident ${status === "RESOLVED" ? "Resolved" : "Closed"}: ${p.number}`,
+        body: p.title,
+        type: "RESOLUTION",
+        link: `/problems/${id}`,
+      });
+    }
+
     await logAudit({ domain, action: "STATE_CHANGE", entityType: "Problem", entityId: id, entityLabel: p.number, summary: `State changed ${p.status} → ${status}`, field: "status", oldValue: p.status, newValue: status });
   }
   revalidatePath(`/problems/${id}`);

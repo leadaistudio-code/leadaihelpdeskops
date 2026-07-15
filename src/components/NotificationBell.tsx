@@ -105,9 +105,9 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-            <h3 className="text-sm font-bold text-white">Notifications</h3>
+            <h3 className="text-sm font-semibold text-white">Notifications</h3>
             {unread > 0 && (
-              <button onClick={markAll} className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+              <button onClick={markAll} className="flex items-center gap-1.5 text-xs font-semibold text-[#00926f] hover:text-[#00b48a] transition-colors">
                 <Check className="w-3.5 h-3.5" /> Mark all read
               </button>
             )}
@@ -127,16 +127,16 @@ export default function NotificationBell() {
                     key={n.id}
                     onClick={() => openItem(n)}
                     className={`w-full text-left flex gap-3 px-5 py-4 border-b border-white/5 hover:bg-white/5 transition-colors ${
-                      n.read ? "" : "bg-indigo-500/[0.06]"
+                      n.read ? "" : "bg-[#00d4a4]/[0.05]"
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${n.read ? "bg-white/5 text-slate-400" : "bg-indigo-500/15 text-indigo-400"}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${n.read ? "bg-white/5 text-slate-400" : "bg-[#00d4a4]/10 text-[#00926f]"}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm truncate ${n.read ? "text-slate-300 font-medium" : "text-white font-bold"}`}>{n.title}</p>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />}
+                        <p className={`text-sm truncate ${n.read ? "text-slate-300 font-medium" : "text-white font-semibold"}`}>{n.title}</p>
+                        {!n.read && <span className="w-2 h-2 rounded-full bg-[#00d4a4] shrink-0" />}
                       </div>
                       {n.body && <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{n.body}</p>}
                       <p className="text-[11px] text-slate-600 mt-1">{timeAgo(n.createdAt)}</p>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MessageSquare, Lock, Settings2, Send } from "lucide-react";
 import { addIncidentNote } from "@/app/actions/incidentActions";
 import { toast } from "@/components/toast";
+import { Panel, PanelHeader, Button, Textarea } from "@/components/ui";
 
 type Note = {
   id: string;
@@ -45,46 +46,39 @@ export default function IncidentActivity({ incidentId, notes }: { incidentId: st
   };
 
   return (
-    <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden">
-      <div className="px-8 py-6 border-b border-white/5 bg-slate-900/50">
-        <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest">Activity & Notes</h2>
-      </div>
+    <Panel className="overflow-hidden">
+      <PanelHeader title="Activity & Notes" icon={MessageSquare} />
 
       {/* Composer */}
       <div className="p-6 border-b border-white/5">
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => setKind("COMMENT")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              kind === "COMMENT" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "text-slate-400 hover:text-white"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/40 ${
+              kind === "COMMENT" ? "bg-[#00d4a4]/10 text-[#00926f] border border-[#00d4a4]/25" : "text-slate-400 hover:text-white"
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" /> Comment
           </button>
           <button
             onClick={() => setKind("WORK_NOTE")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              kind === "WORK_NOTE" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" : "text-slate-400 hover:text-white"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
+              kind === "WORK_NOTE" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "text-slate-400 hover:text-white"
             }`}
           >
             <Lock className="w-3.5 h-3.5" /> Work note (internal)
           </button>
         </div>
-        <textarea
+        <Textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder={kind === "WORK_NOTE" ? "Internal note for the IT team…" : "Add a comment visible to the caller…"}
-          className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 text-sm transition-colors"
         />
         <div className="flex justify-end mt-3">
-          <button
-            onClick={submit}
-            disabled={pending || !body.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-lg hover:brightness-110 transition-all font-bold text-sm disabled:opacity-50"
-          >
-            <Send className="w-4 h-4" /> {pending ? "Posting…" : "Post"}
-          </button>
+          <Button onClick={submit} icon={Send} loading={pending} disabled={pending || !body.trim()}>
+            {pending ? "Posting…" : "Post"}
+          </Button>
         </div>
       </div>
 
@@ -102,14 +96,14 @@ export default function IncidentActivity({ incidentId, notes }: { incidentId: st
                 <li key={n.id} className="flex gap-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      isSystem ? "bg-slate-700/40 text-slate-400" : isWork ? "bg-amber-500/15 text-amber-400" : "bg-indigo-500/15 text-indigo-400"
+                      isSystem ? "bg-white/5 text-slate-400" : isWork ? "bg-amber-500/15 text-amber-400" : "bg-[#00d4a4]/10 text-[#00926f]"
                     }`}
                   >
                     {isSystem ? <Settings2 className="w-4 h-4" /> : isWork ? <Lock className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-xs mb-1">
-                      <span className="font-bold text-slate-300">{n.author?.name ?? "System"}</span>
+                      <span className="font-semibold text-slate-300">{n.author?.name ?? "System"}</span>
                       {isWork && <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded text-[10px] font-bold uppercase">Internal</span>}
                       <span className="text-slate-600">·</span>
                       <span className="text-slate-500">{timeAgo(created)}</span>
@@ -122,6 +116,6 @@ export default function IncidentActivity({ incidentId, notes }: { incidentId: st
           </ol>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }

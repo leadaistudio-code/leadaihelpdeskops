@@ -28,23 +28,23 @@ export function GuideLeadForm({ source }: { source?: string }) {
 
   if (downloadUrl) {
     return (
-      <div className="rounded-2xl border border-indigo-100 bg-white p-8 shadow-xl shadow-indigo-100/50">
+      <div className="rounded-xl border border-[#00d4a4]/30 bg-white p-8 shadow-[0_8px_24px_rgba(0,212,164,0.08)]">
         <div className="flex flex-col items-center text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
-            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#00d4a4]/10">
+            <CheckCircle2 className="h-7 w-7 text-[#00926f]" />
           </div>
-          <h3 className="text-xl font-semibold text-slate-900">Your guide is ready</h3>
-          <p className="mt-2 max-w-sm text-sm text-slate-500">
+          <h3 className="text-xl font-semibold text-[#0a0a0a]">Your guide is ready</h3>
+          <p className="mt-2 max-w-sm text-sm text-[#6b6b6d]">
             We&apos;ve personalised a copy for you. Click below to download the 24-page PDF.
           </p>
           <a
             href={downloadUrl}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition hover:bg-indigo-500"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0a0a0a] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1c1c1e]"
           >
             <Download className="h-4 w-4" />
             Download the guide
           </a>
-          <p className="mt-4 text-xs text-slate-400">PDF · ~24 pages · no email confirmation needed</p>
+          <p className="mt-4 text-xs text-[#6b6b6d]">PDF · ~24 pages · no email confirmation needed</p>
         </div>
       </div>
     );
@@ -53,10 +53,10 @@ export function GuideLeadForm({ source }: { source?: string }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/60"
+      className="rounded-xl border border-[#e5e5e5] bg-white p-7 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
     >
-      <h3 className="text-lg font-semibold text-slate-900">Get the free guide</h3>
-      <p className="mt-1 text-sm text-slate-500">
+      <h3 className="text-lg font-semibold text-[#0a0a0a]">Get the free guide</h3>
+      <p className="mt-1 text-sm text-[#6b6b6d]">
         Tell us where to send it. The download unlocks instantly.
       </p>
 
@@ -80,13 +80,13 @@ export function GuideLeadForm({ source }: { source?: string }) {
       </div>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-600">{error}</p>
+        <p className="mt-4 rounded-lg bg-[#d45656]/10 px-3 py-2 text-sm text-[#d45656]">{error}</p>
       )}
 
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition hover:bg-indigo-500 disabled:opacity-60"
+        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0a0a0a] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1c1c1e] disabled:opacity-60"
       >
         {status === "submitting" ? (
           <>
@@ -101,7 +101,7 @@ export function GuideLeadForm({ source }: { source?: string }) {
         )}
       </button>
 
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className="mt-4 text-center text-xs text-[#6b6b6d]">
         We&apos;ll only use your details to share this guide and related insights. Unsubscribe anytime.
       </p>
     </form>
@@ -123,14 +123,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-[#3a3a3c]">{label}</span>
       <input
         required
         name={name}
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+        className="w-full rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-4 py-2.5 text-sm text-[#0a0a0a] outline-none transition placeholder:text-[#a8a8aa] focus:border-[#00d4a4] focus:bg-white focus:ring-2 focus:ring-[#00d4a4]/20"
       />
     </label>
   );

@@ -40,8 +40,8 @@ function Field({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-slate-700">{label}</label>
-        <span className="text-sm font-bold text-blue-600 tabular-nums">
+        <label className="text-sm font-semibold text-[#3a3a3c]">{label}</label>
+        <span className="text-sm font-bold text-[#00926f] tabular-nums">
           {prefix}
           {formatNumber(value)}
         </span>
@@ -53,7 +53,7 @@ function Field({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none bg-slate-200 accent-blue-600 cursor-pointer"
+        className="w-full h-2 rounded-full appearance-none bg-[#e5e5e5] accent-[#00d4a4] cursor-pointer"
       />
     </div>
   );
@@ -96,9 +96,9 @@ export default function RoiCalculator() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
       {/* Inputs */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 mb-1">Your environment</h3>
-        <p className="text-sm text-slate-500 mb-8">
+      <div className="bg-white border border-[#e5e5e5] rounded-xl p-8">
+        <h3 className="text-lg font-bold text-[#0a0a0a] mb-1">Your environment</h3>
+        <p className="text-sm text-[#6b6b6d] mb-8">
           Drag the sliders to match your organization. Numbers update instantly.
         </p>
         <div className="space-y-8">
@@ -128,7 +128,7 @@ export default function RoiCalculator() {
             onChange={setCostPerTicket}
           />
         </div>
-        <p className="text-xs text-slate-400 mt-8 leading-relaxed">
+        <p className="text-xs text-[#6b6b6d] mt-8 leading-relaxed">
           Model assumes {Math.round(DEFLECTION_RATE * 100)}% L1 deflection and a{" "}
           {Math.round(MTTR_REDUCTION * 100)}% MTTR reduction — the median results
           across deployed LeadAIStudio enterprises.
@@ -136,14 +136,14 @@ export default function RoiCalculator() {
       </div>
 
       {/* Results */}
-      <div className="bg-slate-900 rounded-2xl p-8 shadow-xl text-white flex flex-col">
-        <p className="text-sm font-semibold uppercase tracking-widest text-blue-400 mb-2">
+      <div className="bg-white border-2 border-[#00d4a4] rounded-xl p-8 shadow-[0_8px_24px_rgba(0,212,164,0.08)] text-[#0a0a0a] flex flex-col">
+        <p className="text-sm font-semibold uppercase tracking-widest text-[#00926f] mb-2">
           Estimated first-year impact
         </p>
-        <div className="text-5xl font-extrabold mb-1 tabular-nums">
+        <div className="text-5xl font-semibold mb-1 tabular-nums tracking-[-0.02em]">
           {formatCurrency(results.annualSavings)}
         </div>
-        <p className="text-slate-400 text-sm mb-8">in projected annual savings</p>
+        <p className="text-[#6b6b6d] text-sm mb-8">in projected annual savings</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <Metric
@@ -163,9 +163,9 @@ export default function RoiCalculator() {
           />
         </div>
 
-        <div className="mt-auto bg-slate-800/60 border border-slate-700 rounded-xl p-5 flex items-start gap-3">
-          <Wallet className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-slate-300 leading-relaxed">
+        <div className="mt-auto bg-[#f7f7f7] border border-[#e5e5e5] rounded-xl p-5 flex items-start gap-3">
+          <Wallet className="w-5 h-5 text-[#00926f] shrink-0 mt-0.5" />
+          <p className="text-sm text-[#3a3a3c] leading-relaxed">
             Most customers reach full payback in under a quarter, then compound
             savings every year after.
           </p>
@@ -185,12 +185,12 @@ function Metric({
   label: string;
 }) {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-      <div className="w-7 h-7 rounded bg-blue-500/15 text-blue-400 flex items-center justify-center mb-3">
+    <div className="bg-[#f7f7f7] border border-[#e5e5e5] rounded-xl p-4">
+      <div className="w-7 h-7 rounded bg-[#00d4a4]/15 text-[#00926f] flex items-center justify-center mb-3">
         {icon}
       </div>
-      <div className="text-xl font-extrabold tabular-nums">{value}</div>
-      <div className="text-xs text-slate-400 mt-1 leading-snug">{label}</div>
+      <div className="text-xl font-bold tabular-nums text-[#0a0a0a]">{value}</div>
+      <div className="text-xs text-[#6b6b6d] mt-1 leading-snug">{label}</div>
     </div>
   );
 }

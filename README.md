@@ -124,6 +124,7 @@ Highlights from the latest build cycle:
 - ⏱️ **Live SLA Engine** — business-hours calculator, live countdowns, pause/resume, breach escalation, scheduled sweep, and list-view SLA chips
 - 🔎 **Problem Management** — full ITIL problem module with RCA, known errors, and incident linking
 - 🛡️ **Audit Trail** — immutable change log instrumented across all major write paths, with an admin console
+- 📧 **Automated Email Notifications** — full integration with Resend to automatically dispatch branded emails for ticket creation, resolver group routing, and major incident assignment/resolution
 
 ---
 

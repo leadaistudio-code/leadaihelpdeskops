@@ -4,9 +4,10 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { BarChart3, Target, Clock, FileText, LayoutDashboard, CheckCircle2, Inbox, type LucideIcon } from "lucide-react";
+import { BarChart3, Target, Clock, FileText, CheckCircle2, Inbox } from "lucide-react";
 import type { ReportMetrics } from "@/app/actions/reportActions";
 import { useAppTheme } from "@/components/ThemeContext";
+import { PageHeader, StatTile, Panel, PanelHeader, Badge, cn } from "@/components/ui";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "#38bdf8", IN_PROGRESS: "#fbbf24", ON_HOLD: "#a78bfa",
@@ -37,27 +38,12 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null;
 };
 
-function KpiCard({ icon: Icon, label, value, unit, accent }: { icon: LucideIcon; label: string; value: string | number; unit?: string; accent: string }) {
-  return (
-    <div className="glass-panel p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-        <Icon className={`w-24 h-24 ${accent}`} />
-      </div>
-      <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
-      <div className="flex items-end space-x-2">
-        <span className="text-5xl font-black text-white tracking-tighter">{value}</span>
-        {unit && <span className="text-slate-400 mb-1.5 font-bold">{unit}</span>}
-      </div>
-    </div>
-  );
-}
-
 function ChartCard({ title, children, wide }: { title: string; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className={`glass-panel rounded-3xl p-6 border border-white/10 flex flex-col ${wide ? "xl:col-span-2" : ""}`}>
-      <h2 className="text-sm font-black text-slate-300 uppercase tracking-widest mb-6">{title}</h2>
-      <div className="flex-1 min-h-[280px]">{children}</div>
-    </div>
+    <Panel className={cn("flex flex-col", wide && "xl:col-span-2")}>
+      <PanelHeader title={title} />
+      <div className="flex-1 min-h-[280px] p-6">{children}</div>
+    </Panel>
   );
 }
 
@@ -80,31 +66,19 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
   return (
     <div className="p-8 h-full overflow-auto custom-scrollbar relative z-10 space-y-8">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mt-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-fuchsia-500/20 flex items-center justify-center border border-white/5 shadow-lg">
-            <LayoutDashboard className="w-7 h-7 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Performance Dashboards</h1>
-            <p className="text-slate-400 mt-1 font-medium">Live operational analytics from your service desk</p>
-          </div>
-        </div>
-        <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-bold w-fit">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          Live data
-        </span>
-      </div>
+      <PageHeader
+        className="mb-0"
+        title="Performance Dashboards"
+        description="Live operational analytics from your service desk"
+        action={<Badge tone="success" dot>Live data</Badge>}
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <KpiCard icon={Clock} label="Mean Time to Resolution" value={data.mttrHours} unit="Hrs" accent="text-indigo-500" />
-        <KpiCard icon={Target} label="SLA Adherence" value={data.slaAdherence} unit="%" accent="text-emerald-500" />
-        <KpiCard icon={FileText} label="Active Backlog" value={data.backlog} unit="Open" accent="text-amber-500" />
-        <KpiCard icon={BarChart3} label="Total Incidents" value={data.totalIncidents} unit={`${data.resolvedCount} resolved`} accent="text-sky-500" />
+        <StatTile icon={Clock} label="Mean Time to Resolution" value={<>{data.mttrHours}<span className="text-base font-normal text-slate-500"> Hrs</span></>} />
+        <StatTile icon={Target} label="SLA Adherence" value={<>{data.slaAdherence}<span className="text-base font-normal text-slate-500"> %</span></>} />
+        <StatTile icon={FileText} label="Active Backlog" value={<>{data.backlog}<span className="text-base font-normal text-slate-500"> Open</span></>} />
+        <StatTile icon={BarChart3} label="Total Incidents" value={data.totalIncidents} hint={`${data.resolvedCount} resolved`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -194,8 +168,8 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                <span className="text-3xl font-black text-white">{data.assetHealth.reduce((a, b) => a + b.value, 0)}</span>
-                <span className="text-xs font-bold text-slate-400">Total Assets</span>
+                <span className="text-3xl font-semibold text-white tabular-nums">{data.assetHealth.reduce((a, b) => a + b.value, 0)}</span>
+                <span className="text-xs font-semibold text-slate-400">Total Assets</span>
               </div>
             </div>
           ) : <EmptyChart label="No assets registered yet." />}
@@ -203,13 +177,13 @@ export default function ReportsView({ data }: { data: ReportMetrics }) {
       </div>
 
       {/* Legend / footnote */}
-      <div className="glass-panel rounded-2xl border border-white/10 p-5 flex items-start gap-3">
-        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+      <Panel className="p-5 flex items-start gap-3">
+        <CheckCircle2 className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
         <p className="text-sm text-slate-400 leading-relaxed">
           All figures are computed live from your incidents and assets. SLA adherence uses your configured SLA
           definitions where available, falling back to standard targets (Critical 4h · High 8h · Medium 24h · Low 72h).
         </p>
-      </div>
+      </Panel>
     </div>
   );
 }

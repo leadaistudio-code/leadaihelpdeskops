@@ -3,20 +3,29 @@
   "version": "1.0.0",
   "description": "LeadAIStudio DEX endpoint agent — standalone build",
   "private": true,
-  "bin": "src/dex-agent.cjs",
+  "main": "src/main.cjs",
   "scripts": {
-    "build": "pkg . --targets node22-win-x64 --output dist/aiops-agent.exe && node patch-gui.cjs dist/aiops-agent.exe",
-    "build:console": "pkg . --targets node22-win-x64 --output dist/aiops-agent.exe"
+    "start": "electron .",
+    "build": "electron-builder build --win",
+    "pack": "electron-builder --dir"
   },
-  "pkg": {
-    "assets": [
-      "node_modules/systray2/traybin/**/*"
-    ]
+  "build": {
+    "appId": "com.leadaistudio.agent",
+    "productName": "Lead AI Agent",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.6.0"
-  },
-  "dependencies": {
-    "systray2": "^2.1.4"
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3"
   }
 }
