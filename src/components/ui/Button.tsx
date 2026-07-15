@@ -14,11 +14,11 @@ const base =
   "inline-flex items-center justify-center gap-2 font-medium rounded-full transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none select-none";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-[#0a0a0a] text-white hover:bg-[#1c1c1e]",
+  primary: "bg-[#0a0a0a] !text-white hover:bg-[#1c1c1e]",
   accent: "bg-[#00d4a4] text-[#0a0a0a] hover:bg-[#00b48a]",
   secondary: "bg-white text-[#0a0a0a] border border-[#e5e5e5] hover:bg-[#f7f7f7]",
   ghost: "text-[#3a3a3c] hover:text-[#0a0a0a] hover:bg-[#f7f7f7]",
-  danger: "bg-[#d45656] text-white hover:bg-[#c34545]",
+  danger: "bg-[#d45656] !text-white hover:bg-[#c34545]",
 };
 
 const sizes: Record<ButtonSize, string> = {

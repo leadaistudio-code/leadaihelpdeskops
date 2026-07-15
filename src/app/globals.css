@@ -126,6 +126,10 @@ h1, h2, h3 {
 
   .app-root.theme-light { color: #0a0a0a; }
 
+  /* Ensure text inside hardcoded dark backgrounds stays white, overriding the light theme text flip above */
+  .app-root.theme-light .bg-\[\#0a0a0a\],
+  .app-root.theme-light .bg-\[\#d45656\] { color: #ffffff !important; }
+
   /* Clean surface canvas behind the (transparent) app chrome. */
   .app-root.theme-light::before {
     content: "";
