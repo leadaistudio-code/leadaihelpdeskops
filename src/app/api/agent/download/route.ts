@@ -20,11 +20,12 @@ async function getAgentBinary(): Promise<Buffer | null> {
     // Check the new Go agent first, then fallback to the old Node agent.
     for (const subDir of ["agent-go/dist", "agent/dist"]) {
       const filePath = path.join(process.cwd(), subDir, name);
-    try {
-      await stat(filePath);
-      return await readFile(filePath);
-    } catch {
-      /* try next */
+      try {
+        await stat(filePath);
+        return await readFile(filePath);
+      } catch {
+        /* try next */
+      }
     }
   }
   return null;
