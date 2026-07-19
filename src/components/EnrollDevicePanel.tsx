@@ -42,7 +42,7 @@ export default function EnrollDevicePanel() {
             <p className="text-xs text-slate-500 mb-3">
               A ZIP with the agent and your tenant config baked in — no runtime, no typing.
             </p>
-            <Button href={`/api/agent/download?token=${encodeURIComponent(token)}`} icon={Download}>
+            <Button href={`/api/agent/download?token=${encodeURIComponent(token)}`} icon={Download} download>
               Download AIops Agent (setup.zip)
             </Button>
           </div>
