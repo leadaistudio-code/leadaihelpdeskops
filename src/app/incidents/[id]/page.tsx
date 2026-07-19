@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getIncidentById, updateIncidentState, getAssignableAgents } from "@/app/actions/incidentActions";
+import { getSessionUser } from "@/lib/auth-utils";
 import { ensureSlaForIncident } from "@/app/actions/slaActions";
 import { createProblemFromIncident, linkIncidentToProblem, unlinkIncidentFromProblem, getLinkableProblems } from "@/app/actions/problemActions";
 import { draftArticleFromIncident } from "@/app/actions/knowledgeActions";
@@ -37,6 +38,9 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
   if (!incident) {
     notFound();
   }
+
+  const user = await getSessionUser();
+  const isAgent = user?.role === "ADMIN" || user?.role === "IT_AGENT";
 
   const agents = await getAssignableAgents();
   const groups = await getGroupOptions();
@@ -126,16 +130,20 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
                   <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Created</label>
                   <div className="text-slate-200 font-mono text-sm">{incident.createdAt.toLocaleString()}</div>
                 </div>
-                <AssignmentControl
-                  incidentId={incident.id}
-                  currentAssigneeId={incident.assigneeId ?? null}
-                  agents={agents}
-                />
-                <GroupControl
-                  incidentId={incident.id}
-                  currentGroupId={incident.assignmentGroupId ?? null}
-                  groups={groups}
-                />
+                {isAgent && (
+                  <>
+                    <AssignmentControl
+                      incidentId={incident.id}
+                      currentAssigneeId={incident.assigneeId ?? null}
+                      agents={agents}
+                    />
+                    <GroupControl
+                      incidentId={incident.id}
+                      currentGroupId={incident.assignmentGroupId ?? null}
+                      groups={groups}
+                    />
+                  </>
+                )}
               </div>
 
               <div className="mb-8">
@@ -150,24 +158,27 @@ export default async function IncidentDetailPage({ params }: { params: { id: str
                 </div>
               </div>
 
-              <form action={handleUpdate} className="pt-6 border-t border-white/5">
-                <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Update State</label>
-                <div className="flex gap-4">
-                  <Select name="status" defaultValue={incident.status} className="flex-1">
-                    <option value="NEW">New</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="ON_HOLD">On Hold</option>
-                    <option value="RESOLVED">Resolved</option>
-                    <option value="CLOSED">Closed</option>
-                  </Select>
-                  <Button type="submit">Update Ticket</Button>
-                </div>
-              </form>
+              {isAgent && (
+                <form action={handleUpdate} className="pt-6 border-t border-white/5">
+                  <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Update State</label>
+                  <div className="flex gap-4">
+                    <Select name="status" defaultValue={incident.status} className="flex-1">
+                      <option value="NEW">New</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="ON_HOLD">On Hold</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="CLOSED">Closed</option>
+                    </Select>
+                    <Button type="submit">Update Ticket</Button>
+                  </div>
+                </form>
+              )}
             </div>
           </Panel>
 
           <IncidentActivity
             incidentId={incident.id}
+            canAddWorkNote={isAgent}
             notes={incident.notes.map((n) => ({
               id: n.id,
               body: n.body,

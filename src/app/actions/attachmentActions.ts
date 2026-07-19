@@ -3,6 +3,8 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth-utils";
+import { getActiveDomain } from "@/lib/tenant";
+import { attachmentVisibleTo } from "@/lib/attachment-access";
 
 const META_SELECT = {
   id: true,
@@ -26,8 +28,11 @@ function toMeta(a: { id: string; filename: string; mimeType: string; size: numbe
 
 // Attachment metadata only (never the binary blob) for listing on a ticket.
 export async function getAttachmentsForIncident(incidentId: string) {
+  const user = await getSessionUser();
+  if (!user) return [];
+
   const rows = await prisma.attachment.findMany({
-    where: { incidentId },
+    where: { incidentId, ...attachmentVisibleTo(user, await getActiveDomain()) },
     select: META_SELECT,
     orderBy: { createdAt: "desc" },
   });
@@ -35,8 +40,11 @@ export async function getAttachmentsForIncident(incidentId: string) {
 }
 
 export async function getAttachmentsForArticle(articleId: string) {
+  const user = await getSessionUser();
+  if (!user) return [];
+
   const rows = await prisma.attachment.findMany({
-    where: { articleId },
+    where: { articleId, ...attachmentVisibleTo(user, await getActiveDomain()) },
     select: META_SELECT,
     orderBy: { createdAt: "desc" },
   });
@@ -47,8 +55,10 @@ export async function deleteAttachment(id: string) {
   const user = await getSessionUser();
   if (!user) throw new Error("Not authenticated");
 
-  const att = await prisma.attachment.findUnique({
-    where: { id },
+  // Scoped by the owning incident/article so an agent can't reach a file in
+  // another tenant — a delete there would be silent and unrecoverable.
+  const att = await prisma.attachment.findFirst({
+    where: { id, ...attachmentVisibleTo(user, await getActiveDomain()) },
     select: { uploadedById: true, incidentId: true, articleId: true },
   });
   if (!att) return;

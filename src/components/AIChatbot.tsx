@@ -1,21 +1,56 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Bot, User, Sparkles, FileText, CheckCircle2, Headset } from "lucide-react";
+import { useState, useRef, useEffect, Fragment } from "react";
+import Link from "next/link";
+import { X, Send, Bot, Sparkles } from "lucide-react";
 
 type Message = {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
-  isActionable?: boolean;
 };
+
+const GREETING =
+  "Hi! I'm Now Assist, your virtual IT agent. Ask me to find a help article, check your ticket status or device health, or report an issue.";
+
+// Render inline [text](/link) markdown as clickable links; everything else is
+// plain text. The assistant is prompted to cite article titles as links.
+function renderContent(text: string) {
+  return text.split("\n").map((line, li) => {
+    const parts: React.ReactNode[] = [];
+    const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) parts.push(line.slice(last, m.index));
+      const href = m[2];
+      const label = m[1];
+      parts.push(
+        href.startsWith("/") ? (
+          <Link key={`${li}-${m.index}`} href={href} className="text-[#00926f] font-semibold hover:underline">
+            {label}
+          </Link>
+        ) : (
+          <span key={`${li}-${m.index}`} className="text-[#00926f] font-semibold">{label}</span>
+        )
+      );
+      last = m.index + m[0].length;
+    }
+    if (last < line.length) parts.push(line.slice(last));
+    return (
+      <Fragment key={li}>
+        {li > 0 && <br />}
+        {parts.length ? parts : line}
+      </Fragment>
+    );
+  });
+}
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [isLiveAgent, setIsLiveAgent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,78 +59,50 @@ export default function AIChatbot() {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Intentional: show the typing indicator when the chat first opens.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsTyping(true);
-      setTimeout(() => {
-        setMessages([{
-          id: '1',
-          role: 'assistant',
-          content: 'Hi! I am Now Assist, your virtual IT agent. You can ask me to find knowledge articles, check ticket status, or report an issue.'
-        }]);
-        setIsTyping(false);
-      }, 1000);
+      setMessages([{ id: "greeting", role: "assistant", content: GREETING }]);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
-  const handleSimulatedResponse = (userText: string) => {
-    const lowerText = userText.toLowerCase();
-    
+  const send = async (text: string) => {
+    const userMessage: Message = { id: `u-${Date.now()}`, role: "user", content: text };
+    const next = [...messages, userMessage];
+    setMessages(next);
     setIsTyping(true);
-    
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: "I can help with that. Could you provide a bit more detail?"
-      };
 
-      if (lowerText.includes('password')) {
-        botResponse.content = "It looks like you need help with your password. I found this knowledge article that might help:\n\n[How to reset your AD Password](/knowledge/1)\n\nDid this resolve your issue?";
-        botResponse.isActionable = true;
-      } else if (lowerText.includes('ticket') || lowerText.includes('status')) {
-        botResponse.content = "You have 1 active ticket: INC0001024 - 'VPN Connection Failing'. It is currently IN PROGRESS and assigned to the Network Support team.";
-      } else if (lowerText.includes('broken') || lowerText.includes('issue') || lowerText.includes('laptop')) {
-        botResponse.content = "I'm sorry your device is having issues. I can create an incident ticket for you right now. Would you like me to do that?";
-        botResponse.isActionable = true;
-      } else if (lowerText === 'yes' && messages[messages.length - 1]?.isActionable) {
-        botResponse.content = "Great! I have created Incident INC0001042 for you. An IT agent will reach out shortly.";
-      } else if (lowerText === 'no' && messages[messages.length - 1]?.isActionable) {
-        botResponse.content = "Okay, I've noted that. Is there anything else I can assist you with today?";
-      } else if (lowerText.includes('agent') || lowerText.includes('human') || lowerText.includes('manager')) {
-        botResponse.content = "I understand you'd like to speak with a human. Transferring you to the next available Live Agent now...";
-        setIsLiveAgent(true);
-        setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: Date.now().toString() + "1",
-            role: 'assistant',
-            content: "Hi, I'm Mike from IT Support. I see you need assistance. How can I help?"
-          }]);
-        }, 2500);
-      }
-      
-      if (isLiveAgent) {
-        botResponse.content = "I'm looking into this right now. Please give me one moment.";
-      }
+    try {
+      // The API requires the first message to be from the user, so drop the
+      // leading assistant greeting before sending the history.
+      const history = next
+        .filter((_, i) => !(i === 0 && next[0].role === "assistant"))
+        .map((m) => ({ role: m.role, content: m.content }));
 
-      setMessages(prev => [...prev, botResponse]);
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+      });
+      const data = await res.json();
+      const reply =
+        typeof data.reply === "string" && data.reply.trim()
+          ? data.reply
+          : "Sorry — something went wrong reaching the assistant. Please try again.";
+      setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: reply }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, role: "assistant", content: "I couldn't reach the assistant just now. Please try again in a moment." },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    const text = input.trim();
+    if (!text || isTyping) return;
     setInput("");
-    handleSimulatedResponse(userMessage.content);
+    void send(text);
   };
 
   return (
@@ -114,11 +121,11 @@ export default function AIChatbot() {
         <div className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-2xl border border-white/10 flex flex-col z-50 overflow-hidden shadow-2xl shadow-black/40 transition-all duration-300">
           <div className="bg-white/[0.02] p-4 flex justify-between items-center border-b border-white/10">
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isLiveAgent ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[#00d4a4]/10 text-[#00926f]'}`}>
-                {isLiveAgent ? <Headset className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#00d4a4]/10 text-[#00926f]">
+                <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-white text-sm">{isLiveAgent ? 'Live Agent (Mike)' : 'Now Assist'}</h3>
+                <h3 className="font-semibold text-white text-sm">Now Assist</h3>
                 <div className="flex items-center space-x-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Online</span>
@@ -129,59 +136,34 @@ export default function AIChatbot() {
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
           <div className="flex-1 p-5 overflow-y-auto custom-scrollbar flex flex-col space-y-4 bg-black/20">
-            {messages.map(m => (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {m.role === 'assistant' && (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 shrink-0 mt-1 ${isLiveAgent ? 'bg-emerald-500/10 text-emerald-400' : 'bg-[#00d4a4]/10 text-[#00926f]'}`}>
-                    {isLiveAgent ? <Headset className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+            {messages.map((m) => (
+              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                {m.role === "assistant" && (
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 shrink-0 mt-1 bg-[#00d4a4]/10 text-[#00926f]">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
-                <div className={`max-w-[75%] rounded-2xl p-4 text-sm leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-[#0a0a0a] text-white font-medium rounded-br-none'
-                    : 'bg-white/[0.04] border border-white/10 text-slate-200 rounded-bl-none'
+                <div className={`max-w-[75%] rounded-2xl p-4 text-sm leading-relaxed whitespace-pre-wrap ${
+                  m.role === "user"
+                    ? "bg-[#0a0a0a] text-white font-medium rounded-br-none"
+                    : "bg-white/[0.04] border border-white/10 text-slate-200 rounded-bl-none"
                 }`}>
-                  {m.content.split('\n\n').map((paragraph, i) => {
-                    // Check for links
-                    if (paragraph.startsWith('[')) {
-                      const text = paragraph.match(/\[(.*?)\]/)?.[1];
-                      return (
-                        <div key={i} className="mt-3 mb-1 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center space-x-3 cursor-pointer hover:bg-white/10 transition-colors">
-                          <FileText className="w-4 h-4 text-[#00926f]" />
-                          <span className="font-semibold text-[#00926f]">{text}</span>
-                        </div>
-                      );
-                    }
-                    return <p key={i} className={i > 0 ? "mt-2" : ""}>{paragraph}</p>;
-                  })}
-                  
-                  {m.isActionable && (
-                    <div className="flex space-x-2 mt-4">
-                      <button onClick={() => handleSimulatedResponse("yes")} className="flex-1 py-2 bg-emerald-500/10 text-emerald-400 font-semibold rounded-lg border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors flex items-center justify-center space-x-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Yes</span>
-                      </button>
-                      <button onClick={() => handleSimulatedResponse("no")} className="flex-1 py-2 bg-rose-500/10 text-rose-400 font-semibold rounded-lg border border-rose-500/25 hover:bg-rose-500/20 transition-colors flex items-center justify-center space-x-1">
-                        <X className="w-4 h-4" />
-                        <span>No</span>
-                      </button>
-                    </div>
-                  )}
+                  {renderContent(m.content)}
                 </div>
               </div>
             ))}
-            
+
             {isTyping && (
               <div className="flex justify-start">
                 <div className="w-8 h-8 rounded-full bg-[#00d4a4]/10 text-[#00926f] flex items-center justify-center mr-3 shrink-0">
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="bg-white/[0.04] border border-white/10 rounded-2xl rounded-bl-none p-4 flex space-x-2 items-center w-20">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
                 </div>
               </div>
             )}

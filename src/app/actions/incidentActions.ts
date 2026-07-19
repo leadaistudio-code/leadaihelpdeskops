@@ -6,12 +6,13 @@ import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth-utils";
+import { getSessionUser, requireAgent } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notify, notifyGroup } from "@/app/actions/notificationActions";
 import { resolveGroupByName } from "@/app/actions/groupActions";
 import { startSlaForIncident, pauseSla, resumeSla, stopSla, escalateIfBreached } from "@/app/actions/slaActions";
 import { logAudit } from "@/lib/audit";
+import { allocateNumber, seriesForTicketType } from "@/lib/ticket-number";
 
 export type CreateIncidentPayload = {
   title: string;
@@ -41,13 +42,14 @@ export async function createIncident(payload: CreateIncidentPayload | FormData) 
     status = payload.status || "NEW";
   }
 
-  // If no callerId provided, fetch first user or use mock
+  const domain = await getActiveDomain();
+
+  // If no callerId provided, fall back to a user in this tenant — never an
+  // unscoped findFirst, which can hand the ticket to another customer's user.
   if (!callerId) {
-    const defaultUser = await prisma.user.findFirst();
+    const defaultUser = await prisma.user.findFirst({ where: { domain } });
     if (defaultUser) callerId = defaultUser.id;
   }
-
-  const domain = await getActiveDomain();
 
   // AI Triage
   let aiTriageNotes = "";
@@ -75,10 +77,7 @@ export async function createIncident(payload: CreateIncidentPayload | FormData) 
   // Route to a real assignment group if the AI's predicted group matches one.
   const assignmentGroupId = predictedGroup ? await resolveGroupByName(domain, predictedGroup) : null;
 
-  // Generate an incident number based on type
-  const count = await prisma.incident.count({ where: { type } });
-  const prefix = type === "REQUEST" ? "REQ" : "INC";
-  const number = `${prefix}${String(count + 10000).padStart(7, '0')}`;
+  const number = await allocateNumber(domain, seriesForTicketType(type));
 
   const incident = await prisma.incident.create({
     data: {
@@ -187,17 +186,24 @@ export async function getIncidentsPaged(opts: {
 
 export async function getIncidentById(id: string) {
   const domain = await getActiveDomain();
+  const user = await getSessionUser();
+  const isAgent = user?.role === "ADMIN" || user?.role === "IT_AGENT";
+
   // Lazily detect + escalate an SLA breach when the ticket is opened.
   await escalateIfBreached(id);
-  // Scoped by domain so a ticket from another tenant can't be opened by id.
+
+  // Scoped by domain so a ticket from another tenant can't be opened by id, and
+  // by caller so an employee can only open a ticket they raised.
   return await prisma.incident.findFirst({
-    where: { id, domain },
+    where: { id, domain, ...(isAgent ? {} : { callerId: user?.id ?? "" }) },
     include: {
       caller: true,
       assignee: true,
       slaInstances: { orderBy: { createdAt: "desc" }, take: 1 },
       problem: { select: { id: true, number: true, title: true, status: true } },
       notes: {
+        // Internal work notes are staff-only.
+        ...(isAgent ? {} : { where: { type: { not: NoteType.WORK_NOTE } } }),
         include: { author: true },
         orderBy: { createdAt: "desc" },
       },
@@ -206,12 +212,19 @@ export async function getIncidentById(id: string) {
 }
 
 export async function updateIncidentState(id: string, status: IncidentStatus) {
-  const existing = await prisma.incident.findUnique({
-    where: { id },
+  await requireAgent();
+  const domain = await getActiveDomain();
+
+  const existing = await prisma.incident.findFirst({
+    where: { id, domain },
     select: { status: true, callerId: true, number: true, title: true, domain: true },
   });
+  if (!existing) throw new Error("Incident not found");
+
+  // Scope the write itself, not just the read above, so a ticket that moves
+  // tenants between the two queries can't still be written.
   const incident = await prisma.incident.update({
-    where: { id },
+    where: { id, domain },
     data: { status },
   });
 
@@ -259,28 +272,41 @@ export async function addIncidentNote(incidentId: string, body: string, type: No
   const text = body?.trim();
   if (!text) throw new Error("Note cannot be empty");
 
+  // SYSTEM entries are written by the timeline itself; accepting one here would
+  // let a caller forge an audit-looking entry.
+  if (type !== "COMMENT" && type !== "WORK_NOTE") throw new Error("Invalid note type");
+
   const user = await getSessionUser();
+  if (!user) throw new Error("Not authenticated");
+  const domain = await getActiveDomain();
+
+  const inc = await prisma.incident.findFirst({
+    where: { id: incidentId, domain },
+    select: { callerId: true, assigneeId: true, number: true },
+  });
+  if (!inc) throw new Error("Incident not found");
+
+  const isAgent = user.role === "ADMIN" || user.role === "IT_AGENT";
+  // Internal work notes are staff-only; an employee may comment, but only on a
+  // ticket they raised.
+  if (type === "WORK_NOTE" && !isAgent) throw new Error("Not authorized");
+  if (!isAgent && inc.callerId !== user.id) throw new Error("Not authorized");
+
   await prisma.incidentNote.create({
-    data: { incidentId, body: text, type, authorId: user?.id ?? null },
+    data: { incidentId, body: text, type, authorId: user.id },
   });
 
   // Notify the counterpart on a public comment (caller ↔ assignee), not on
   // internal work notes.
   if (type === "COMMENT") {
-    const inc = await prisma.incident.findUnique({
-      where: { id: incidentId },
-      select: { callerId: true, assigneeId: true, number: true },
-    });
-    if (inc) {
-      const recipientId = user?.id === inc.callerId ? inc.assigneeId : inc.callerId;
-      if (recipientId && recipientId !== user?.id) {
-        await notify(recipientId, {
-          title: `New comment on ${inc.number}`,
-          body: text.slice(0, 120),
-          type: "COMMENT",
-          link: `/incidents/${incidentId}`,
-        });
-      }
+    const recipientId = user.id === inc.callerId ? inc.assigneeId : inc.callerId;
+    if (recipientId && recipientId !== user.id) {
+      await notify(recipientId, {
+        title: `New comment on ${inc.number}`,
+        body: text.slice(0, 120),
+        type: "COMMENT",
+        link: `/incidents/${incidentId}`,
+      });
     }
   }
 
@@ -289,12 +315,21 @@ export async function addIncidentNote(incidentId: string, body: string, type: No
 
 // Assign (or unassign) an incident to an agent and log it on the timeline.
 export async function assignIncident(incidentId: string, assigneeId: string | null) {
+  await requireAgent();
+  const domain = await getActiveDomain();
+
+  // The assignee must be IT staff in the caller's own tenant — otherwise a
+  // ticket could be parked on a user who can never see it.
   const assignee = assigneeId
-    ? await prisma.user.findUnique({ where: { id: assigneeId }, select: { name: true } })
+    ? await prisma.user.findFirst({
+        where: { id: assigneeId, domain, role: { in: ["ADMIN", "IT_AGENT"] } },
+        select: { name: true },
+      })
     : null;
+  if (assigneeId && !assignee) throw new Error("Assignee is not an agent in this tenant");
 
   const inc = await prisma.incident.update({
-    where: { id: incidentId },
+    where: { id: incidentId, domain },
     data: { assigneeId: assigneeId || null },
     select: { number: true, title: true, domain: true },
   });

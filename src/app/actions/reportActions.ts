@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { getActiveDomain } from "@/lib/tenant";
+import { requireAgent } from "@/lib/auth-utils";
 
 export type ReportMetrics = {
   // headline KPIs
@@ -34,6 +35,9 @@ function dayKey(d: Date) {
 }
 
 export async function getReportMetrics(): Promise<ReportMetrics> {
+  // Org-wide ticket volume and SLA performance is staff reporting, not
+  // something an employee should be able to pull.
+  await requireAgent();
   const domain = await getActiveDomain();
   const [incidents, assets, slaDefs] = await Promise.all([
     prisma.incident.findMany({

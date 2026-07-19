@@ -27,9 +27,10 @@ async function requireApprover() {
 
 export async function approveRequest(incidentId: string) {
   const approver = await requireApprover();
+  const domain = await getActiveDomain();
 
   const inc = await prisma.incident.update({
-    where: { id: incidentId },
+    where: { id: incidentId, domain },
     data: { status: "IN_PROGRESS", assigneeId: approver.id },
     select: { callerId: true, number: true, title: true, domain: true },
   });
@@ -45,7 +46,7 @@ export async function approveRequest(incidentId: string) {
 
   // Keep the linked catalog request in sync.
   await prisma.catalogRequest.updateMany({
-    where: { incidentId },
+    where: { incidentId, domain },
     data: { status: "APPROVED" },
   });
 
@@ -72,9 +73,10 @@ export async function approveRequest(incidentId: string) {
 
 export async function rejectRequest(incidentId: string, reason?: string) {
   const approver = await requireApprover();
+  const domain = await getActiveDomain();
 
   const inc = await prisma.incident.update({
-    where: { id: incidentId },
+    where: { id: incidentId, domain },
     data: { status: "CLOSED" },
     select: { callerId: true, number: true, title: true, domain: true },
   });
@@ -89,7 +91,7 @@ export async function rejectRequest(incidentId: string, reason?: string) {
   });
 
   await prisma.catalogRequest.updateMany({
-    where: { incidentId },
+    where: { incidentId, domain },
     data: { status: "REJECTED" },
   });
 

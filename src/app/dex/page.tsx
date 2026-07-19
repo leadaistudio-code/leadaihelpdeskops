@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, Zap, History, BrainCircuit, AlertTriangle } from "lucide-react";
-import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, getAppCrashStats, getRecentCrashes, getSoftwareUsageStats, getSecurityPostures, getRemediationCampaigns, createRemediationCampaign, getShadowItSavings, getBurnoutRisks, getSmartContracts, createSmartContract, toggleSmartContract, deleteSmartContract, getLifecycleArbitrage, generateGlobalAgenticScript, deployGlobalAgenticScript, type DexEndpoint } from "@/app/actions/dexActions";
+import { Activity, Radio, Cpu, Power, Trash2, CheckCircle2, Zap, History, BrainCircuit, AlertTriangle, Sparkles } from "lucide-react";
+import { getDexEndpoints, getDexSummary, queueRemediation, getDexSettings, setAutoHeal, getAppCrashStats, getRecentCrashes, getSoftwareUsageStats, getSecurityPostures, getRemediationCampaigns, createRemediationCampaign, getShadowItSavings, getBurnoutRisks, getSmartContracts, createSmartContract, toggleSmartContract, deleteSmartContract, getLifecycleArbitrage, generateGlobalAgenticScript, deployGlobalAgenticScript, getTenantUsers, type DexEndpoint } from "@/app/actions/dexActions";
 import EnrollDevicePanel from "@/components/EnrollDevicePanel";
+import DeviceOwnerControl from "@/components/DeviceOwnerControl";
+import FleetCopilot from "@/components/FleetCopilot";
+import CollapsibleSection from "@/components/CollapsibleSection";
 import { useAppTheme } from "@/components/ThemeContext";
 import {
   PageHeader,
@@ -63,7 +66,8 @@ export default function DEXDashboard() {
   const [newContract, setNewContract] = useState({ name: "", metric: "CPU", operator: ">", threshold: 90, action: "CLEAR_TEMP" });
   const [isCreatingContract, setIsCreatingContract] = useState(false);
   const [arbitrageData, setArbitrageData] = useState<any[]>([]);
-  
+  const [tenantUsers, setTenantUsers] = useState<{ id: string; name: string }[]>([]);
+
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportPeriod, setReportPeriod] = useState("weekly");
 
@@ -193,11 +197,16 @@ export default function DEXDashboard() {
       getBurnoutRisks().then(setBurnoutRisks).catch(() => {});
       getSmartContracts().then(setSmartContracts).catch(() => {});
       getLifecycleArbitrage().then(setArbitrageData).catch(() => {});
+      getTenantUsers().then(setTenantUsers).catch(() => {});
     };
     load();
     const t = setInterval(load, 15_000);
     return () => clearInterval(t);
   }, []);
+
+  // Re-fetch just the fleet after an owner change, so the picker reflects the
+  // new owner without waiting for the 15s poll.
+  const reloadEndpoints = () => { getDexEndpoints().then(setEndpoints).catch(() => {}); };
 
   const [toast, setToast] = useState<{message: string, show: boolean}>({ message: "", show: false });
   const [isRemediating, setIsRemediating] = useState<Record<string, boolean>>({});
@@ -298,10 +307,8 @@ export default function DEXDashboard() {
         }
       />
 
-      <EnrollDevicePanel />
-
-      {/* Experience Score + fleet rollup */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* KPI row — the headline numbers, always in view */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatTile
           label="Experience Score"
           tone={summary.avgScore >= 80 ? "success" : summary.avgScore >= 55 ? "warning" : "critical"}
@@ -315,7 +322,22 @@ export default function DEXDashboard() {
           tone={summary.atRisk > 0 ? "warning" : "neutral"}
           value={summary.atRisk}
         />
+        <StatTile
+          label="Auto-Remediations"
+          tone={autoActionsTaken > 0 ? "success" : "neutral"}
+          value={autoActionsTaken}
+          hint="Today"
+        />
       </div>
+
+      {/* Onboarding is prominent only until the first device is enrolled. */}
+      {summary.total === 0 ? (
+        <EnrollDevicePanel />
+      ) : (
+        <CollapsibleSection title="Enroll a device" subtitle="Add a laptop to this tenant">
+          <EnrollDevicePanel />
+        </CollapsibleSection>
+      )}
 
       {/* AIOps Predictive Intelligence Panel */}
       <Panel padded className="mb-6">
@@ -328,25 +350,33 @@ export default function DEXDashboard() {
               <span>Predictive Intelligence (AIOps)</span>
               <Badge tone="neutral" dot>Scanning</Badge>
             </h2>
-            <p className="text-slate-400 text-sm mt-1">Analyzing historical telemetry to predict hardware failures before they occur.</p>
+            <p className="text-slate-400 text-sm mt-1">Regression over each device&rsquo;s telemetry trend — projected threshold crossings, not fixed rules.</p>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
-                <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-white">Memory Leak Detected: WS-8831</div>
-                  <div className="text-xs text-slate-400 mt-1">Based on current trajectory, system memory will exhaust in <span className="text-amber-400 font-semibold">~4.2 hours</span>. Recommend scheduling background restart.</div>
-                  <Button variant="secondary" size="sm" className="mt-3">Queue Restart</Button>
+              {arbitrageData.length === 0 ? (
+                <div className="md:col-span-2 bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">No degradation trends detected</div>
+                    <div className="text-xs text-slate-400 mt-1">No device&rsquo;s telemetry is trending toward a failure threshold within the next 30 days.</div>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
-                <Cpu className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-sm font-semibold text-white">Thermal Degradation: WS-2210</div>
-                  <div className="text-xs text-slate-400 mt-1">CPU thermal paste likely degraded. Temperature averaging 15% higher than fleet baseline. <span className="text-rose-400 font-semibold">78% probability of failure</span> in 30 days.</div>
-                  <Button variant="secondary" size="sm" className="mt-3">Create Hardware Ticket</Button>
-                </div>
-              </div>
+              ) : (
+                arbitrageData.slice(0, 4).map((a: any, i: number) => {
+                  const critical = a.probability >= 70 || a.daysUntilFailure <= 7;
+                  return (
+                    <div key={i} className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex items-start space-x-4">
+                      <AlertTriangle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${critical ? "text-rose-500" : "text-amber-500"}`} />
+                      <div>
+                        <div className="text-sm font-semibold text-white">{a.component === "DISK" ? "Disk capacity" : a.component === "BATTERY" ? "Battery health" : a.component}: {a.device}</div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Projected to cross its threshold in <span className={`font-semibold ${critical ? "text-rose-400" : "text-amber-400"}`}>~{a.daysUntilFailure} {a.daysUntilFailure === 1 ? "day" : "days"}</span> ({a.probability}% confidence from the observed trend).
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -415,8 +445,8 @@ export default function DEXDashboard() {
         </Panel>
       </div>
 
-      {/* App-DEX: Application Reliability Analytics Panel */}
-      <Panel className="mb-6 overflow-hidden">
+      <CollapsibleSection title="Application reliability" subtitle="Top crashing apps & recent crash events" icon={Activity}>
+      <Panel className="overflow-hidden">
         <PanelHeader title="App-DEX: Application Reliability" icon={Activity} />
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
@@ -459,8 +489,9 @@ export default function DEXDashboard() {
           </div>
         </div>
       </Panel>
+      </CollapsibleSection>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         <Panel className="xl:col-span-2 overflow-visible">
           <PanelHeader title="Active Anomalies & Remediation" />
           <div className="overflow-visible">
@@ -469,6 +500,7 @@ export default function DEXDashboard() {
                 <tr>
                   <TH>Endpoint</TH>
                   <TH>User</TH>
+                  <TH>Owner</TH>
                   <TH>Score</TH>
                   <TH>CPU</TH>
                   <TH>Mem</TH>
@@ -480,7 +512,7 @@ export default function DEXDashboard() {
               </THead>
               <TBody>
                 {endpoints.length === 0 ? (
-                  <tr><TD colSpan={9} align="center" className="py-12 text-slate-500">No devices enrolled yet. Use “Enroll a device” above to add one.</TD></tr>
+                  <tr><TD colSpan={10} align="center" className="py-12 text-slate-500">No devices enrolled yet. Use “Enroll a device” above to add one.</TD></tr>
                 ) : endpoints.map((ep) => (
                   <TR key={ep.deviceId} className={isRemediating[ep.id] ? 'opacity-50 pointer-events-none' : ''}>
                     <TD className="font-semibold text-slate-100">
@@ -488,6 +520,14 @@ export default function DEXDashboard() {
                       {!ep.online && <span className="ml-2 px-1.5 py-0.5 bg-white/5 text-slate-400 rounded text-[10px] font-semibold uppercase">Offline</span>}
                     </TD>
                     <TD className="text-slate-200">{ep.user}</TD>
+                    <TD>
+                      <DeviceOwnerControl
+                        deviceId={ep.deviceId}
+                        currentOwnerId={ep.ownerId}
+                        users={tenantUsers}
+                        onAssigned={reloadEndpoints}
+                      />
+                    </TD>
                     <TD>
                       <span className={cn("font-semibold tabular-nums", ep.score >= 80 ? 'text-emerald-400' : ep.score >= 55 ? 'text-amber-400' : 'text-rose-400')}>{ep.online ? ep.score : '—'}</span>
                     </TD>
@@ -546,8 +586,12 @@ export default function DEXDashboard() {
         </Panel>
       </div>
 
-      {/* Shadow IT Cost-Killer Panel */}
-      <Panel padded className="mb-6">
+      <CollapsibleSection title="Fleet Copilot" subtitle="Ask about the fleet in natural language" icon={Sparkles}>
+        <FleetCopilot />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Shadow IT & unused licenses" subtitle="Reclaim wasted SaaS spend" icon={Activity}>
+      <Panel padded>
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-white flex items-center gap-3 mb-2">
@@ -590,8 +634,10 @@ export default function DEXDashboard() {
           </div>
         </div>
       </Panel>
+      </CollapsibleSection>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <CollapsibleSection title="Automation & people" subtitle="Self-healing contracts and burnout risk" icon={Zap}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Self-Healing Smart Contracts */}
         <Panel padded>
           <div className="flex justify-between items-center mb-4">
@@ -667,9 +713,10 @@ export default function DEXDashboard() {
           </div>
         </Panel>
       </div>
+      </CollapsibleSection>
 
-      {/* Hardware Lifecycle Arbitrage Panel */}
-      <Panel padded className="mb-6">
+      <CollapsibleSection title="Hardware lifecycle arbitrage" subtitle="Optimal resale windows before failure" icon={Zap}>
+      <Panel padded>
         <div className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-white flex items-center gap-3 mb-2">
@@ -720,9 +767,10 @@ export default function DEXDashboard() {
           </div>
         </div>
       </Panel>
+      </CollapsibleSection>
 
-      {/* Enterprise AIOps Modules */}
-      <Panel className="mt-6 mb-6 overflow-hidden">
+      <CollapsibleSection title="Enterprise AIOps modules" subtitle="FinOps, security posture, campaigns" icon={BrainCircuit}>
+      <Panel className="overflow-hidden">
         <PanelHeader title="Enterprise AIOps Modules" icon={BrainCircuit} />
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* FinOps */}
@@ -778,7 +826,8 @@ export default function DEXDashboard() {
           </div>
         </div>
       </Panel>
-      
+      </CollapsibleSection>
+
       {isCampaignModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <Panel className="p-6 w-full max-w-md bg-slate-900 shadow-2xl animate-in fade-in zoom-in-95">

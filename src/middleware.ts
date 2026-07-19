@@ -10,7 +10,6 @@ const isPublicRoute = createRouteMatcher([
   '/guides/(.*)',
   '/api/guides/(.*)',
   '/api/webhook(.*)',
-  '/api/chat(.*)',
   // DEX agent ingest — authenticated by device key, not a user session.
   '/api/agent/(.*)',
   // Scheduled SLA breach sweep — secured by CRON_SECRET, not a user session.

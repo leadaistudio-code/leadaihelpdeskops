@@ -25,7 +25,15 @@ function timeAgo(date: Date) {
   return date.toLocaleDateString();
 }
 
-export default function IncidentActivity({ incidentId, notes }: { incidentId: string; notes: Note[] }) {
+export default function IncidentActivity({
+  incidentId,
+  notes,
+  canAddWorkNote = false,
+}: {
+  incidentId: string;
+  notes: Note[];
+  canAddWorkNote?: boolean;
+}) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<"COMMENT" | "WORK_NOTE">("COMMENT");
@@ -51,24 +59,26 @@ export default function IncidentActivity({ incidentId, notes }: { incidentId: st
 
       {/* Composer */}
       <div className="p-6 border-b border-white/5">
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => setKind("COMMENT")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/40 ${
-              kind === "COMMENT" ? "bg-[#00d4a4]/10 text-[#00926f] border border-[#00d4a4]/25" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" /> Comment
-          </button>
-          <button
-            onClick={() => setKind("WORK_NOTE")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
-              kind === "WORK_NOTE" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" /> Work note (internal)
-          </button>
-        </div>
+        {canAddWorkNote && (
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setKind("COMMENT")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/40 ${
+                kind === "COMMENT" ? "bg-[#00d4a4]/10 text-[#00926f] border border-[#00d4a4]/25" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" /> Comment
+            </button>
+            <button
+              onClick={() => setKind("WORK_NOTE")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
+                kind === "WORK_NOTE" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" /> Work note (internal)
+            </button>
+          </div>
+        )}
         <Textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}

@@ -1,0 +1,5 @@
+{
+  "server": "https://www.leadaistudio.com",
+  "token": "YOUR_ENROLLMENT_TOKEN",
+  "interval": 30
+}

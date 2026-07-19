@@ -38,6 +38,7 @@ model User {
   notifications    Notification[]
   uploads          Attachment[]
   groups           AssignmentGroup[] @relation("GroupMembers")
+  devices          Device[]          @relation("DeviceOwner")
   emailNotifications Boolean         @default(true)
   moduleAccess     String[]          @default(["SELF_SERVICE"])
   jobTitle         String?
@@ -143,7 +144,8 @@ model SlaInstance {
 
 model Incident {
   id          String         @id @default(cuid())
-  number      String         @unique // e.g., INC0000001
+  // Unique per tenant, not globally — see NumberCounter.
+  number      String // e.g., INC0010001
   title       String
   description String
   status      IncidentStatus @default(NEW)
@@ -171,6 +173,7 @@ model Incident {
   updatedAt   DateTime       @updatedAt
   domain      String         @default("global")
 
+  @@unique([domain, number])
   @@index([domain, assignmentGroupId])
   @@index([domain, problemId])
 }
@@ -300,9 +303,15 @@ model Device {
   deviceKey   String   @unique // bearer secret the agent uses to post metrics
   hostname    String
   os          String?
-  user        String?  // logged-in OS user reported by the agent
+  user        String?  // logged-in OS user reported by the agent (free-text)
   domain      String   // tenant
   persona     String?  // e.g., "Developer", "Sales"
+
+  // Authoritative owner: the app User this device belongs to. Distinct from the
+  // free-text `user` OS-name above — this is a real link, set by enrollment
+  // best-effort match or explicit assignment, and used to answer "my device".
+  ownerId     String?
+  owner       User?    @relation("DeviceOwner", fields: [ownerId], references: [id])
 
   // Latest snapshot (denormalized for a fast dashboard).
   cpuPct      Float?
@@ -331,6 +340,7 @@ model Device {
   securityPostures    SecurityPosture[]
 
   @@index([domain])
+  @@index([domain, ownerId])
 }
 
 model DeviceMetric {
@@ -452,7 +462,8 @@ enum ProblemStatus {
 // ITIL Problem record: root-cause analysis behind one or more incidents.
 model Problem {
   id          String        @id @default(cuid())
-  number      String        @unique // e.g., PRB0000001
+  // Unique per tenant, not globally — see NumberCounter.
+  number      String // e.g., PRB0000001
   title       String
   description String
   status      ProblemStatus @default(NEW)
@@ -473,7 +484,26 @@ model Problem {
   resolvedAt  DateTime?
   domain      String        @default("global")
 
+  @@unique([domain, number])
   @@index([domain, status])
+}
+
+// Per-tenant ticket numbering.
+//
+// Numbers used to be derived from a live count() of the table, which was both a
+// cross-tenant leak (the count spanned every customer) and a race (two
+// concurrent creates read the same count and produced the same number). This
+// row is the allocator instead: an atomic INSERT ... ON CONFLICT DO UPDATE
+// hands out the next value under a row lock, so concurrent creates can't
+// collide, and each tenant counts from its own base.
+//
+// `last` is the most recently allocated number for the series.
+model NumberCounter {
+  domain String
+  series String // "INC" | "REQ" | "PRB"
+  last   Int
+
+  @@id([domain, series])
 }
 
 model ProblemNote {

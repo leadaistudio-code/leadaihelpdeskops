@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import HeroDemoVideo from "@/components/HeroDemoVideo";
 import { LogoMark } from "@/components/Logo";
+import RoiCalculator from "@/components/RoiCalculator";
 
 /*
   Landing page — "Mission Control for IT" identity.
@@ -105,10 +106,8 @@ const CSS = `
 .mc-root .demoframe .top .url{margin:0 auto;font-family:var(--mono);font-size:12px;color:var(--dimtext)}
 
 .mc-root .logos{border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:30px 0;background:var(--surface-2)}
-.mc-root .logos .cap{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dimtext);margin-bottom:20px}
-.mc-root .logorow{display:flex;justify-content:center;gap:44px;flex-wrap:wrap;align-items:center}
-.mc-root .logorow span{font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--muted);opacity:.7;transition:opacity .2s,color .2s}
-.mc-root .logorow span:hover{opacity:1;color:var(--text)}
+.mc-root .logos .eyebrow{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dimtext);margin-bottom:20px}
+.mc-root .earlyline{max-width:620px;margin:0 auto;text-align:center;font-size:15px;line-height:1.6;color:var(--muted)}
 
 .mc-root .split{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:40px}
 @media(max-width:820px){.mc-root .split{grid-template-columns:1fr}}
@@ -155,6 +154,25 @@ const CSS = `
 .mc-root .stat{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--canvas)}
 .mc-root .stat .v{font-size:40px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;color:var(--text)}
 .mc-root .stat .k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-top:8px}
+
+.mc-root .roicalc{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+@media(max-width:520px){.mc-root .roicalc{grid-template-columns:1fr}}
+.mc-root .roicalc-inputs{display:flex;flex-direction:column;gap:14px}
+.mc-root .roicalc-field{display:flex;flex-direction:column;gap:6px}
+.mc-root .roicalc-field>span{font-size:12.5px;color:var(--muted);font-weight:600}
+.mc-root .roicalc-field>span b{color:var(--signal);font-variant-numeric:tabular-nums}
+.mc-root .roicalc-field input[type=text],.mc-root .roicalc-field input:not([type=range]){background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;width:100%}
+.mc-root .roicalc-field input:not([type=range]):focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px var(--signal-tint)}
+.mc-root .roicalc-field input[type=range]{accent-color:var(--signal);width:100%}
+.mc-root .roicalc-field small{font-size:11px;color:var(--dimtext);line-height:1.4}
+.mc-root .roicalc-out{background:var(--canvas);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column}
+.mc-root .roicalc-big{font-size:38px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;color:var(--signal-deep)}
+.mc-root .roicalc-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-top:8px}
+.mc-root .roicalc-break{list-style:none;margin:18px 0 0;padding:16px 0 0;border-top:1px solid var(--line-soft);display:flex;flex-direction:column;gap:9px}
+.mc-root .roicalc-break li{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.mc-root .roicalc-break li span{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;min-width:78px}
+.mc-root .roicalc-break li.roicalc-net{margin-top:2px;padding-top:9px;border-top:1px dashed var(--line);color:var(--text);font-weight:600}
+.mc-root .roicalc-note{font-size:11px;color:var(--dimtext);line-height:1.5;margin:14px 0 0}
 
 .mc-root .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px;align-items:stretch}
 @media(max-width:860px){.mc-root .price-grid{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto}}
@@ -383,8 +401,8 @@ export default function LandingPage() {
             </div>
             <div className="trust">
               <span><b>No credit card</b> to start</span><span className="sep" />
-              <span><b>SOC 2</b> aligned</span><span className="sep" />
-              <span>Live across <b>40,000+</b> endpoints</span>
+              <span><b>Early access</b> — talk to the founder</span><span className="sep" />
+              <span>Deploy on <b>50 endpoints</b> free</span>
             </div>
           </div>
 
@@ -392,7 +410,7 @@ export default function LandingPage() {
             <div className="status">
               <div className="bar">
                 <span className="d" style={{ background: "#ff5f57" }} /><span className="d" style={{ background: "#febc2e" }} /><span className="d" style={{ background: "#28c840" }} />
-                <span className="t">dex · fleet health · live</span>
+                <span className="t">dex · fleet health · sample data</span>
               </div>
               <div className="body">
                 <div className="row"><span className="lbl">Fleet experience score</span><span className="lbl" style={{ color: "var(--signal)" }}>● healthy</span></div>
@@ -423,13 +441,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* LOGOS */}
+      {/* EARLY ACCESS */}
       <section className="logos">
         <div className="wrap">
-          <div className="cap">Trusted by IT teams at fast-scaling companies</div>
-          <div className="logorow">
-            <span>Northwind</span><span>Vertex Labs</span><span>Aperture</span><span>Meridian</span><span>Cloudpeak</span><span>Ironclad</span>
-          </div>
+          <div className="eyebrow">Early access</div>
+          <p className="earlyline">
+            LeadAIStudio is new. We&rsquo;re onboarding our first IT teams by hand — which means you
+            get the founder on the phone, and your problems shape what ships next.
+          </p>
         </div>
       </section>
 
@@ -508,16 +527,11 @@ export default function LandingPage() {
             <div className="inner">
               <div>
                 <span className="eyebrow kicker">Measurable impact</span>
-                <h2 className="big-h" style={{ fontSize: "clamp(26px,3.6vw,36px)" }}>It pays for itself in the first quarter.</h2>
-                <p className="lede" style={{ fontSize: 16, marginBottom: 26 }}>Fewer tickets, less downtime, tighter SLAs. Autonomous remediation turns your most expensive support hours into work that never has to happen.</p>
-                <Link className="btn btn-primary" href="/dashboard">Get your custom ROI analysis <span className="arrow">→</span></Link>
+                <h2 className="big-h" style={{ fontSize: "clamp(26px,3.6vw,36px)" }}>See what deflection is worth to you.</h2>
+                <p className="lede" style={{ fontSize: 16, marginBottom: 26 }}>Every ticket self-service resolves is agent time you never spend. Put in your own numbers — the estimate is yours, with the assumptions on the table.</p>
+                <Link className="btn btn-primary" href="/dashboard">Start free <span className="arrow">→</span></Link>
               </div>
-              <div className="stats">
-                <div className="stat"><div className="v" data-count="45" data-suffix="%">0</div><div className="k">Lower MTTR</div></div>
-                <div className="stat"><div className="v" data-count="60" data-suffix="%">0</div><div className="k">Ticket deflection</div></div>
-                <div className="stat"><div className="v" data-prefix="$" data-count="1.2" data-suffix="M">0</div><div className="k">Annual savings</div></div>
-                <div className="stat"><div className="v" data-count="99.9" data-suffix="%">0</div><div className="k">SLA compliance</div></div>
-              </div>
+              <RoiCalculator />
             </div>
           </div>
         </div>
@@ -548,7 +562,7 @@ export default function LandingPage() {
               <div className="pdesc">For scaling teams that want issues fixed before they land.</div>
               <ul>
                 <li><span className="ck">✓</span> Unlimited endpoints</li>
-                <li><span className="ck">✓</span> Autonomous remediation &amp; self-heal</li>
+                <li><span className="ck">✓</span> Automated remediation &amp; self-heal</li>
                 <li><span className="ck">✓</span> Predictive AIOps &amp; dependency maps</li>
                 <li><span className="ck">✓</span> SLA engine &amp; visual flow designer</li>
                 <li><span className="ck">✓</span> Priority support</li>
@@ -562,7 +576,7 @@ export default function LandingPage() {
               <ul>
                 <li><span className="ck">✓</span> Everything in Growth</li>
                 <li><span className="ck">✓</span> MSP multi-tenant isolation</li>
-                <li><span className="ck">✓</span> SSO, audit logs &amp; SOC 2</li>
+                <li><span className="ck">✓</span> SSO &amp; immutable audit logs</li>
                 <li><span className="ck">✓</span> Dedicated success engineer</li>
                 <li><span className="ck">✓</span> Custom SLAs &amp; onboarding</li>
               </ul>
@@ -572,11 +586,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* QUOTE */}
+      {/* WHY WE BUILT IT */}
       <section className="sec" style={{ paddingTop: 20 }}>
         <div className="wrap quote rv">
-          <blockquote>&ldquo;We cut our L1 volume by more than half in a quarter. The best tickets are the ones <span className="accent">our team never sees</span> — because the platform already fixed them.&rdquo;</blockquote>
-          <div className="who"><b>Head of IT Operations</b> · 4,000-seat enterprise</div>
+          <blockquote>Every helpdesk tool we used waited for someone to complain. The telemetry to catch a dying disk was already on the machine &mdash; <span className="accent">nobody was reading it.</span> So we built the thing that reads it.</blockquote>
+          <div className="who"><b>Why we built LeadAIStudio</b></div>
         </div>
       </section>
 
@@ -616,7 +630,7 @@ export default function LandingPage() {
 
 const CAPS = [
   { title: "Predictive telemetry", desc: "Model hardware degradation from historical performance and trigger proactive maintenance before it breaks.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l3 8 4-16 3 8h4" /></svg>) },
-  { title: "Autonomous remediation", desc: "On every alert the AI selects a safe runbook and executes it through your device agents — self-healing, not just alerting.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>) },
+  { title: "Automated remediation", desc: "When a monitored metric breaches its threshold, a matching safe runbook is queued to the device agent automatically — self-healing, not just alerting.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>) },
   { title: "AI service desk", desc: "An agent that reads the user's tickets and device health, answers from your knowledge base, and files or resolves tickets with full context.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5M21 12a9 9 0 11-4.2-7.6L21 5" /></svg>) },
   { title: "Dependency mapping", desc: "See how business services map to physical infrastructure, so incident impact and blast radius are obvious in a glance.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 7a2 2 0 100-4 2 2 0 000 4zM19 21a2 2 0 100-4 2 2 0 000 4zM5 7v6a4 4 0 004 4h8" /></svg>) },
   { title: "Visual flow designer", desc: "Build approval chains, routing rules and SLA policies in a drag-and-drop canvas — no scripting, no waiting on vendors.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4M15 3h4a2 2 0 012 2v4M9 21H5a2 2 0 01-2-2v-4M15 21h4a2 2 0 002-2v-4" /></svg>) },
@@ -625,6 +639,6 @@ const CAPS = [
 
 const STEPS = [
   { no: "01 / SENSE", title: "Detect", desc: "Lightweight agents stream CPU, memory, disk, battery and latency every few seconds. Trends surface risk long before a user feels it.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2 12h3l2-7 4 18 3-11h4l2 4h2" /></svg>) },
-  { no: "02 / REASON", title: "Decide", desc: "The AI weighs the signal against the fleet, predicts the failure window, and chooses the right remediation — or escalates to a human with full context.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3a5 5 0 00-5 5c0 1.6.7 2.8 1.6 3.7C9.6 12.8 10 13.6 10 15h4c0-1.4.4-2.2 1.4-3.3C16.3 10.8 17 9.6 17 8a5 5 0 00-5-5zM10 19h4M11 21h2" /></svg>) },
-  { no: "03 / ACT", title: "Heal", desc: "Approved runbooks execute on the endpoint — clear cache, flush DNS, restart services — and the incident closes itself, logged end to end.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>) },
+  { no: "02 / REASON", title: "Decide", desc: "Trend regression projects the failure window; a matching rule picks a safe runbook, or raises an incident for a human with full context.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3a5 5 0 00-5 5c0 1.6.7 2.8 1.6 3.7C9.6 12.8 10 13.6 10 15h4c0-1.4.4-2.2 1.4-3.3C16.3 10.8 17 9.6 17 8a5 5 0 00-5-5zM10 19h4M11 21h2" /></svg>) },
+  { no: "03 / ACT", title: "Heal", desc: "The runbook executes on the endpoint — clear cache, flush DNS, restart services — with every step logged end to end.", icon: (<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>) },
 ];

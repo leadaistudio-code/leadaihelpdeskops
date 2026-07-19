@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
+import { allocateNumber } from "@/lib/ticket-number";
 
 const ISSUE_LABELS: Record<string, string> = {
   laptop: "Laptop / PC Issue",
@@ -26,8 +27,7 @@ export async function createWalkupTicket(issueType: string) {
   }
 
   const domain = await getActiveDomain();
-  const count = await prisma.incident.count({ where: { type: "INCIDENT" } });
-  const number = `INC${String(count + 10000).padStart(7, "0")}`;
+  const number = await allocateNumber(domain, "INC");
 
   await prisma.incident.create({
     data: {

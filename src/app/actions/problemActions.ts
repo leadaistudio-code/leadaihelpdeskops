@@ -7,11 +7,10 @@ import { getActiveDomain } from "@/lib/tenant";
 import { getSessionUser } from "@/lib/auth-utils";
 import { notify } from "@/app/actions/notificationActions";
 import { logAudit } from "@/lib/audit";
+import { allocateNumber } from "@/lib/ticket-number";
 
 async function nextProblemNumber(domain: string) {
-  // Per-tenant sequence (domain-scoped count) — avoids cross-tenant leakage.
-  const count = await prisma.problem.count({ where: { domain } });
-  return `PRB${String(count + 1).padStart(7, "0")}`;
+  return allocateNumber(domain, "PRB");
 }
 
 export async function getProblems(opts?: { status?: ProblemStatus | "ALL"; search?: string }) {

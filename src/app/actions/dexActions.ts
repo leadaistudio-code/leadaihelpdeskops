@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
 import { getSessionUser } from "@/lib/auth-utils";
 import { logAudit } from "@/lib/audit";
+import { predictForDevice } from "@/lib/hardware-prediction";
 import { openai } from "@ai-sdk/openai";
 import { generateText, generateObject } from "ai";
 import { z } from "zod";
@@ -21,6 +22,8 @@ export type DexEndpoint = {
   latency: string;
   online: boolean;
   score: number; // 0–100 experience score
+  ownerId: string | null; // authoritative app-user owner, if assigned
+  ownerName: string | null;
 };
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
@@ -85,16 +88,8 @@ async function seedDemoData(domain: string) {
     });
   }
 
-  // 4. Hardware Failure
-  const hwCount = await prisma.hardwareFailurePrediction.count({ where: { domain } });
-  if (hwCount === 0) {
-    await prisma.hardwareFailurePrediction.createMany({
-      data: [
-        { deviceId, domain, component: 'BATTERY', probability: 0.85, status: 'WARNING', predictedDate: new Date(Date.now() + 15 * 86400000) },
-        { deviceId, domain, component: 'DISK', probability: 0.95, status: 'CRITICAL', predictedDate: new Date(Date.now() + 5 * 86400000) }
-      ]
-    });
-  }
+  // 4. Hardware Failure predictions are no longer seeded — they are computed
+  //    from real telemetry by recomputeHardwarePredictions() below.
 
   // 5. Smart Contracts
   const scCount = await prisma.smartContract.count({ where: { domain } });
@@ -110,6 +105,7 @@ export async function getDexEndpoints(): Promise<DexEndpoint[]> {
     where: { domain: await getActiveDomain() },
     orderBy: { lastSeenAt: "desc" },
     take: 50,
+    include: { owner: { select: { id: true, name: true } } },
   });
 
   const now = Date.now();
@@ -138,7 +134,19 @@ export async function getDexEndpoints(): Promise<DexEndpoint[]> {
       status,
       online,
       score,
+      ownerId: d.ownerId,
+      ownerName: d.owner?.name ?? null,
     };
+  });
+}
+
+// Users in the active tenant, for the device-owner picker. Any user can own a
+// device (employees included), so this is not limited to agents.
+export async function getTenantUsers() {
+  return prisma.user.findMany({
+    where: { domain: await getActiveDomain() },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 }
 
@@ -180,6 +188,32 @@ export async function queueRemediation(deviceId: string, action: string) {
     summary: `Queued remediation: ${action}`,
     actor: { id: user.id, name: user.name, email: user.email },
   });
+  revalidatePath("/dex");
+  return { ok: true };
+}
+
+// Assign (or clear) the app-user owner of a device. Authoritative link used by
+// "my device health" — takes precedence over the enrollment name-match.
+export async function assignDeviceOwner(deviceId: string, ownerId: string | null) {
+  const user = await getSessionUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
+    throw new Error("Not authorized");
+  }
+  const domain = await getActiveDomain();
+
+  // The owner must be a user in the same tenant — never link across tenants.
+  if (ownerId) {
+    const owner = await prisma.user.findFirst({ where: { id: ownerId, domain }, select: { id: true } });
+    if (!owner) throw new Error("User is not in this tenant");
+  }
+
+  // Scope the write by domain so a device from another tenant can't be touched.
+  const res = await prisma.device.updateMany({
+    where: { id: deviceId, domain },
+    data: { ownerId },
+  });
+  if (res.count === 0) throw new Error("Device not found");
+
   revalidatePath("/dex");
   return { ok: true };
 }
@@ -538,10 +572,61 @@ export async function deleteSmartContract(id: string) {
   return { ok: true };
 }
 
+// Recompute hardware predictions for a tenant from its real DeviceMetric
+// series. Replaces the old hardcoded 0.85/0.95 seeds. Idempotent: it clears the
+// tenant's rows and re-derives them, so a device that is now healthy loses its
+// stale warning instead of keeping a fabricated one forever.
+//
+// Bounded lookback so a long-lived device doesn't pull its entire history.
+const PREDICTION_LOOKBACK_DAYS = 45;
+const PREDICTION_MAX_SAMPLES = 500;
+
+export async function recomputeHardwarePredictions(domain: string) {
+  const devices = await prisma.device.findMany({ where: { domain }, select: { id: true } });
+  const since = new Date(Date.now() - PREDICTION_LOOKBACK_DAYS * 86_400_000);
+
+  const rows: {
+    deviceId: string; domain: string; component: string;
+    probability: number; status: string; predictedDate: Date | null;
+  }[] = [];
+
+  for (const dev of devices) {
+    const samples = await prisma.deviceMetric.findMany({
+      where: { deviceId: dev.id, createdAt: { gte: since } },
+      select: { createdAt: true, diskPct: true, memUsedMb: true, memTotalMb: true, batteryPct: true },
+      orderBy: { createdAt: "desc" },
+      take: PREDICTION_MAX_SAMPLES,
+    });
+    for (const pred of predictForDevice(samples)) {
+      rows.push({
+        deviceId: dev.id,
+        domain,
+        component: pred.component,
+        probability: pred.probability,
+        status: pred.status,
+        predictedDate: pred.predictedDate,
+      });
+    }
+  }
+
+  // Replace the tenant's predictions in one transaction so readers never see a
+  // half-cleared set.
+  await prisma.$transaction([
+    prisma.hardwareFailurePrediction.deleteMany({ where: { domain } }),
+    ...(rows.length ? [prisma.hardwareFailurePrediction.createMany({ data: rows })] : []),
+  ]);
+
+  return rows.length;
+}
+
 // Hardware Lifecycle Arbitrage
 export async function getLifecycleArbitrage() {
   const domain = await getActiveDomain();
-  
+
+  // Refresh from live telemetry so the list reflects current trends, not a
+  // snapshot from whenever predictions were last written.
+  await recomputeHardwarePredictions(domain);
+
   const predictions = await prisma.hardwareFailurePrediction.findMany({
     where: { domain },
     include: { device: { select: { hostname: true, persona: true } } },

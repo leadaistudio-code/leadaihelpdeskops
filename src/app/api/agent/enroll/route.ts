@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { rateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
+import { pickOwner } from "@/lib/device-owner";
 
 const schema = z.object({
   enrollmentToken: z.string().min(8),
@@ -31,12 +32,21 @@ export async function POST(req: Request) {
 
     const deviceKey = `dev_${crypto.randomUUID().replace(/-/g, "")}${crypto.randomUUID().replace(/-/g, "")}`;
 
+    // Best-effort link to an app user by the reported OS username. Stays null
+    // unless the match is unambiguous; IT can assign explicitly otherwise.
+    const tenantUsers = await prisma.user.findMany({
+      where: { domain: enrollment.domain },
+      select: { id: true, name: true, email: true },
+    });
+    const ownerId = pickOwner(tenantUsers, user);
+
     const device = await prisma.device.create({
       data: {
         deviceKey,
         hostname,
         os,
         user,
+        ownerId,
         domain: enrollment.domain,
       },
       select: { id: true },

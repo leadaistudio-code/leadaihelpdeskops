@@ -17,7 +17,9 @@ async function getAgentBinary(): Promise<Buffer | null> {
   }
   // Current build is aiops-agent.exe; fall back to the old name if present.
   for (const name of ["aiops-agent.exe", "dex-agent.exe"]) {
-    const filePath = path.join(process.cwd(), "agent", "dist", name);
+    // Check the new Go agent first, then fallback to the old Node agent.
+    for (const subDir of ["agent-go/dist", "agent/dist"]) {
+      const filePath = path.join(process.cwd(), subDir, name);
     try {
       await stat(filePath);
       return await readFile(filePath);

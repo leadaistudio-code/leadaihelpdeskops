@@ -54,3 +54,16 @@ export async function getSessionUser() {
 
   return dbUser;
 }
+
+// The signed-in user, asserted to be IT staff. Throws otherwise.
+//
+// Server actions are public HTTP endpoints: hiding a control in the UI does not
+// stop anyone from invoking the action directly, so every staff-only mutation
+// must call this rather than rely on the page not rendering a button.
+export async function requireAgent() {
+  const user = await getSessionUser();
+  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
+    throw new Error("Not authorized");
+  }
+  return user;
+}
