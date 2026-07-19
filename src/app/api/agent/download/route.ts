@@ -15,17 +15,20 @@ async function getAgentBinary(): Promise<Buffer | null> {
       /* fall through to local */
     }
   }
-  // Current build is aiops-agent.exe; fall back to the old name if present.
-  for (const name of ["aiops-agent.exe", "dex-agent.exe"]) {
-    // Check the new Go agent first, then fallback to the old Node agent.
-    for (const subDir of ["agent-go/dist", "agent/dist"]) {
-      const filePath = path.join(process.cwd(), subDir, name);
-      try {
-        await stat(filePath);
-        return await readFile(filePath);
-      } catch {
-        /* try next */
-      }
+  // Explicit static string paths so Next.js NFT includes them in the serverless bundle
+  const pathsToTry = [
+    path.join(process.cwd(), "agent-go", "dist", "aiops-agent.exe"),
+    path.join(process.cwd(), "agent-go", "dist", "dex-agent.exe"),
+    path.join(process.cwd(), "agent", "dist", "aiops-agent.exe"),
+    path.join(process.cwd(), "agent", "dist", "dex-agent.exe"),
+  ];
+
+  for (const filePath of pathsToTry) {
+    try {
+      await stat(filePath);
+      return await readFile(filePath);
+    } catch {
+      /* try next */
     }
   }
   return null;
