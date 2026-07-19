@@ -112,11 +112,23 @@ export async function GET(req: Request) {
       });
     }
 
-    // Zero-touch setup ZIP: exe + a config the agent auto-reads on double-click.
     const proto = req.headers.get("x-forwarded-proto") ?? (url.protocol.replace(":", "") || "http");
     const host = req.headers.get("host") ?? url.host;
     const server = process.env.APP_URL ?? `${proto}://${host}`;
     const config = JSON.stringify({ server, token, interval: 30 }, null, 2);
+
+    // If configOnly=true, return just the config file (bypasses 6MB lambda limit for the ZIP)
+    if (url.searchParams.get("configOnly") === "true") {
+      return new Response(config, {
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Disposition": 'attachment; filename="aiops-agent.config.json"',
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    // Zero-touch setup ZIP: exe + a config the agent auto-reads on double-click.
     const readme =
       "AIops Agent (LeadAIStudio) — setup\r\n\r\n" +
       "1. Keep aiops-agent.exe and aiops-agent.config.json together in this folder.\r\n" +

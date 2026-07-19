@@ -38,13 +38,18 @@ export default function EnrollDevicePanel() {
         <div className="flex items-start gap-4 mb-6">
           <StepNum n={1} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-200 mb-1">Download the setup</p>
+            <p className="text-sm font-semibold text-slate-200 mb-1">Download Agent & Config</p>
             <p className="text-xs text-slate-500 mb-3">
-              A ZIP with the agent and your tenant config baked in — no runtime, no typing.
+              Download the agent binary and your tenant configuration file. Keep them in the same folder.
             </p>
-            <Button href={`/api/agent/download?token=${encodeURIComponent(token)}`} icon={Download} download>
-              Download AIops Agent (setup.zip)
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button href={`/aiops-agent.exe`} icon={Download} download>
+                1. Download Agent (.exe)
+              </Button>
+              <Button href={`/api/agent/download?token=${encodeURIComponent(token)}&configOnly=true`} icon={Download} variant="secondary" download>
+                2. Download Config (.json)
+              </Button>
+            </div>
           </div>
         </div>
 
