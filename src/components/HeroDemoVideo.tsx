@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
+import ReactDOM from "react-dom";
 
 // Click-to-play hero demo. No autoplay: shows the poster + a play button, and
 // only starts (with sound) on a user gesture. Also responds to a global
 // "leadai:play-demo" event so the hero "Watch Demo" button can trigger it.
 export default function HeroDemoVideo() {
+  ReactDOM.preload("/leadaistudio-demo-poster.jpg", { as: "image", fetchPriority: "high" });
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
