@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs';
 import AppShell from "@/components/AppShell";
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 // Mintlify design language: Inter carries every UI surface (body, headings,
 // labels, buttons); Geist Mono is used surgically for code and type signatures.
@@ -51,6 +52,7 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${inter.variable} ${geistMono.variable} font-sans bg-[#080B11] text-slate-200`}>
           <AppShell>{children}</AppShell>
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ''} />
         </body>
       </html>
     </ClerkProvider>
