@@ -408,9 +408,9 @@ export default function LandingPage() {
         <div className="hero-glow glow-b" />
         <div className="wrap hero-grid">
           <div className="rv">
-            <span className="badge"><span className="dotlive" /> Autonomous IT operations</span>
-            <h1 className="hero-h">IT that fixes itself —<br /><span className="accent">before anyone files a ticket.</span></h1>
-            <p className="hero-sub">One AI-native platform for your service desk, device experience, knowledge, catalog and assets. It watches every endpoint, predicts failures, and quietly heals them — so your team stops firefighting and your people stop waiting.</p>
+            <span className="badge"><span className="dotlive" /> Digital employee experience</span>
+            <h1 className="hero-h">The best ticket is the one<br /><span className="accent">nobody ever files.</span></h1>
+            <p className="hero-sub">LeadAIStudio is a DEX platform. It reads live telemetry from every endpoint, projects the failure hours before it lands, and runs the fix on the device itself — so the ticket is never created. A full service desk sits behind it for the problems that still need a human.</p>
             <div className="hero-cta">
               <Link className="btn btn-primary" href="/dashboard">Try the interactive demo <span className="arrow">→</span></Link>
               <a className="btn btn-ghost" href="#demo" onClick={(e) => { e.preventDefault(); playDemo(); }}>▶ &nbsp;Watch it heal · 2 min</a>
@@ -472,27 +472,27 @@ export default function LandingPage() {
       <section className="sec" id="platform">
         <div className="wrap">
           <div className="rv"><span className="eyebrow kicker">The shift</span>
-            <h2 className="big-h">Stop paying for six tools that don&apos;t talk.</h2>
-            <p className="lede">Most IT teams run a tangle of disconnected systems and react to problems after employees feel them. LeadAIStudio replaces the tangle with one intelligent system of record.</p></div>
+            <h2 className="big-h">Reactive IT has a ceiling. Proactive doesn&apos;t.</h2>
+            <p className="lede">Every service desk tool on the market competes on how fast it closes a ticket. That race has a floor it can never break: the employee already lost the morning. LeadAIStudio competes somewhere else — on how many tickets are never raised at all.</p></div>
           <div className="split">
             <div className="rv panel bad">
-              <div className="ph">✕ &nbsp;The old way</div>
+              <div className="ph">✕ &nbsp;Reactive</div>
               <ul>
-                <li><span className="mk">✕</span> Ticketing, assets, monitoring &amp; chat in separate silos</li>
-                <li><span className="mk">✕</span> You learn about outages when tickets pile up</li>
-                <li><span className="mk">✕</span> L1 agents drown in password resets and VPN issues</li>
+                <li><span className="mk">✕</span> The ticket is the starting gun — damage is already done</li>
+                <li><span className="mk">✕</span> You learn about the failing laptop when its owner gives up</li>
+                <li><span className="mk">✕</span> Success is measured in resolution time, not lost hours</li>
                 <li><span className="mk">✕</span> &ldquo;AIOps&rdquo; that&apos;s a dashboard, not a decision</li>
-                <li><span className="mk">✕</span> Employees wait hours for a fix that could be instant</li>
+                <li><span className="mk">✕</span> More volume means more agents, forever</li>
               </ul>
             </div>
             <div className="rv panel good" style={{ transitionDelay: ".1s" }}>
-              <div className="ph">✓ &nbsp;The LeadAIStudio way</div>
+              <div className="ph">✓ &nbsp;Proactive</div>
               <ul>
-                <li><span className="mk">✓</span> One platform: desk, DEX, knowledge, catalog &amp; assets</li>
-                <li><span className="mk">✓</span> Predict failures from live telemetry, hours ahead</li>
-                <li><span className="mk">✓</span> An AI agent that resolves L1 end-to-end with context</li>
-                <li><span className="mk">✓</span> AIOps that <em>acts</em> — safe runbooks, executed automatically</li>
-                <li><span className="mk">✓</span> Most issues fixed before a human ever notices</li>
+                <li><span className="mk">✓</span> Telemetry from every endpoint, every few seconds</li>
+                <li><span className="mk">✓</span> Regression on the trend projects the failure hours ahead</li>
+                <li><span className="mk">✓</span> A safe runbook runs on the device — no ticket, no wait</li>
+                <li><span className="mk">✓</span> AIOps that <em>acts</em>, with every step logged end to end</li>
+                <li><span className="mk">✓</span> Volume falls as coverage grows</li>
               </ul>
             </div>
           </div>
@@ -503,8 +503,8 @@ export default function LandingPage() {
       <section className="sec" style={{ paddingTop: 20 }}>
         <div className="wrap">
           <div className="rv center"><span className="eyebrow kicker">The platform</span>
-            <h2 className="big-h">Everything IT runs on, made autonomous.</h2>
-            <p className="lede">Built for scale, complex org structures, and rigorous compliance — with an AI core that turns signals into action.</p></div>
+            <h2 className="big-h">DEX at the core. Everything else in support of it.</h2>
+            <p className="lede">Prevention is the product. The service desk, knowledge, catalogue and assets are here to catch what prevention cannot — and to feed every resolved case back into what the system watches for next.</p></div>
           <div className="caps">
             {CAPS.map((c, i) => (
               <div className="rv capwrap" key={i}>

@@ -105,18 +105,18 @@ const LegalPage = ({ title }: { title: string }) => (
 
 const PRODUCT_MODULES = [
   {
+    icon: <MonitorSmartphone className="w-6 h-6" />,
+    name: "Digital Employee Experience (DEX)",
+    tag: "Prevent",
+    desc: "The core product. A lightweight agent streams device health, app performance and login times from every endpoint; trend regression projects the failure hours before it happens and runs a safe runbook on the device — so the ticket is never filed.",
+    points: ["Predictive failure detection", "Autonomous remediation", "Fleet experience scoring"],
+  },
+  {
     icon: <Bot className="w-6 h-6" />,
     name: "AI Service Desk",
     tag: "Resolve",
-    desc: "An AI agent that triages, answers, and resolves employee requests in natural language — deflecting routine tickets autonomously and handing the rest to humans with full context.",
+    desc: "For what prevention cannot catch. An AI agent that triages, answers and resolves requests in natural language — arriving with the requester's device telemetry already in hand, so nobody asks them to reboot and try again.",
     points: ["Conversational ticket intake", "Autonomous L1 resolution", "Smart routing & escalation"],
-  },
-  {
-    icon: <MonitorSmartphone className="w-6 h-6" />,
-    name: "Digital Employee Experience (DEX)",
-    tag: "Experience",
-    desc: "Real-time visibility into device health, app performance, and login times across your fleet — so you can fix friction before employees ever feel it.",
-    points: ["Endpoint health scoring", "Proactive remediation", "Experience analytics"],
   },
   {
     icon: <BookOpen className="w-6 h-6" />,

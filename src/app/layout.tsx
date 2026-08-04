@@ -11,33 +11,34 @@ const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-br
 
 export const metadata: Metadata = {
   title: {
-    default: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    default: "LeadAIStudio — Digital Employee Experience that ends the ticket",
     template: "%s · LeadAIStudio",
   },
   description:
-    "AI Service Desk, Digital Employee Experience, Knowledge, Catalogue, and Asset Management — unified on a single AI-driven IT service management platform.",
-  applicationName: "LeadAIStudio AIOps",
+    "A DEX platform that watches every endpoint, predicts failures hours ahead, and heals them autonomously — so the ticket is never filed. Reactive IT becomes proactive, with a full service desk behind it for what's left.",
+  applicationName: "LeadAIStudio DEX",
   keywords: [
-    "IT helpdesk",
-    "IT service management",
-    "ITSM",
-    "AI service desk",
     "digital employee experience",
-    "asset management",
+    "DEX platform",
+    "proactive IT support",
+    "ticket deflection",
+    "endpoint health monitoring",
+    "autonomous remediation",
     "AIOps",
+    "IT service management",
   ],
   openGraph: {
-    title: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    title: "LeadAIStudio — Digital Employee Experience that ends the ticket",
     description:
-      "Replace your tangle of disconnected IT tools with one intelligent platform.",
+      "Stop resolving tickets faster. Stop creating them. Predictive endpoint telemetry and autonomous remediation, with a service desk for the rest.",
     type: "website",
-    siteName: "LeadAIStudio AIOps",
+    siteName: "LeadAIStudio DEX",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LeadAIStudio — One Solution for the Entire IT Helpdesk",
+    title: "LeadAIStudio — Digital Employee Experience that ends the ticket",
     description:
-      "AI Service Desk, DEX, Knowledge, Catalogue & Asset Management on one platform.",
+      "Predict endpoint failure hours ahead and heal it autonomously. From reactive IT to proactive.",
   },
 };
 
@@ -52,7 +53,7 @@ const jsonLd = {
     "price": "0",
     "priceCurrency": "USD"
   },
-  "description": "AI-driven IT service management platform featuring Service Desk, DEX, Knowledge base, Catalogue and Asset Management.",
+  "description": "Digital Employee Experience platform that predicts endpoint failures and remediates them autonomously, eliminating tickets before they are raised. Includes AI service desk, knowledge, catalogue and asset management.",
   "url": "https://leadaistudio.com"
 };
 

@@ -17,13 +17,20 @@ export function GuideLeadForm({ source }: { source?: string }) {
     setStatus("submitting");
     const formData = new FormData(e.currentTarget);
     if (source) formData.set("source", source);
-    const result = await captureLead(formData);
-    if (result.ok) {
-      setDownloadUrl(`/api/guides/cio-guide/download?lead=${result.leadId}`);
-    } else {
+    try {
+      const result = await captureLead(formData);
+      if (result.ok) {
+        setDownloadUrl(`/api/guides/cio-guide/download?lead=${result.leadId}`);
+        return;
+      }
       setError(result.error);
-      setStatus("idle");
+    } catch {
+      // Without this the promise rejects unhandled, `status` never leaves
+      // "submitting", and the visitor is left watching "Preparing your guide…"
+      // forever with nothing to act on.
+      setError("Something went wrong on our end. Please try again, or email contact@leadaistudio.com.");
     }
+    setStatus("idle");
   }
 
   if (downloadUrl) {
