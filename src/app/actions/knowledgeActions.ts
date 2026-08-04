@@ -5,23 +5,38 @@ import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth-utils";
+import { requireAgent } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
+import { logAudit } from "@/lib/audit";
+import { LIST_LIMIT } from "@/lib/query-limits";
 
 export async function createKnowledgeArticle(formData: FormData) {
+  const author = await requireAgent();
+
   const title = formData.get("title") as string;
   const content = formData.get("content") as string;
-  const authorId = formData.get("authorId") as string;
   const isPublished = formData.get("isPublished") === "true";
 
   const article = await prisma.knowledgeArticle.create({
     data: {
       title,
       content,
-      authorId,
+      // Authorship comes from the session, never from the form. Reading it from
+      // client FormData let anyone publish an article under a colleague's name.
+      authorId: author.id,
       isPublished,
       domain: await getActiveDomain(),
     },
+  });
+
+  await logAudit({
+    domain: article.domain,
+    action: "CREATE",
+    entityType: "KnowledgeArticle",
+    entityId: article.id,
+    entityLabel: article.title,
+    summary: `Knowledge article "${article.title}" created${isPublished ? " and published" : " as a draft"}`,
+    actor: { id: author.id, name: author.name, email: author.email },
   });
 
   revalidatePath("/knowledge");
@@ -53,22 +68,25 @@ export async function getKnowledgeArticles(searchQuery?: string) {
     where,
     include: { author: true },
     orderBy: { updatedAt: "desc" },
+    take: LIST_LIMIT,
   });
 }
 
 // AI-drafts a reusable knowledge article from a resolved incident and saves it
 // as an unpublished draft for an agent to review. Returns the new article id.
 export async function draftArticleFromIncident(incidentId: string) {
+  // Staff-only. This was reachable by any signed-in user: it calls a paid model
+  // on demand and writes an article into the tenant, so it is both a spend and a
+  // content-integrity surface.
+  const staff = await requireAgent();
   const domain = await getActiveDomain();
   const incident = await prisma.incident.findFirst({ where: { id: incidentId, domain } });
   if (!incident) throw new Error("Incident not found");
 
-  const sessionUser = await getSessionUser();
-  const authorId =
-    incident.assigneeId ??
-    sessionUser?.id ??
-    (await prisma.user.findFirst())?.id;
-  if (!authorId) throw new Error("No author available to attribute the article");
+  // Attribute to the incident's assignee when there is one, otherwise to the
+  // person who asked for the draft. Never to `findFirst()` — that picked an
+  // arbitrary user from *any* tenant and stamped their name on the article.
+  const authorId = incident.assigneeId ?? staff.id;
 
   let title = `How to resolve: ${incident.title}`;
   let content = incident.description;
@@ -92,6 +110,16 @@ export async function draftArticleFromIncident(incidentId: string) {
 
   const article = await prisma.knowledgeArticle.create({
     data: { title, content, authorId, isPublished: false, domain },
+  });
+
+  await logAudit({
+    domain,
+    action: "CREATE",
+    entityType: "KnowledgeArticle",
+    entityId: article.id,
+    entityLabel: article.title,
+    summary: `AI-drafted knowledge article from incident ${incident.number}`,
+    actor: { id: staff.id, name: staff.name, email: staff.email },
   });
 
   revalidatePath("/knowledge");

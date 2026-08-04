@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 import HeroDemoVideo from "@/components/HeroDemoVideo";
 import { LogoMark } from "@/components/Logo";
 import RoiCalculator from "@/components/RoiCalculator";
+import { useMarketingTheme, ThemeToggle } from "@/components/ThemeContext";
+import { PRICING_TIERS } from "@/lib/pricing";
 
 /*
   Landing page — "Mission Control for IT" identity.
@@ -16,13 +18,22 @@ import RoiCalculator from "@/components/RoiCalculator";
 
 const CSS = `
 .mc-root{
-  --canvas:#fcfbf9; --surface:#f4f3f0; --surface-2:#f0efeb; --panel:#ffffff; --panel-2:#f7f7f7;
-  --line:#e5e5e5; --line-soft:#ededed; --text:#0a0a0a; --body:#3a3a3c; --muted:#5a5a5c;
-  --dimtext:#6b6b6d; --signal:#00926f; --signal-bright:#00d4a4; --signal-deep:#00b48a;
-  --signal-tint:#eafaf5; --signal-border:#b7e6d8; --warn:#c37d0d; --crit:#d45656;
-  --mono:var(--font-geist-mono),ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;
-  --sans:var(--font-inter),ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
-  position:relative; background:var(--canvas); color:var(--text);
+  --canvas:#f1f5f9; --surface:#ffffff; --surface-2:#e2e8f0; --panel:#ffffff; --panel-2:#f8fafc;
+  --line:#cbd5e1; --line-soft:#e2e8f0; --text:#0F141D; --body:#334155; --muted:#475569;
+  --dimtext:#64748b; --signal:#12B489; --signal-bright:#38E8B0; --signal-deep:#038c65;
+  --signal-tint:rgba(56, 232, 176, 0.15); --signal-border:rgba(56, 232, 176, 0.6); --warn:#F5B14C; --crit:#FF6B7D;
+  --mono:ui-monospace,"SF Mono","Menlo","Cascadia Code",monospace;
+  --sans:var(--font-jakarta),ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  position:relative; background:var(--canvas); color:var(--text); min-height:100vh;
+  font-family:var(--sans); -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+
+.theme-dark .mc-root {
+  --canvas:#080B11; --surface:#0F141D; --surface-2:#141B26; --panel:#141B26; --panel-2:#141B26;
+  --line:#1F2937; --line-soft:#161E29; --text:#EAEEF5; --body:#8D98AC; --muted:#5C6678;
+  --dimtext:#5C6678; --signal:#38E8B0; --signal-bright:#38E8B0; --signal-deep:#12B489;
+  --signal-tint:rgba(56, 232, 176, 0.10); --signal-border:rgba(56, 232, 176, 0.45); --warn:#F5B14C; --crit:#FF6B7D;
+}
   font-family:var(--sans); -webkit-font-smoothing:antialiased; overflow-x:hidden;
 }
 .mc-root *{box-sizing:border-box}
@@ -32,14 +43,15 @@ const CSS = `
 .mc-root .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--signal);font-weight:600}
 .mc-root .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:14px;border-radius:999px;padding:13px 22px;cursor:pointer;border:1px solid transparent;transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .25s,background .2s,border-color .2s}
 .mc-root .btn:active{transform:translateY(1px) scale(.99)}
-.mc-root .btn-primary{background:var(--text);color:#ffffff}
-.mc-root .btn-primary:hover{background:#1c1c1e}
+.mc-root .btn-primary{background:var(--signal-deep);color:#ffffff}
+.mc-root .btn-primary:hover{background:var(--signal)}
 .mc-root .btn-ghost{background:var(--canvas);border-color:var(--line);color:var(--text)}
 .mc-root .btn-ghost:hover{border-color:#d0d0d0;background:var(--surface)}
 .mc-root .arrow{transition:transform .2s}
 .mc-root .btn:hover .arrow{transform:translateX(4px)}
 
-.mc-root nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(255,255,255,.8);border-bottom:1px solid var(--line-soft)}
+.mc-root nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(255,255,255,0.01);border-bottom:1px solid var(--line-soft)}
+.theme-dark .mc-root nav{background:rgba(8,11,17,.8)}
 .mc-root .navrow{display:flex;align-items:center;justify-content:space-between;height:66px}
 .mc-root .brand{display:flex;align-items:center;gap:11px}
 .mc-root .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--signal-bright);color:#03130d;font-weight:900;font-family:var(--mono)}
@@ -57,10 +69,9 @@ const CSS = `
 .mc-root .glow-b{bottom:-220px;left:-140px;width:620px;height:620px;background:radial-gradient(circle,rgba(135,168,200,.12),transparent 62%)}
 .mc-root .hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.08fr .92fr;gap:52px;align-items:center}
 @media(max-width:960px){.mc-root .hero-grid{grid-template-columns:1fr;gap:40px}}
-.mc-root .badge{display:inline-flex;align-items:center;gap:9px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:var(--canvas);font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.mc-root .dotlive{position:relative;width:7px;height:7px}
+.mc-root .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid rgba(56,232,176,0.2);border-radius:999px;background:rgba(56,232,176,0.1);font-size:12px;letter-spacing:-0.01em;color:var(--signal-deep);font-weight:500}
+.mc-root .dotlive{position:relative;width:6px;height:6px;background:var(--signal);border-radius:50%;box-shadow:0 0 0 3px rgba(18,180,137,0.2)}
 .mc-root .dotlive::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--signal-bright);animation:mc-ping 1.8s cubic-bezier(0,0,.2,1) infinite}
-.mc-root .dotlive::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--signal-bright)}
 @keyframes mc-ping{75%,100%{transform:scale(2.6);opacity:0}}
 .mc-root h1.hero-h{font-size:clamp(38px,6vw,66px);margin:26px 0 22px;color:var(--text)}
 .mc-root h1.hero-h .accent{color:var(--signal)}
@@ -70,8 +81,8 @@ const CSS = `
 .mc-root .trust b{color:var(--body);font-weight:600}
 .mc-root .trust .sep{width:4px;height:4px;border-radius:50%;background:var(--line)}
 
-.mc-root .tiltwrap{perspective:1400px}
-.mc-root .status{transform-style:preserve-3d;transition:transform .3s cubic-bezier(.2,.7,.3,1);border-radius:16px;border:1px solid var(--line-soft);background:var(--canvas);box-shadow:0 24px 48px -8px rgba(0,0,0,.12);overflow:hidden}
+.mc-root .tiltwrap{}
+.mc-root .status{border-radius:16px;border:1px solid var(--line-soft);background:var(--canvas);box-shadow:0 12px 32px rgba(0,0,0,.04);overflow:hidden}
 .mc-root .status .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
 .mc-root .status .bar .d{width:9px;height:9px;border-radius:50%}
 .mc-root .status .bar .t{margin-left:8px;font-family:var(--mono);font-size:11.5px;color:var(--dimtext)}
@@ -100,7 +111,7 @@ const CSS = `
 .mc-root .lede{font-size:18px;color:var(--muted);max-width:620px;line-height:1.55}
 .mc-root .center .lede{margin:0 auto}
 
-.mc-root .demoframe{max-width:1000px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid var(--line-soft);box-shadow:0 24px 48px -8px rgba(0,0,0,.12)}
+.mc-root .demoframe{max-width:1000px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid var(--line-soft);box-shadow:0 12px 32px rgba(0,0,0,.04)}
 .mc-root .demoframe .top{height:44px;background:var(--surface);display:flex;align-items:center;padding:0 16px;gap:7px;border-bottom:1px solid var(--line-soft)}
 .mc-root .demoframe .top .d{width:11px;height:11px;border-radius:50%;background:var(--line)}
 .mc-root .demoframe .top .url{margin:0 auto;font-family:var(--mono);font-size:12px;color:var(--dimtext)}
@@ -128,12 +139,12 @@ const CSS = `
 .mc-root .caps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
 @media(max-width:900px){.mc-root .caps{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.mc-root .caps{grid-template-columns:1fr}}
-.mc-root .capwrap{perspective:1000px}
-.mc-root .cap{transform-style:preserve-3d;transition:transform .25s cubic-bezier(.2,.7,.3,1),border-color .25s,box-shadow .25s;border:1px solid var(--line);border-radius:12px;padding:24px;background:var(--canvas);height:100%;position:relative}
-.mc-root .cap:hover{border-color:var(--signal-border);box-shadow:0 4px 12px rgba(0,0,0,.06)}
-.mc-root .cap .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--signal-tint);border:1px solid var(--signal-border);margin-bottom:16px;transform:translateZ(30px)}
+.mc-root .capwrap{}
+.mc-root .cap{transition:border-color .2s,box-shadow .2s;border:1px solid var(--line);border-radius:12px;padding:24px;background:var(--canvas);height:100%;position:relative}
+.mc-root .cap:hover{border-color:var(--signal-border);box-shadow:0 4px 16px rgba(0,0,0,.04)}
+.mc-root .cap .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--signal-tint);border:1px solid var(--signal-border);margin-bottom:16px}
 .mc-root .cap .ic svg{width:21px;height:21px;stroke:var(--signal)}
-.mc-root .cap h3{font-size:16.5px;margin-bottom:8px;transform:translateZ(18px);color:var(--text)}
+.mc-root .cap h3{font-size:16.5px;margin-bottom:8px;color:var(--text)}
 .mc-root .cap p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0}
 
 .mc-root .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:48px;position:relative}
@@ -177,13 +188,16 @@ const CSS = `
 .mc-root .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px;align-items:stretch}
 @media(max-width:860px){.mc-root .price-grid{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto}}
 .mc-root .price{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;padding:28px;background:var(--canvas)}
-.mc-root .price.pop{border:2px solid var(--signal-bright);box-shadow:0 8px 24px rgba(0,212,164,.08);position:relative}
+.mc-root .price.pop{border:2px solid var(--signal-bright);box-shadow:0 4px 16px rgba(18,180,137,.06);position:relative}
 .mc-root .price.pop::before{content:"Most popular";position:absolute;top:-11px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#03130d;background:var(--signal-bright);padding:4px 12px;border-radius:999px;font-weight:700}
 .mc-root .price .pname{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);margin-bottom:14px}
 .mc-root .price .amt{font-size:44px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;color:var(--text)}
 .mc-root .price .amt .per{font-size:14px;color:var(--muted);font-weight:500}
 .mc-root .price .pdesc{font-size:13.5px;color:var(--muted);margin:10px 0 22px;line-height:1.5}
 .mc-root .price ul{list-style:none;margin:0 0 24px;padding:0;flex:1}
+/* Capabilities that are sold but not yet built, stated plainly under the CTA
+   rather than mixed into the feature list above it. */
+.mc-root .price .proadmap{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:12px;line-height:1.5;color:var(--muted)}
 .mc-root .price li{display:flex;gap:10px;padding:8px 0;font-size:13.5px;color:var(--body)}
 .mc-root .price li .ck{color:var(--signal);flex-shrink:0;font-weight:800}
 .mc-root .price .btn{width:100%;justify-content:center}
@@ -220,6 +234,7 @@ const CSS = `
 
 export default function LandingPage() {
   const root = useRef<HTMLDivElement>(null);
+  const { theme, toggle: toggleTheme } = useMarketingTheme();
 
   useEffect(() => {
     const el = root.current;
@@ -379,6 +394,7 @@ export default function LandingPage() {
             <a href="#pricing">Pricing</a>
           </div>
           <div className="navcta">
+            <ThemeToggle theme={theme} toggle={toggleTheme} className="p-2 rounded-xl text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors" />
             <Link className="login" href="/login" style={{ fontSize: "13.5px", color: "var(--muted)", fontWeight: 500 }}>Log in</Link>
             <Link className="btn btn-primary" href="/dashboard">Start free <span className="arrow">→</span></Link>
           </div>
@@ -503,7 +519,7 @@ export default function LandingPage() {
       </section>
 
       {/* HOW SELF-HEALING WORKS */}
-      <section className="sec" id="heal" style={{ background: "linear-gradient(180deg,#ffffff,#f6faf9,#ffffff)" }}>
+      <section className="sec" id="heal" style={{ background: "linear-gradient(180deg,var(--canvas),var(--surface-2),var(--canvas))" }}>
         <div className="wrap">
           <div className="rv center"><span className="eyebrow kicker">How self-healing works</span>
             <h2 className="big-h">Detect. Decide. Heal.</h2>
@@ -544,44 +560,35 @@ export default function LandingPage() {
             <h2 className="big-h">Simple plans that scale with your fleet.</h2>
             <p className="lede">Start free. Upgrade when the savings are obvious — usually the first month.</p></div>
           <div className="price-grid">
-            <div className="rv price">
-              <div className="pname">Starter</div>
-              <div className="amt">$0<span className="per"> / forever</span></div>
-              <div className="pdesc">For small teams getting their first taste of autonomous IT.</div>
-              <ul>
-                <li><span className="ck">✓</span> Up to 50 endpoints</li>
-                <li><span className="ck">✓</span> AI service desk &amp; knowledge base</li>
-                <li><span className="ck">✓</span> Live device telemetry</li>
-                <li><span className="ck">✓</span> Community support</li>
-              </ul>
-              <Link className="btn btn-ghost" href="/dashboard">Start free</Link>
-            </div>
-            <div className="rv price pop" style={{ transitionDelay: ".08s" }}>
-              <div className="pname">Growth</div>
-              <div className="amt">$6<span className="per"> / device / mo</span></div>
-              <div className="pdesc">For scaling teams that want issues fixed before they land.</div>
-              <ul>
-                <li><span className="ck">✓</span> Unlimited endpoints</li>
-                <li><span className="ck">✓</span> Automated remediation &amp; self-heal</li>
-                <li><span className="ck">✓</span> Predictive AIOps &amp; dependency maps</li>
-                <li><span className="ck">✓</span> SLA engine &amp; visual flow designer</li>
-                <li><span className="ck">✓</span> Priority support</li>
-              </ul>
-              <Link className="btn btn-primary" href="/dashboard">Start free trial <span className="arrow">→</span></Link>
-            </div>
-            <div className="rv price" style={{ transitionDelay: ".16s" }}>
-              <div className="pname">Enterprise</div>
-              <div className="amt">Custom</div>
-              <div className="pdesc">For MSPs and regulated orgs with strict isolation needs.</div>
-              <ul>
-                <li><span className="ck">✓</span> Everything in Growth</li>
-                <li><span className="ck">✓</span> MSP multi-tenant isolation</li>
-                <li><span className="ck">✓</span> SSO &amp; immutable audit logs</li>
-                <li><span className="ck">✓</span> Dedicated success engineer</li>
-                <li><span className="ck">✓</span> Custom SLAs &amp; onboarding</li>
-              </ul>
-              <Link className="btn btn-ghost" href="/p/contact">Contact sales</Link>
-            </div>
+            {/* Rendered from src/lib/pricing.ts so this section and /p/pricing
+                cannot drift apart. They previously advertised two entirely
+                different price lists. */}
+            {PRICING_TIERS.map((t, i) => (
+              <div
+                key={t.name}
+                className={`rv price${t.highlighted ? " pop" : ""}`}
+                style={i > 0 ? { transitionDelay: `${i * 0.08}s` } : undefined}
+              >
+                <div className="pname">{t.name}</div>
+                <div className="amt">
+                  {t.price}
+                  <span className="per"> {t.unit}</span>
+                </div>
+                <div className="pdesc">{t.blurb}</div>
+                <ul>
+                  {t.features.map((f) => (
+                    <li key={f}>
+                      <span className="ck">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link className={`btn ${t.highlighted ? "btn-primary" : "btn-ghost"}`} href={t.ctaHref}>
+                  {t.cta}
+                  {t.highlighted && <span className="arrow"> →</span>}
+                </Link>
+                {t.roadmapNote && <p className="proadmap">{t.roadmapNote}</p>}
+              </div>
+            ))}
           </div>
         </div>
       </section>

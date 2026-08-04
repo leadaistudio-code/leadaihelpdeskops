@@ -157,42 +157,46 @@ func collectSoftware() []string {
 	return apps
 }
 
-func collectBoot() (int, int, bool) {
+// collectBoot parses systemd-analyze, which reports real measured phases.
+//
+// The previous version derived "osBoot" as `totalSec - 3` when the kernel phase
+// was not present — a fabricated number dressed as a measurement. Phases that
+// systemd does not report are now left nil.
+func collectBoot() (BootProfile, bool) {
 	raw := sh("systemd-analyze 2>/dev/null | head -1")
 	total := regexp.MustCompile(`=\s*([\d.]+)s`).FindStringSubmatch(raw)
 	if total == nil {
-		return 0, 0, false
+		return BootProfile{}, false
 	}
-	tf, _ := strconv.ParseFloat(total[1], 64)
-	totalSec := int(tf + 0.999)
-	osBoot := totalSec - 3
+	tf, err := strconv.ParseFloat(total[1], 64)
+	if err != nil || tf <= 0 {
+		return BootProfile{}, false
+	}
+
+	profile := BootProfile{TotalBootSec: int(tf + 0.999)}
+
+	// Firmware time, when the platform exposes it (UEFI systems generally do).
+	if f := regexp.MustCompile(`([\d.]+)s\s*\(firmware\)`).FindStringSubmatch(raw); f != nil {
+		if ff, err := strconv.ParseFloat(f[1], 64); err == nil && ff > 0 {
+			sec := int(ff + 0.999)
+			profile.BiosSec = &sec
+		}
+	}
 	if k := regexp.MustCompile(`([\d.]+)s\s*\(kernel\)`).FindStringSubmatch(raw); k != nil {
-		kf, _ := strconv.ParseFloat(k[1], 64)
-		osBoot = int(kf + 0.999)
+		if kf, err := strconv.ParseFloat(k[1], 64); err == nil && kf > 0 {
+			sec := int(kf + 0.999)
+			profile.OsBootSec = &sec
+		}
 	}
-	if osBoot < 1 {
-		osBoot = 1
+	// `userspace` is the post-kernel phase — the Linux analogue of the wait
+	// between the kernel handing off and having a usable session.
+	if u := regexp.MustCompile(`([\d.]+)s\s*\(userspace\)`).FindStringSubmatch(raw); u != nil {
+		if uf, err := strconv.ParseFloat(u[1], 64); err == nil && uf > 0 {
+			sec := int(uf + 0.999)
+			profile.ProfileLoadSec = &sec
+		}
 	}
-	return totalSec, osBoot, true
+
+	return profile, true
 }
 
-func collectHardware() []HardwarePred {
-	var out []HardwarePred
-	smart := sh("smartctl -H /dev/sda 2>/dev/null | grep -iE 'overall-health|SMART Health'")
-	if smart != "" {
-		prob := 0.8
-		if regexp.MustCompile(`(?i)PASSED|OK`).MatchString(smart) {
-			prob = 0.05
-		}
-		out = append(out, HardwarePred{Component: "DISK", Probability: prob, Status: statusFor(prob)})
-	} else if n, _ := strconv.Atoi(firstLine(sh("dmesg 2>/dev/null | grep -ci 'I/O error\\|medium error\\|bad sector'"))); n > 0 {
-		out = append(out, HardwarePred{Component: "DISK", Probability: 0.6, Status: "WARNING"})
-	}
-	if n, _ := strconv.Atoi(firstLine(sh("dmesg 2>/dev/null | grep -ci 'memory error\\|EDAC\\|mce.*memory'"))); n > 0 {
-		out = append(out, HardwarePred{Component: "MEMORY", Probability: 0.7, Status: "WARNING"})
-	}
-	if n, _ := strconv.Atoi(firstLine(sh("dmesg 2>/dev/null | grep -ci 'cpu.*throttl\\|thermal'"))); n > 0 {
-		out = append(out, HardwarePred{Component: "CPU", Probability: 0.5, Status: "WARNING"})
-	}
-	return out
-}

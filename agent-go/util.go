@@ -58,10 +58,3 @@ func parseStringList(raw string) []string {
 	return nil
 }
 
-// statusFor maps a failure probability to the server's status vocabulary.
-func statusFor(prob float64) string {
-	if prob > 0.5 {
-		return "WARNING"
-	}
-	return "RESOLVED"
-}

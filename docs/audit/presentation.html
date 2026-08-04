@@ -1,0 +1,785 @@
+<title>LeadAIStudio — Enterprise Audit Briefing</title>
+
+<style>
+  :root{
+    color-scheme: dark;
+    /* Tokens taken verbatim from the project's DESIGN.md */
+    --ink:#080B11;
+    --surface:#0F141D;
+    --surface-2:#141B26;
+    --line:#1F2937;
+    --line-soft:#161E29;
+    --mint:#38E8B0;
+    --rose:#FF6B7D;
+    --amber:#F5B14C;
+    --text:#EAEEF5;
+    --muted:#8D98AC;
+    --faint:#5C6678;
+    --r-sm:8px;
+    --r-md:12px;
+    --display: 'Bricolage Grotesque', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, 'Cascadia Code', monospace;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--text);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ---------- deck shell ---------- */
+  .deck{position:relative;width:100vw;height:100vh;}
+
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    padding:clamp(2.2rem,5.5vw,6rem);
+    padding-bottom:clamp(4rem,7vw,7rem);
+    overflow-y:auto;
+    animation:rise .45s cubic-bezier(.16,.84,.44,1) both;
+  }
+  .slide.active{display:flex;}
+
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){
+    .slide{animation:none;}
+    *{transition:none !important;}
+  }
+
+  .inner{width:100%;max-width:1180px;margin:0 auto;}
+
+  /* ---------- type ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:clamp(.62rem,.9vw,.76rem);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--faint);
+    margin:0 0 1.5rem;
+    display:flex;align-items:center;gap:.8rem;
+  }
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  /* Display scale. DESIGN.md fixes the display *style* (weight 800, line-height
+     1.04, tracking -0.03em) but defines no display sizes — its ramp stops at
+     body 14px, because the product is a dashboard. A projected slide needs a
+     scale a dashboard ramp cannot contain, so sizes here are deck-specific by
+     intent; every other display property is taken from the system. */
+  h1{
+    font-family:var(--display);
+    font-size:clamp(2.4rem,6.2vw,5.2rem);
+    font-weight:800;
+    letter-spacing:-.03em;
+    line-height:1.04;
+    margin:0 0 1.6rem;
+    text-wrap:balance;
+  }
+  h2{
+    font-family:var(--display);
+    font-size:clamp(1.7rem,3.7vw,3.1rem);
+    font-weight:800;
+    letter-spacing:-.03em;
+    line-height:1.04;
+    margin:0 0 1.4rem;
+    text-wrap:balance;
+  }
+  .lede{
+    font-size:clamp(1rem,1.65vw,1.4rem);
+    line-height:1.55;
+    color:var(--muted);
+    max-width:62ch;
+    margin:0 0 1.2rem;
+  }
+  .lede strong{color:var(--text);font-weight:650;}
+  .mint{color:var(--mint);}
+  .rose{color:var(--rose);}
+  .amber{color:var(--amber);}
+
+  /* ---------- title slide ---------- */
+  .title-meta{
+    font-family:var(--mono);
+    font-size:clamp(.7rem,1vw,.84rem);
+    color:var(--faint);
+    letter-spacing:.06em;
+    line-height:2.1;
+    border-top:1px solid var(--line);
+    padding-top:1.4rem;
+    margin-top:2.4rem;
+  }
+  .title-meta b{color:var(--muted);font-weight:500;}
+
+  /* ---------- verdict ---------- */
+  .verdict{
+    border-left:3px solid var(--mint);
+    padding:.2rem 0 .2rem 1.6rem;
+    font-size:clamp(1.15rem,2.2vw,1.85rem);
+    line-height:1.45;
+    font-weight:600;
+    letter-spacing:-.015em;
+    max-width:52ch;
+  }
+  .verdict.crit{border-left-color:var(--rose);}
+
+  /* ---------- generic grid ---------- */
+  .grid{display:grid;gap:1rem;}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:900px){
+    .g2,.g3,.g4{grid-template-columns:1fr;}
+  }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r-md);
+    padding:1.4rem 1.5rem;
+    position:relative;
+  }
+  .card .k{
+    font-family:var(--mono);
+    font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:.7rem;
+  }
+  .card .t{font-size:clamp(1rem,1.4vw,1.18rem);font-weight:700;letter-spacing:-.015em;margin-bottom:.5rem;}
+  .card .d{font-size:clamp(.86rem,1.1vw,.97rem);line-height:1.55;color:var(--muted);}
+
+  /* Severity reads from the label that already names it, plus a small marker —
+     rather than an accent rail down the card edge. The state lives in the type,
+     so it still scans at a glance without the decorative bar. */
+  .card.sev .k{display:flex;align-items:center;gap:.5rem;}
+  .card.sev .k::before{
+    content:"";width:6px;height:6px;border-radius:9999px;
+    background:currentColor;flex:none;
+  }
+  .card.crit .k{color:var(--rose);}
+  .card.warn .k{color:var(--amber);}
+  .card.good .k{color:var(--mint);}
+
+  /* ---------- score bars ---------- */
+  .scores{display:flex;flex-direction:column;gap:.62rem;}
+  .row{display:grid;grid-template-columns:minmax(130px,190px) 1fr 2.6rem;align-items:center;gap:1rem;}
+  .row .lbl{font-size:clamp(.82rem,1.1vw,.98rem);font-weight:600;letter-spacing:-.01em;}
+  .track{height:9px;background:var(--surface-2);border-radius:99px;overflow:hidden;}
+  .fill{height:100%;border-radius:99px;transform-origin:left;animation:grow .8s cubic-bezier(.16,.84,.44,1) both;}
+  @keyframes grow{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  @media (prefers-reduced-motion:reduce){.fill{animation:none;}}
+  .val{
+    font-family:var(--mono);font-size:.94rem;font-weight:600;
+    text-align:right;font-variant-numeric:tabular-nums;
+  }
+  .s-crit .fill{background:var(--rose);} .s-crit .val{color:var(--rose);}
+  .s-warn .fill{background:var(--amber);} .s-warn .val{color:var(--amber);}
+  .s-ok   .fill{background:var(--mint);}  .s-ok   .val{color:var(--mint);}
+
+  /* ---------- big stat ---------- */
+  .stat{text-align:left;}
+  .stat .n{
+    font-family:var(--mono);
+    font-size:clamp(2.1rem,4.6vw,3.6rem);
+    font-weight:700;letter-spacing:-.04em;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .c{
+    font-family:var(--mono);
+    font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--faint);margin-top:.7rem;line-height:1.6;
+  }
+
+  /* ---------- list ---------- */
+  .list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.55rem;}
+  .list li{
+    display:grid;grid-template-columns:1.6rem 1fr;gap:.9rem;
+    align-items:baseline;
+    font-size:clamp(.9rem,1.2vw,1.05rem);line-height:1.5;
+    padding:.62rem 0;border-bottom:1px solid var(--line);
+  }
+  .list li:last-child{border-bottom:none;}
+  .list .num{
+    font-family:var(--mono);font-size:.78rem;color:var(--faint);
+    font-variant-numeric:tabular-nums;
+  }
+  .list .no{color:var(--rose);font-family:var(--mono);font-size:.95rem;}
+  .list .yes{color:var(--mint);font-family:var(--mono);font-size:.95rem;}
+  .list b{font-weight:650;}
+  .list span.sub{color:var(--muted);font-weight:400;}
+
+  /* ---------- timeline ---------- */
+  .qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;}
+  @media (max-width:900px){.qgrid{grid-template-columns:1fr;}}
+  .q{padding:1.35rem 1.3rem;border-right:1px solid var(--line);background:var(--surface);}
+  .q:last-child{border-right:none;}
+  @media (max-width:900px){.q{border-right:none;border-bottom:1px solid var(--line);}}
+  .q .qh{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;color:var(--mint);text-transform:uppercase;margin-bottom:.5rem;}
+  .q .qt{font-size:1.02rem;font-weight:700;letter-spacing:-.015em;margin-bottom:.8rem;}
+  .q ul{margin:0;padding-left:1.05rem;color:var(--muted);font-size:.88rem;line-height:1.7;}
+
+  /* ---------- comparison ---------- */
+  .cmp{width:100%;border-collapse:collapse;font-size:clamp(.82rem,1.05vw,.95rem);}
+  .cmp th,.cmp td{padding:.7rem .8rem;text-align:left;border-bottom:1px solid var(--line);}
+  .cmp th{
+    font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint);font-weight:500;
+  }
+  .cmp td.mark{font-family:var(--mono);text-align:center;width:9rem;}
+  .cmp tr:last-child td{border-bottom:none;}
+  .tbl-wrap{overflow-x:auto;}
+
+  /* ---------- footer nav ---------- */
+  .rail{
+    position:fixed;left:0;right:0;bottom:0;height:2px;background:var(--surface-2);z-index:20;
+  }
+  .rail-fill{
+    height:100%;width:100%;background:var(--mint);
+    transform:scaleX(0);transform-origin:left;
+    transition:transform .35s cubic-bezier(.16,.84,.44,1);
+  }
+  .hud{
+    position:fixed;bottom:1.5rem;right:clamp(1.4rem,4vw,3.4rem);
+    display:flex;align-items:center;gap:1.1rem;z-index:21;
+    font-family:var(--mono);font-size:.72rem;color:var(--faint);
+    letter-spacing:.1em;font-variant-numeric:tabular-nums;
+  }
+  .hud button{
+    background:var(--surface);border:1px solid var(--line);color:var(--muted);
+    width:2rem;height:2rem;border-radius:var(--r-sm);cursor:pointer;
+    font-size:.9rem;line-height:1;display:grid;place-items:center;
+    font-family:var(--mono);transition:border-color .18s,color .18s;
+  }
+  .hud button:hover{border-color:var(--mint);color:var(--mint);}
+  .hud button:focus-visible{outline:2px solid var(--mint);outline-offset:2px;}
+  .hud button[disabled]{opacity:.3;cursor:default;}
+  .hud button[disabled]:hover{border-color:var(--line);color:var(--muted);}
+  .brand{
+    position:fixed;bottom:1.62rem;left:clamp(1.4rem,4vw,3.4rem);z-index:21;
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--faint);
+  }
+  .brand i{font-style:normal;color:var(--mint);}
+  @media (max-width:720px){.brand{display:none;}}
+</style>
+
+<div class="deck" id="deck">
+
+  <!-- 1 -->
+  <section class="slide active">
+    <div class="inner">
+      <p class="eyebrow">Independent technical &amp; product diligence</p>
+      <h1>What we found<br>inside the product.</h1>
+      <p class="lede">A full review of the LeadAIStudio IT platform — the code, the product, the
+        endpoint agent, and the business case — written the way an investor's technical advisor
+        would write it before committing capital.</p>
+      <div class="title-meta">
+        <b>Scope</b> &nbsp;Complete codebase, endpoint agent, public website<br>
+        <b>Method</b> &nbsp;Every finding verified directly in the source. Nothing assumed.<br>
+        <b>Posture</b> &nbsp;Deliberately harsh. You asked for the uncomfortable version.
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The bottom line</p>
+      <h2>Real engineering.<br>Real problem. Wrong lock<br>on the front door.</h2>
+      <p class="lede">You have built something genuinely hard — a system that predicts a laptop is
+        going to fail and fixes it automatically, before anyone raises a ticket. Very few companies
+        have that working. You have it working.</p>
+      <p class="lede">But the same system currently lets a single help-desk login run <strong>any
+        command on every company laptop</strong> — and the safety check that was meant to prevent
+        that can be walked straight past.</p>
+      <div class="verdict crit" style="margin-top:1.8rem">
+        Not investable today. Investable after one focused week of fixes —
+        because the hard part is already done.
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">What the product actually is</p>
+      <h2>Two products in one,<br>which is the good idea.</h2>
+      <div class="grid g2" style="margin-bottom:1.3rem">
+        <div class="card">
+          <div class="k">Half one</div>
+          <div class="t">The service desk</div>
+          <div class="d">Where employees raise IT problems and staff resolve them. Tickets,
+            knowledge articles, service requests, response-time targets. This is a crowded,
+            mature market.</div>
+        </div>
+        <div class="card">
+          <div class="k">Half two</div>
+          <div class="t">The eyes on every laptop</div>
+          <div class="d">A small program on each company device reporting how it is really
+            performing — speed, memory, disk, battery, crashes, network. This is the valuable,
+            less crowded half.</div>
+        </div>
+      </div>
+      <p class="lede"><strong>The thesis is right.</strong> Today companies buy these separately,
+        pay twice, and still cannot connect "this employee is frustrated" to "this laptop is
+        dying." Joining them is a real, expensive, unsolved problem — and joining them is
+        exactly what you have done.</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Scorecard &nbsp;·&nbsp; measured against what large companies expect, not startup norms</p>
+      <div class="scores">
+        <div class="row s-warn"><div class="lbl">Customer value</div><div class="track"><div class="fill" style="width:60%"></div></div><div class="val">6</div></div>
+        <div class="row s-warn"><div class="lbl">User experience</div><div class="track"><div class="fill" style="width:60%"></div></div><div class="val">6</div></div>
+        <div class="row s-warn"><div class="lbl">AI capability</div><div class="track"><div class="fill" style="width:50%"></div></div><div class="val">5</div></div>
+        <div class="row s-warn"><div class="lbl">Device monitoring</div><div class="track"><div class="fill" style="width:50%"></div></div><div class="val">5</div></div>
+        <div class="row s-warn"><div class="lbl">Architecture</div><div class="track"><div class="fill" style="width:45%"></div></div><div class="val">4.5</div></div>
+        <div class="row s-crit"><div class="lbl">Service desk depth</div><div class="track"><div class="fill" style="width:40%"></div></div><div class="val">4</div></div>
+        <div class="row s-crit"><div class="lbl">Ability to grow</div><div class="track"><div class="fill" style="width:30%"></div></div><div class="val">3</div></div>
+        <div class="row s-crit"><div class="lbl">Security</div><div class="track"><div class="fill" style="width:20%"></div></div><div class="val">2</div></div>
+        <div class="row s-crit"><div class="lbl">Enterprise readiness</div><div class="track"><div class="fill" style="width:20%"></div></div><div class="val">2</div></div>
+        <div class="row s-crit"><div class="lbl">Recovery from disaster</div><div class="track"><div class="fill" style="width:10%"></div></div><div class="val">1</div></div>
+      </div>
+      <p class="lede" style="margin-top:1.6rem;font-size:1rem">Read the shape, not the numbers.
+        <strong>What customers touch scores well. What protects them scores badly.</strong>
+        That is a fixable order to be in — the reverse would be far worse.</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Start with what is genuinely good</p>
+      <h2>Three things here are<br>better than the funded<br>competition.</h2>
+      <div class="grid g3">
+        <div class="card sev good">
+          <div class="k">Strength 01</div>
+          <div class="t">It predicts failure, and shows its working</div>
+          <div class="d">Most products give you a mysterious "risk score." Yours shows the actual
+            trend, how confident it is, and how many days until the disk fills up — and it
+            <em>refuses to guess</em> when the data is too thin. In a market full of unprovable
+            AI claims, that honesty is a genuine selling point.</div>
+        </div>
+        <div class="card sev good">
+          <div class="k">Strength 02</div>
+          <div class="t">The full loop actually works</div>
+          <div class="d">Predict a problem → raise a ticket → fix the machine → close the ticket,
+            with no human involved. Competitors have one half or the other. Nobody has the whole
+            loop at your price point.</div>
+        </div>
+        <div class="card sev good">
+          <div class="k">Strength 03</div>
+          <div class="t">The AI assistant cannot be tricked into leaking data</div>
+          <div class="d">It is built so the AI physically cannot ask for another person's
+            information — there is no way to phrase the request. Most companies get this wrong.
+            This is the single best piece of judgement in the codebase.</div>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:1.5rem">This matters because it proves the team
+        <strong>can</strong> build carefully. The problems ahead are not a talent gap.</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The one finding that outweighs everything else</p>
+      <h2 class="rose">Anyone on the help desk<br>can run any command on<br>every company laptop.</h2>
+      <p class="lede">Your product can send instructions to every device it monitors — that is the
+        "fix it automatically" feature, and it is supposed to be a strength.</p>
+      <p class="lede">You built a safety check: an AI reviews each instruction and refuses
+        dangerous ones. <strong>But that check lives in a separate door.</strong> Someone can
+        skip it entirely and send instructions straight to every laptop.</p>
+      <div class="verdict crit">
+        Think of it as a master key that opens every laptop in the company — issued to every
+        help-desk account, including contractors and temporary staff. The guard who was
+        supposed to check the key is standing at a different entrance.
+      </div>
+      <p class="lede" style="margin-top:1.5rem">For a customer that manages IT for <em>other</em>
+        companies, this reaches every one of their clients too. In a bank or a hospital this is a
+        reportable security incident, not a bug.</p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Four more doors left unlocked</p>
+      <div class="grid g2">
+        <div class="card sev crit">
+          <div class="k">Critical</div>
+          <div class="t">Four back-office areas have no lock at all</div>
+          <div class="d">Company equipment records, response-time policies, and the knowledge
+            library can be changed by any logged-in user. An employee can delete the very policies
+            that govern how fast their own tickets must be answered.</div>
+        </div>
+        <div class="card sev crit">
+          <div class="k">Critical</div>
+          <div class="t">One customer can edit another customer's data</div>
+          <div class="d">Six places check <em>who</em> you are but forget to check <em>which
+            company</em> you belong to. In multi-customer software this single issue ends
+            enterprise deals on the spot.</div>
+        </div>
+        <div class="card sev crit">
+          <div class="k">Critical</div>
+          <div class="t">When identity checks fail, everyone lands in the same room</div>
+          <div class="d">If the login system hiccups, the software quietly puts that person into a
+            shared space instead of stopping them. Failures should close the door, not open a
+            different one.</div>
+        </div>
+        <div class="card sev crit">
+          <div class="k">Critical</div>
+          <div class="t">The laptop program is unsigned</div>
+          <div class="d">Nothing proves the software came from you. Corporate antivirus will flag
+            it, staff will see scary warnings, and nobody can tell your program apart from a
+            tampered copy of it.</div>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:1.4rem">All four are <strong class="mint">days of work,
+        not months.</strong></p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">A different kind of risk</p>
+      <h2>The website claims things<br>the product cannot do.</h2>
+      <div class="tbl-wrap">
+        <table class="cmp">
+          <thead>
+            <tr><th>The website says</th><th class="mark">Reality</th><th>What it actually is</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>"3.4M tickets deflected"</td><td class="mark rose">invented</td><td>No customers have produced this</td></tr>
+            <tr><td>"1.2M employees supported"</td><td class="mark rose">invented</td><td>No customers have produced this</td></tr>
+            <tr><td>Three named customer quotes</td><td class="mark rose">invented</td><td>The companies do not exist</td></tr>
+            <tr><td>"SSO, SCIM &amp; advanced RBAC"</td><td class="mark rose">absent</td><td>Sold on the Enterprise plan. Not built at all</td></tr>
+            <tr><td>"99.9% uptime guarantee"</td><td class="mark amber">unmeasurable</td><td>Nothing in the system monitors uptime</td></tr>
+            <tr><td>Two different price lists</td><td class="mark amber">conflicting</td><td>$6/device on one page, $8–18/employee on another</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lede" style="margin-top:1.5rem">Meanwhile your own home page honestly says
+        <em>"we're onboarding our first IT teams by hand."</em> Both statements are on the same
+        website.</p>
+      <p class="lede"><strong>This is a legal exposure and a credibility one.</strong> Invented
+        testimonials breach advertising rules in the US, UK and EU. And every buyer who finds one
+        false number stops believing the true ones — including the genuinely impressive
+        prediction engine.</p>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">What large organisations require before they will even trial software</p>
+      <h2>Ten gates. You pass none<br>of them today.</h2>
+      <ul class="list">
+        <li><span class="no">✕</span><span><b>Single sign-on</b> <span class="sub">— staff log in with their existing company account. Asked on every enterprise form.</span></span></li>
+        <li><span class="no">✕</span><span><b>Automatic account removal</b> <span class="sub">— when HR terminates someone, access must drop instantly.</span></span></li>
+        <li><span class="no">✕</span><span><b>SOC 2 certification</b> <span class="sub">— the independent security audit. Requested before any technical evaluation.</span></span></li>
+        <li><span class="no">✕</span><span><b>Change management</b> <span class="sub">— proof of who approved each modification. An audit requirement, not a feature preference.</span></span></li>
+        <li><span class="no">✕</span><span><b>Mac support</b> <span class="sub">— typically 20–40% of a modern company's laptops.</span></span></li>
+        <li><span class="no">✕</span><span><b>Signed software</b> <span class="sub">— cryptographic proof the program is really yours.</span></span></li>
+        <li><span class="no">✕</span><span><b>Disaster recovery</b> <span class="sub">— today there is no reliable way to rebuild the database if it is lost.</span></span></li>
+        <li><span class="no">✕</span><span><b>Accessibility standards</b> <span class="sub">— legally required for government buyers. You named government as a market.</span></span></li>
+        <li><span class="no">✕</span><span><b>Works on a phone</b> <span class="sub">— the employee portal is unusable on mobile at any screen size.</span></span></li>
+        <li><span class="no">✕</span><span><b>Referenceable customers</b> <span class="sub">— buyers ask to call two. There is no answer to that yet.</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The growth ceiling</p>
+      <h2>The system works to about<br>100 customers' staff.<br>Then it stops.</h2>
+      <p class="lede">Every monitored laptop writes a status record every 30 seconds —
+        <strong>2,880 records per laptop per day</strong> — and nothing ever deletes them.</p>
+      <div class="grid g4" style="margin:2rem 0 1.4rem">
+        <div class="card stat"><div class="n mint">12M</div><div class="c">Records per year<br>10 employees</div></div>
+        <div class="card stat"><div class="n mint">126M</div><div class="c">Records per year<br>100 employees</div></div>
+        <div class="card stat"><div class="n amber">1.3B</div><div class="c">Records per year<br>1,000 employees</div></div>
+        <div class="card stat"><div class="n rose">12.6B</div><div class="c">Records per year<br>10,000 employees</div></div>
+      </div>
+      <p class="lede">At a thousand-person customer the database is storing over a billion records
+        a year while simultaneously trying to power a dashboard that refreshes every fifteen
+        seconds. <strong>It will not cope.</strong></p>
+      <p class="lede">The fix is ordinary and well understood: keep fine detail for a week, keep
+        summaries for two years, delete the rest. <strong class="mint">Roughly two weeks of
+        work</strong> — and it also turns storage cost from a runaway expense into a flat one.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Where you stand against the market</p>
+      <div class="tbl-wrap">
+        <table class="cmp">
+          <thead>
+            <tr><th>Capability</th><th class="mark">You</th><th class="mark">ServiceNow</th><th class="mark">Nexthink</th><th>What it means</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Service desk depth</td><td class="mark amber">medium</td><td class="mark mint">strong</td><td class="mark rose">none</td><td>They have 20 years of head start</td></tr>
+            <tr><td>Laptop monitoring</td><td class="mark amber">medium</td><td class="mark rose">weak</td><td class="mark mint">strong</td><td>Nexthink's home ground</td></tr>
+            <tr><td><b>Predicting failure</b></td><td class="mark mint"><b>strong</b></td><td class="mark rose">weak</td><td class="mark amber">medium</td><td><b class="mint">You lead here</b></td></tr>
+            <tr><td>Automatic fixing</td><td class="mark amber">medium</td><td class="mark amber">medium</td><td class="mark mint">strong</td><td>You have it; it needs guardrails</td></tr>
+            <tr><td>Video call quality</td><td class="mark rose">none</td><td class="mark rose">none</td><td class="mark mint">strong</td><td><b class="rose">Your biggest product hole</b></td></tr>
+            <tr><td>Enterprise trust layer</td><td class="mark rose">none</td><td class="mark mint">strong</td><td class="mark mint">strong</td><td>Certifications, sign-on, Mac</td></tr>
+            <tr><td>Time to get running</td><td class="mark mint">minutes</td><td class="mark rose">6–18 months</td><td class="mark amber">weeks</td><td><b class="mint">Your best sales argument</b></td></tr>
+            <tr><td>Price</td><td class="mark mint">low</td><td class="mark rose">very high</td><td class="mark rose">high</td><td>Serves a segment they ignore</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lede" style="margin-top:1.4rem;font-size:.95rem;color:var(--faint)">Competitor
+        positions are analyst judgement from public information, not tested. Verify before using
+        commercially.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Positioning</p>
+      <h2>Stop trying to beat<br>ServiceNow. You will lose<br>that argument.</h2>
+      <div class="grid g2">
+        <div class="card sev crit">
+          <div class="k">Do not do this</div>
+          <div class="t">"A cheaper ServiceNow"</div>
+          <div class="d">You lose on every feature checklist — the comparison table decides it
+            before anyone sees a demo. Replacing ServiceNow takes companies 18–24 months, costs
+            millions, and puts the sponsor's career at risk. This is how service-desk startups
+            die.</div>
+        </div>
+        <div class="card sev good">
+          <div class="k">Do this instead</div>
+          <div class="t">"We fix problems before employees notice"</div>
+          <div class="d">Sell the monitoring and prediction to companies that <em>already have</em>
+            a service desk. Prove value in 30 days with real predicted failures. Replace their
+            service desk later, once you are already useful to them.</div>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:1.6rem"><strong>Your realistic first customer today:</strong>
+        a 150–800 person technology company with a small IT team, mostly Windows laptops, already
+        paying for a service desk that cannot tell them why machines are slow — and not yet forced
+        to demand security certifications.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The only advantage competitors cannot buy</p>
+      <h2>You can see across every<br>customer at once.<br>Nobody else can.</h2>
+      <p class="lede">Because all customers run on one shared system, you can answer questions no
+        single-company tool ever can:</p>
+      <div class="grid g2" style="margin:1.6rem 0">
+        <div class="card sev good">
+          <div class="t">"Your laptops start up slower than 60% of manufacturers your size."</div>
+          <div class="d">Every competitor sees one company. You see the whole population.</div>
+        </div>
+        <div class="card sev good">
+          <div class="t">"This driver version crashes three times more often — across 40,000 machines."</div>
+          <div class="d">Advice no individual customer could ever work out alone.</div>
+        </div>
+      </div>
+      <p class="lede">This gets <strong>better with every customer you add</strong> and cannot be
+        replicated by a competitor with more money — they would need the customers first. It is
+        the one genuine moat available to you.</p>
+      <div class="verdict" style="margin-top:1.5rem">
+        One cheap thing to start now: record whether each prediction came true. Today the system
+        deletes them and forgets. Keeping that history costs days and is the raw material for a
+        prediction engine nobody can copy.
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The good news</p>
+      <h2 class="mint">The most dangerous<br>problems are one week<br>of work.</h2>
+      <ul class="list">
+        <li><span class="num">01</span><span><b>Remove the master key.</b> <span class="sub">The laptop program should only accept a fixed list of safe, named actions — never free-form instructions.</span></span></li>
+        <li><span class="num">02</span><span><b>Put locks on the four unlocked areas.</b> <span class="sub">Equipment records, response policies, workflows, knowledge library.</span></span></li>
+        <li><span class="num">03</span><span><b>Check which company, not just which person.</b> <span class="sub">Six places, one line each.</span></span></li>
+        <li><span class="num">04</span><span><b>Make failed logins stop, not redirect.</b> <span class="sub">Close the door instead of opening a shared one.</span></span></li>
+        <li><span class="num">05</span><span><b>Take the invented claims off the website.</b> <span class="sub">Hours of work. Removes a legal exposure entirely.</span></span></li>
+        <li><span class="num">06</span><span><b>Stop writing fake data into real customer accounts.</b> <span class="sub">New customers currently see invented security information on first login.</span></span></li>
+      </ul>
+      <p class="lede" style="margin-top:1.6rem">After this week, the honest answer to "is it safe to
+        install?" changes from <strong class="rose">no</strong> to <strong class="mint">yes</strong>.
+        That is the highest-value week of engineering available anywhere in this business.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The next twelve months</p>
+      <div class="qgrid">
+        <div class="q">
+          <div class="qh">Quarter 1</div>
+          <div class="qt">Make it safe and true</div>
+          <ul>
+            <li>The one-week list</li>
+            <li>Make unlocked doors impossible to build</li>
+            <li>Fix the response-time timer, which does not currently run</li>
+            <li>Replace fake dashboard charts with real data</li>
+            <li>Start change management</li>
+          </ul>
+        </div>
+        <div class="q">
+          <div class="qh">Quarter 2</div>
+          <div class="qt">Make it sellable</div>
+          <ul>
+            <li>Signed, self-updating laptop program</li>
+            <li>Company single sign-on</li>
+            <li>Finish change management</li>
+            <li>Fix the data growth ceiling</li>
+            <li>Portal that works on phones</li>
+            <li>Begin SOC 2</li>
+          </ul>
+        </div>
+        <div class="q">
+          <div class="qh">Quarter 3</div>
+          <div class="qt">Catch up</div>
+          <ul>
+            <li>Mac support</li>
+            <li>Video call quality monitoring</li>
+            <li>Group related alerts together</li>
+            <li>Measure whether the AI is any good</li>
+            <li>Executive dashboards</li>
+          </ul>
+        </div>
+        <div class="q">
+          <div class="qh">Quarter 4</div>
+          <div class="qt">Pull ahead</div>
+          <ul>
+            <li>Real equipment map</li>
+            <li>Security patch tracking</li>
+            <li>SOC 2 certificate issued</li>
+            <li>Start the benchmarking moat</li>
+            <li>Ten reference customers</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:1.6rem"><strong>If you can only hire one person, hire an
+        engineer for the laptop program.</strong> It is your biggest advantage and your biggest
+        liability at the same time, and it is the least-resourced part of the business.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The four questions you asked</p>
+      <div class="grid g2">
+        <div class="card sev crit">
+          <div class="k">Question 01</div>
+          <div class="t">Would you deploy this in a Fortune 500 today?</div>
+          <div class="d"><b class="rose">No</b> — and I would escalate if I found it already
+            installed. Not because of missing features, but because one login can run any command
+            on every laptop.</div>
+        </div>
+        <div class="card sev warn">
+          <div class="k">Question 02</div>
+          <div class="t">What blocks enterprise adoption?</div>
+          <div class="d">Ten gates. <b>Four of them are one week of work.</b> The rest — sign-on,
+            certification, change management, Mac — are ordinary, well-understood projects with
+            known timelines.</div>
+        </div>
+        <div class="card sev good">
+          <div class="k">Question 03</div>
+          <div class="t">Where can you differentiate?</div>
+          <div class="d">Prediction that shows its working. The complete predict-and-fix loop.
+            Setup in minutes rather than months. And seeing across every customer at once —
+            the one thing money cannot buy.</div>
+        </div>
+        <div class="card sev good">
+          <div class="k">Question 04</div>
+          <div class="t">What should you build this year?</div>
+          <div class="d">Safety first, then trust, then catch-up, then the moat. In that order.
+            Building features on top of unfixed foundations means building them twice.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Closing</p>
+      <h2>The distance to a real<br>business is shorter than<br>the scores suggest.</h2>
+      <p class="lede">The genuinely difficult thing — predicting a failure from real data and
+        fixing it automatically — <strong>is already built and working.</strong> That is the part
+        that is hard to copy and hard to buy.</p>
+      <p class="lede">Certifications, single sign-on and change management are expensive and slow,
+        but no competent team fails at them. They are known quantities with known timelines.</p>
+      <div class="verdict" style="margin-top:1.8rem">
+        What concerns me is not the missing features. It is that software which runs commands on
+        employee laptops shipped without a lock, and that the website makes claims the product
+        contradicts. Both are symptoms of moving fast without a review step — and both are
+        habits, not talent problems.
+      </div>
+      <p class="lede" style="margin-top:1.8rem">Fix the week-one list. Then build the benchmarking
+        advantage, because it is the only thing here that a better-funded competitor
+        <strong>cannot simply outspend you to replicate.</strong></p>
+    </div>
+  </section>
+
+</div>
+
+<div class="brand">LeadAIStudio <i>·</i> Enterprise Audit</div>
+<div class="hud">
+  <button id="prev" aria-label="Previous slide">←</button>
+  <span><span id="cur">1</span> / <span id="tot">17</span></span>
+  <button id="next" aria-label="Next slide">→</button>
+</div>
+<div class="rail"><div class="rail-fill" id="railFill"></div></div>
+
+<script>
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var i = 0;
+    var cur = document.getElementById('cur');
+    var tot = document.getElementById('tot');
+    var fill = document.getElementById('railFill');
+    var prev = document.getElementById('prev');
+    var next = document.getElementById('next');
+
+    tot.textContent = slides.length;
+
+    function show(n) {
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach(function (s, idx) { s.classList.toggle('active', idx === i); });
+      cur.textContent = i + 1;
+      fill.style.transform = 'scaleX(' + ((i + 1) / slides.length) + ')';
+      prev.disabled = i === 0;
+      next.disabled = i === slides.length - 1;
+      slides[i].scrollTop = 0;
+    }
+
+    prev.addEventListener('click', function () { show(i - 1); });
+    next.addEventListener('click', function () { show(i + 1); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+      else if (e.key === 'Home') { e.preventDefault(); show(0); }
+      else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+    });
+
+    show(0);
+  })();
+</script>

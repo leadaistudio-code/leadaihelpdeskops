@@ -9,8 +9,16 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+// Which tenant this seed writes into. `domain` no longer defaults to "global"
+// in the schema, so seeding must say where its rows belong.
+const SEED_DOMAIN = process.env.SEED_DOMAIN?.trim();
+if (!SEED_DOMAIN) {
+  throw new Error("Set SEED_DOMAIN to the tenant (Clerk org id) this seed should write into.");
+}
+const domain = SEED_DOMAIN;
+
 async function main() {
-  console.log("Starting DB seeding...");
+  console.log(`Starting DB seeding into tenant "${domain}"...`);
 
   // Seed Users
   const departments = ["Engineering", "Sales", "HR", "Marketing", "Finance", "IT"];
@@ -25,6 +33,7 @@ async function main() {
         email: `user${i}@company.com`,
         role: Role.EMPLOYEE,
         department: departments[i % departments.length],
+        domain,
       },
     });
     userIds.push(user.id);
@@ -39,6 +48,7 @@ async function main() {
       email: 'admin@company.com',
       role: Role.ADMIN,
       department: 'IT',
+      domain,
     },
   });
 
@@ -71,6 +81,7 @@ async function main() {
         status: status,
         assigneeId: assigneeId,
         notes: "Automatically seeded asset.",
+        domain,
       },
     });
   }
@@ -81,12 +92,12 @@ async function main() {
   await prisma.slaDefinition.createMany({
     skipDuplicates: true,
     data: [
-      { name: "P1 Critical Incident Resolution", type: TicketType.INCIDENT, priority: Priority.CRITICAL, durationHours: 4 },
-      { name: "P2 High Incident Resolution", type: TicketType.INCIDENT, priority: Priority.HIGH, durationHours: 8 },
-      { name: "P3 Medium Incident Resolution", type: TicketType.INCIDENT, priority: Priority.MEDIUM, durationHours: 24 },
-      { name: "P4 Low Incident Resolution", type: TicketType.INCIDENT, priority: Priority.LOW, durationHours: 72 },
-      { name: "High Value Request Fulfillment", type: TicketType.REQUEST, priority: Priority.HIGH, durationHours: 48 },
-      { name: "Standard Request Fulfillment", type: TicketType.REQUEST, priority: Priority.MEDIUM, durationHours: 120 },
+      { name: "P1 Critical Incident Resolution", type: TicketType.INCIDENT, priority: Priority.CRITICAL, durationHours: 4, domain },
+      { name: "P2 High Incident Resolution", type: TicketType.INCIDENT, priority: Priority.HIGH, durationHours: 8, domain },
+      { name: "P3 Medium Incident Resolution", type: TicketType.INCIDENT, priority: Priority.MEDIUM, durationHours: 24, domain },
+      { name: "P4 Low Incident Resolution", type: TicketType.INCIDENT, priority: Priority.LOW, durationHours: 72, domain },
+      { name: "High Value Request Fulfillment", type: TicketType.REQUEST, priority: Priority.HIGH, durationHours: 48, domain },
+      { name: "Standard Request Fulfillment", type: TicketType.REQUEST, priority: Priority.MEDIUM, durationHours: 120, domain },
     ]
   });
   console.log("Seeded SLA Definitions.");

@@ -14,6 +14,12 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Remotion video project — rendered separately, not part of the Next app.
     "remotion/**",
+    // The superseded Electron/Node agent. It is CommonJS, so the flat config
+    // lints it as ESM and every `require()` is reported as an error — nine of
+    // them, permanently red. It is slated for deletion (its binaries still
+    // contain the removed RUN_SCRIPT branch and nothing serves them any more);
+    // until that lands, it should not be gating CI on the live app.
+    "agent/**",
   ]),
 ]);
 

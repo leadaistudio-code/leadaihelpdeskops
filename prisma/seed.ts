@@ -8,6 +8,15 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
+// Which tenant this seed writes into. `domain` no longer defaults to "global"
+// in the schema, so seeding must say where its rows belong. Pass the Clerk
+// organization id you want to populate.
+const SEED_DOMAIN = process.env.SEED_DOMAIN?.trim();
+if (!SEED_DOMAIN) {
+  throw new Error("Set SEED_DOMAIN to the tenant (Clerk org id) this seed should write into.");
+}
+const domain = SEED_DOMAIN;
+
 async function main() {
   const defaultPassword = await bcrypt.hash('password123', 10);
 
@@ -20,6 +29,7 @@ async function main() {
       password: defaultPassword,
       role: 'ADMIN',
       department: 'IT Infrastructure',
+      domain,
     },
   })
 
@@ -32,6 +42,7 @@ async function main() {
       password: defaultPassword,
       role: 'IT_AGENT',
       department: 'IT Service Desk',
+      domain,
     },
   })
 
@@ -44,6 +55,7 @@ async function main() {
       password: defaultPassword,
       role: 'EMPLOYEE',
       department: 'Marketing',
+      domain,
     },
   })
 
@@ -57,6 +69,7 @@ async function main() {
       status: 'IN_USE',
       assigneeId: user1.id,
       notes: 'Standard developer laptop',
+      domain,
     }
   })
 
@@ -69,6 +82,7 @@ async function main() {
       category: 'Software License',
       status: 'IN_USE',
       assigneeId: agent.id,
+      domain,
     }
   })
 
@@ -80,6 +94,7 @@ async function main() {
       name: 'Dell 27" 4K Monitor',
       category: 'Peripherals',
       status: 'IN_STOCK',
+      domain,
     }
   })
 

@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logAudit } from "@/lib/audit";
+import { LIST_LIMIT } from "@/lib/query-limits";
 
 // --- Current user's own profile ---
 
@@ -57,6 +58,7 @@ export async function getAllUsers() {
     where: { domain: await getActiveDomain() },
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: { id: true, name: true, email: true, role: true, department: true, jobTitle: true, moduleAccess: true },
+    take: LIST_LIMIT,
   });
 }
 

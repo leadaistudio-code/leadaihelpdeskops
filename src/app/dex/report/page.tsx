@@ -6,12 +6,16 @@ import { getDexReportData } from "@/app/actions/reportActions";
 import { Activity, ShieldAlert, Cpu, AlertTriangle, Printer, Zap } from "lucide-react";
 import { useAppTheme } from "@/components/ThemeContext";
 
+// Derived from the action rather than typed `any`, so a change to the report
+// shape is a compile error here instead of a blank section at runtime.
+type ReportData = Awaited<ReturnType<typeof getDexReportData>>;
+
 export default function ReportPage() {
   const searchParams = useSearchParams();
   const period = searchParams.get('period') || 'weekly';
   const { theme } = useAppTheme();
   
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +25,7 @@ export default function ReportPage() {
     });
   }, [period]);
 
-  if (loading) {
+  if (loading || !data) {
     return <div className="min-h-screen flex items-center justify-center text-white">Generating Report...</div>;
   }
 
@@ -126,7 +130,7 @@ export default function ReportPage() {
                 {data.security.drifts.length === 0 ? (
                   <div className="text-sm text-rose-700/60 italic">All devices compliant.</div>
                 ) : (
-                  data.security.drifts.slice(0, 5).map((d: any, i: number) => (
+                  data.security.drifts.slice(0, 5).map((d, i) => (
                     <div key={i} className="flex justify-between items-center text-sm font-medium text-rose-900 border-b border-rose-200/50 pb-2 last:border-0 last:pb-0">
                       <span>{d.hostname}</span>
                       <div className="flex gap-2">
@@ -169,7 +173,7 @@ export default function ReportPage() {
                 {data.hardware.alerts.length === 0 ? (
                   <tr><td colSpan={3} className="py-4 text-emerald-700/60 italic text-center">No active hardware failure predictions.</td></tr>
                 ) : (
-                  data.hardware.alerts.map((a: any, i: number) => (
+                  data.hardware.alerts.map((a, i) => (
                     <tr key={i} className="text-emerald-900 font-medium">
                       <td className="py-3">{a.device}</td>
                       <td className="py-3 text-rose-600">{a.component}</td>

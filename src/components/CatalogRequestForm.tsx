@@ -5,6 +5,7 @@ import { CheckCircle2, Clock } from "lucide-react";
 import { createCatalogRequest } from "@/app/actions/catalogActions";
 import { toast } from "@/components/toast";
 import { Panel, PanelHeader, Button, Badge, Field, Input, Select, Textarea } from "@/components/ui";
+import type { CatalogFormField } from "@/lib/catalog-form";
 
 export default function CatalogRequestForm({
   itemId,
@@ -15,7 +16,7 @@ export default function CatalogRequestForm({
   itemId: string;
   description: string;
   requiresApproval: boolean;
-  formSchema?: any[];
+  formSchema?: CatalogFormField[];
 }) {
   const [justification, setJustification] = useState("");
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -111,7 +112,7 @@ export default function CatalogRequestForm({
                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
                   >
                     <option value="" disabled>Select an option...</option>
-                    {field.options?.map((opt: string) => (
+                    {field.options?.map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </Select>

@@ -1,6 +1,7 @@
-import { currentUser, auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { getActiveDomain } from "@/lib/tenant";
 
 // Coerce arbitrary Clerk publicMetadata into a valid Role, defaulting to EMPLOYEE.
 function toRole(value: unknown): Role {
@@ -26,9 +27,10 @@ export async function getSessionUser() {
     : ["SELF_SERVICE"];
   
   // The active organization is the tenant; mirror it onto the user row so
-  // per-tenant user lists resolve correctly.
-  const { orgId } = await auth();
-  const activeDomain = orgId ?? "global";
+  // per-tenant user lists resolve correctly. This throws for a signed-in user
+  // with no active org rather than stamping them "global" — middleware routes
+  // such a user to onboarding, so reaching here without one is a real error.
+  const activeDomain = await getActiveDomain();
 
   if (!dbUser) {
     dbUser = await prisma.user.create({

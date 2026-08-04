@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR per ecosystem area rather than one per package — otherwise a
+      # weekly run opens twenty PRs and they all get ignored, which is the same
+      # as not having Dependabot.
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
+
+  - package-ecosystem: gomod
+    directory: "/agent-go"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getIncidentById, updateIncidentState, getAssignableAgents } from "@/app/actions/incidentActions";
 import { getSessionUser } from "@/lib/auth-utils";
-import { ensureSlaForIncident } from "@/app/actions/slaActions";
+import { ensureSlaForIncident } from "@/lib/sla-engine";
 import { createProblemFromIncident, linkIncidentToProblem, unlinkIncidentFromProblem, getLinkableProblems } from "@/app/actions/problemActions";
 import { draftArticleFromIncident } from "@/app/actions/knowledgeActions";
 import Link from "next/link";

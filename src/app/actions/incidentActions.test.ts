@@ -23,7 +23,7 @@ vi.mock("@clerk/nextjs/server", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/app/actions/notificationActions", () => ({ notify: vi.fn(), notifyGroup: vi.fn() }));
 vi.mock("@/app/actions/groupActions", () => ({ resolveGroupByName: vi.fn() }));
-vi.mock("@/app/actions/slaActions", () => ({
+vi.mock("@/lib/sla-engine", () => ({
   startSlaForIncident: vi.fn(),
   pauseSla: vi.fn(),
   resumeSla: vi.fn(),

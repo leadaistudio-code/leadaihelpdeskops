@@ -8,6 +8,9 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
   text?: string;
+  // Set on notifications generated from a form so hitting Reply in the inbox
+  // answers the person who submitted it, not the no-reply sender address.
+  replyTo?: string;
 }): Promise<{ sent: boolean }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
@@ -30,6 +33,7 @@ export async function sendEmail(opts: {
         subject: opts.subject,
         html: opts.html,
         text: opts.text,
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
       }),
     });
     if (!res.ok) {

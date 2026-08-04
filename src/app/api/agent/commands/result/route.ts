@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
+import { checkRateLimit, deviceKeyBucket, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 
 const schema = z.object({
@@ -15,6 +16,10 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization") ?? "";
     const deviceKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!deviceKey) return NextResponse.json({ error: "Missing device key." }, { status: 401 });
+
+    // Rate limited before the device lookup — see the note in ../route.ts.
+    const limit = await checkRateLimit(await deviceKeyBucket(deviceKey, "commands-result"), 60, 60_000);
+    if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const device = await prisma.device.findUnique({ where: { deviceKey }, select: { id: true } });
     if (!device) return NextResponse.json({ error: "Unknown device." }, { status: 401 });

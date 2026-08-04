@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Advisories consciously accepted for now, checked by scripts/audit-deps.mjs.",
+    "Each entry needs a reason and a review date. An expired entry FAILS the build,",
+    "so a waiver cannot rot into a permanent hole — somebody has to look again.",
+    "Only add an entry when there is genuinely no fixed release to upgrade to."
+  ],
+  "allow": [
+    {
+      "package": "next",
+      "reason": "Nine high advisories affect every published 16.x; npm's only suggested fix is a downgrade to 9.3.3, which is not a real option. Running the latest available (16.2.12). Two are directly relevant to this app and need compensating controls until a patched release ships: GHSA-6gpp-xcg3-4w24 (middleware bypass) and GHSA-955p-x3mx-jcvp (server function endpoint disclosure).",
+      "expires": "2026-09-15"
+    },
+    {
+      "package": "postcss",
+      "reason": "Reached only through the Tailwind build toolchain; the vulnerable paths (sourceMappingURL auto-loading, CSS stringify) run at build time on our own stylesheets, not on user input. Revisit when @tailwindcss/postcss ships an updated dependency.",
+      "expires": "2026-09-15"
+    },
+    {
+      "package": "fast-uri",
+      "reason": "Transitive, reached only through schema validation in the build tooling. No user-controlled URI parsing on a request path. Revisit at the next dependency refresh.",
+      "expires": "2026-09-15"
+    },
+    {
+      "package": "sharp",
+      "reason": "Transitive via Next's image optimisation. The app serves no user-uploaded images through the optimiser; attachments are streamed from the database by their own route. Revisit when Next bumps its sharp dependency.",
+      "expires": "2026-09-15"
+    }
+  ]
+}

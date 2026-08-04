@@ -14,10 +14,19 @@ const isPublicRoute = createRouteMatcher([
   '/api/agent/(.*)',
   // Scheduled SLA breach sweep — secured by CRON_SECRET, not a user session.
   '/api/sla/(.*)',
+  // Liveness/readiness probe. Uptime monitors have no session, and the response
+  // is deliberately free of anything worth authenticating.
+  '/api/health',
 ]);
 
 // Routes a signed-in user may visit before they belong to a tenant (org).
-const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)', '/api/(.*)']);
+//
+// Keep this list minimal and enumerate it explicitly. It previously contained
+// '/api/(.*)', which exempted *every* API route from the has-a-tenant check —
+// so a signed-in user with no organization reached all of them and got written
+// into a shared "global" bucket. Anything added here must be genuinely usable
+// before the user has a tenant.
+const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)']);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {

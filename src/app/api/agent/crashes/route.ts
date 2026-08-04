@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { checkRateLimit, deviceKeyBucket, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
+import { allocateNumber } from "@/lib/ticket-number";
 
 const schema = z.object({
   appName: z.string().min(1).max(255),
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing device key." }, { status: 401 });
     }
 
-    const limit = rateLimit(`crashes:${deviceKey}`, 20, 60_000);
+    const limit = await checkRateLimit(await deviceKeyBucket(deviceKey, "crashes"), 20, 60_000);
     if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const device = await prisma.device.findUnique({
@@ -48,9 +49,12 @@ export async function POST(req: Request) {
     if (data.eventType === "BSOD") {
       const settings = await prisma.tenantSettings.findUnique({ where: { domain: device.domain } });
       if (settings?.autoHeal) {
-        // Queue OS repair script
+        // Queue the OS file-repair runbook action. This used to send
+        // "RUN_SCRIPT: sfc /scannow" — arbitrary script text the agent executed
+        // verbatim. The agent now only accepts named actions, so this is a
+        // compiled-in command with no caller-supplied content.
         await prisma.remoteCommand.create({
-          data: { deviceId: device.id, action: "RUN_SCRIPT: sfc /scannow", domain: device.domain },
+          data: { deviceId: device.id, action: "REPAIR_SYSTEM_FILES", domain: device.domain },
         });
 
         // Create zero-touch resolved incident
@@ -59,10 +63,12 @@ export async function POST(req: Request) {
           update: {},
           create: { email: `dex-monitor_${device.domain}@leadaistudio.ai`, name: "DEX Monitor", role: "EMPLOYEE", domain: device.domain },
         });
-        const count = await prisma.incident.count({ where: { type: "INCIDENT" } });
+        // Per-tenant, atomic ticket numbering — see the note in
+        // /api/agent/metrics for what the previous count()+1 scheme broke.
+        const number = await allocateNumber(device.domain, "INC");
         await prisma.incident.create({
           data: {
-            number: `INC${String(count + 10000).padStart(7, "0")}`,
+            number,
             title: `DEX Alert: BSOD (Blue Screen) on ${device.hostname}`,
             description: `Proactively detected by the DEX agent on ${device.hostname}.\nIssue: System Crash (BSOD)\n\nThis issue was AUTO-RESOLVED by AI - Zero Touch. Queued SFC repair script.`,
             type: "INCIDENT",

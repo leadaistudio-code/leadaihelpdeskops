@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { getCatalogItemById } from "@/app/actions/catalogActions";
 import CatalogRequestForm from "@/components/CatalogRequestForm";
 import { PageHeader, Button } from "@/components/ui";
+import { parseCatalogFormSchema } from "@/lib/catalog-form";
 
 const APPROVAL_CATEGORIES = new Set(["Access"]);
 
@@ -26,7 +27,7 @@ export default async function CatalogItemPage({ params }: { params: Promise<{ id
 
       <PageHeader eyebrow={`${item.category} Request`} title={item.name} />
 
-      <CatalogRequestForm itemId={item.id} description={item.description} requiresApproval={requiresApproval} formSchema={item.formSchema as any[]} />
+      <CatalogRequestForm itemId={item.id} description={item.description} requiresApproval={requiresApproval} formSchema={parseCatalogFormSchema(item.formSchema)} />
     </div>
   );
 }

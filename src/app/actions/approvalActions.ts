@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notify } from "@/app/actions/notificationActions";
 import { logAudit } from "@/lib/audit";
+import { FEED_LIMIT } from "@/lib/query-limits";
 
 // Incidents awaiting an approval decision (catalog access requests, etc.).
 export async function getPendingApprovals() {
@@ -14,6 +15,7 @@ export async function getPendingApprovals() {
     where: { status: "PENDING_APPROVAL", domain: await getActiveDomain() },
     include: { caller: true },
     orderBy: { createdAt: "asc" },
+    take: FEED_LIMIT,
   });
 }
 

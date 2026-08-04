@@ -168,14 +168,74 @@ func collectSoftware() []string {
 	return parseStringList(raw)
 }
 
-func collectBoot() (int, int, bool) {
-	raw := ps(`$evt=Get-WinEvent -ProviderName "Microsoft-Windows-Diagnostics-Performance" -MaxEvents 1 -FilterXPath "*[System[EventID=100]]" -ErrorAction SilentlyContinue; if($evt){$evt.Properties[1].Value}else{15000}`)
-	ms, err := strconv.Atoi(firstLine(raw))
-	if err != nil || ms <= 0 {
-		return 0, 0, false
+// collectBoot reads the real startup measurements Windows records in the
+// Diagnostics-Performance log (event 100) plus Group Policy processing time
+// (event 8001).
+//
+// The previous implementation was three kinds of made up: it fell back to a
+// hardcoded 15000ms when the event was missing, added a flat "+5" as a stand-in
+// for BIOS time, and read Properties[1] — which is BootStartTime, a timestamp,
+// not a duration. It also never collected login time at all, so that column
+// could never populate no matter what the dashboard did.
+//
+// Fields are addressed by NAME from the event XML rather than by index. The
+// property order of event 100 is long, undocumented, and has changed between
+// Windows releases; the element names have not.
+func collectBoot() (BootProfile, bool) {
+	const q = `$e = Get-WinEvent -LogName 'Microsoft-Windows-Diagnostics-Performance/Operational' -MaxEvents 1 -FilterXPath "*[System[EventID=100]]" -ErrorAction SilentlyContinue
+if (-not $e) { exit }
+$x = [xml]$e.ToXml()
+function V($n) { ($x.Event.EventData.Data | Where-Object { $_.Name -eq $n }).'#text' }
+"{0}|{1}|{2}|{3}" -f (V 'BootTime'), (V 'MainPathBootTime'), (V 'BootPostBootTime'), (V 'OSLoaderDuration')`
+
+	parts := strings.Split(firstLine(ps(q)), "|")
+	if len(parts) < 4 {
+		return BootProfile{}, false
 	}
-	osBoot := ms / 1000
-	return osBoot + 5, osBoot, true
+
+	// Durations are milliseconds. A missing or unparseable field stays nil.
+	msToSec := func(raw string) *int {
+		ms, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || ms <= 0 {
+			return nil
+		}
+		sec := (ms + 999) / 1000
+		return &sec
+	}
+
+	total := msToSec(parts[0])
+	if total == nil {
+		// No measured total boot time means no boot profile. Reporting an
+		// invented one is worse than reporting nothing.
+		return BootProfile{}, false
+	}
+
+	return BootProfile{
+		TotalBootSec: *total,
+		// OSLoaderDuration is the pre-OS/firmware handoff phase — the closest
+		// real analogue to "BIOS time" Windows exposes.
+		BiosSec:   msToSec(parts[3]),
+		OsBootSec: msToSec(parts[1]),
+		// BootPostBootTime is the post-logon phase: the wait between signing in
+		// and having a usable desktop. That is what users mean by "login time".
+		ProfileLoadSec: msToSec(parts[2]),
+		GpoSec:         collectGpoSec(),
+	}, true
+}
+
+// collectGpoSec reads Group Policy processing time from event 8001, whose
+// message states the elapsed seconds directly. Returns nil when unavailable —
+// a machine that is not domain-joined has no GPO phase, and that is not a zero.
+func collectGpoSec() *int {
+	raw := firstLine(ps(`$e = Get-WinEvent -LogName 'Microsoft-Windows-GroupPolicy/Operational' -MaxEvents 1 -FilterXPath "*[System[EventID=8001]]" -ErrorAction SilentlyContinue
+if (-not $e) { exit }
+$x = [xml]$e.ToXml()
+($x.Event.EventData.Data | Where-Object { $_.Name -eq 'PolicyElaspedTimeInSeconds' }).'#text'`))
+	sec, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || sec < 0 {
+		return nil
+	}
+	return &sec
 }
 
 var reWinLoss = regexp.MustCompile(`\((\d+)%\s*loss\)`)
@@ -201,21 +261,3 @@ func pingStats(target string) (float64, int, bool) {
 	return loss, rtt, true
 }
 
-func collectHardware() []HardwarePred {
-	var out []HardwarePred
-	if h := ps("Get-PhysicalDisk | Select-Object -ExpandProperty HealthStatus | Select-Object -First 1"); h != "" {
-		prob := 0.8
-		if strings.Contains(h, "Healthy") {
-			prob = 0.05
-		}
-		out = append(out, HardwarePred{Component: "DISK", Probability: prob, Status: statusFor(prob)})
-	}
-	if b := ps("(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue).Status"); b != "" {
-		prob := 0.7
-		if strings.Contains(b, "OK") {
-			prob = 0.05
-		}
-		out = append(out, HardwarePred{Component: "BATTERY", Probability: prob, Status: statusFor(prob)})
-	}
-	return out
-}

@@ -176,7 +176,7 @@ export default function Header() {
       {/* Settings Modal overlaying everything z-50 */}
       {activeSettingsTab && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-4xl h-[600px] glass-panel border border-white/10 rounded-2xl shadow-2xl flex bg-slate-900/95 overflow-hidden">
+          <div className="w-full max-w-4xl h-[600px] glass-panel border border-white/10 rounded-2xl flex overflow-hidden">
             
             {/* Sidebar */}
             <div className="w-64 border-r border-white/5 bg-slate-950/30 p-4 flex flex-col space-y-2">
@@ -213,7 +213,7 @@ export default function Header() {
                 {activeSettingsTab === 'profile' && (
                   <div className="space-y-6 max-w-lg">
                     <div className="flex items-center space-x-6 mb-8">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-2 border-indigo-400/50 shadow-lg flex items-center justify-center font-bold text-white text-4xl overflow-hidden">
+                      <div className="w-24 h-24 rounded-full bg-[#12B489] border-2 border-white/10 flex items-center justify-center font-bold text-[#03130d] text-4xl overflow-hidden">
                         {clerkUser?.imageUrl ? <img src={clerkUser.imageUrl} alt="Profile" /> : (clerkUser?.fullName?.charAt(0) || 'U')}
                       </div>
                       <button className="px-4 py-2 border border-white/20 rounded-lg text-sm font-bold text-white hover:bg-white/10 transition-colors">Upload new picture</button>

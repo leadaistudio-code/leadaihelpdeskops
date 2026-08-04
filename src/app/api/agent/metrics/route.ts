@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { checkRateLimit, deviceKeyBucket, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 import { notify } from "@/app/actions/notificationActions";
+import { allocateNumber } from "@/lib/ticket-number";
 
 const schema = z.object({
   cpuPct: z.number().min(0).max(100),
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing device key." }, { status: 401 });
     }
 
-    const limit = rateLimit(`metrics:${deviceKey}`, 12, 60_000);
+    const limit = await checkRateLimit(await deviceKeyBucket(deviceKey, "metrics"), 12, 60_000);
     if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const device = await prisma.device.findUnique({
@@ -188,8 +189,12 @@ async function raiseAlertIncident(domain: string, hostname: string, deviceId: st
       select: { id: true },
     });
 
-    const count = await prisma.incident.count({ where: { type: "INCIDENT" } });
-    const number = `INC${String(count + 10000).padStart(7, "0")}`;
+    // Was: count() over EVERY tenant's incidents + 10000. That leaked one
+    // tenant's volume into another's ticket numbers, and two concurrent alerts
+    // read the same count and produced the same number — a unique-constraint
+    // violation that surfaced as a 500. allocateNumber() increments a per-tenant
+    // counter row atomically.
+    const number = await allocateNumber(domain, "INC");
 
     const incident = await prisma.incident.create({
       data: {

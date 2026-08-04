@@ -21,30 +21,30 @@ model Domain {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  name             String
-  email            String            @unique
-  password         String?
-  role             Role              @default(EMPLOYEE)
-  department       String?
-  incidentsRaised  Incident[]        @relation("Caller")
-  incidentsAssigned Incident[]       @relation("Assignee")
-  articles         KnowledgeArticle[]
-  assets           Asset[]           @relation("AssignedAssets")
-  incidentNotes    IncidentNote[]
-  problemsAssigned Problem[]         @relation("ProblemAssignee")
-  problemNotes     ProblemNote[]
-  catalogRequests  CatalogRequest[]
-  notifications    Notification[]
-  uploads          Attachment[]
-  groups           AssignmentGroup[] @relation("GroupMembers")
-  devices          Device[]          @relation("DeviceOwner")
-  emailNotifications Boolean         @default(true)
-  moduleAccess     String[]          @default(["SELF_SERVICE"])
-  jobTitle         String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  domain           String            @default("global")
+  id                 String             @id @default(cuid())
+  name               String
+  email              String             @unique
+  password           String?
+  role               Role               @default(EMPLOYEE)
+  department         String?
+  incidentsRaised    Incident[]         @relation("Caller")
+  incidentsAssigned  Incident[]         @relation("Assignee")
+  articles           KnowledgeArticle[]
+  assets             Asset[]            @relation("AssignedAssets")
+  incidentNotes      IncidentNote[]
+  problemsAssigned   Problem[]          @relation("ProblemAssignee")
+  problemNotes       ProblemNote[]
+  catalogRequests    CatalogRequest[]
+  notifications      Notification[]
+  uploads            Attachment[]
+  groups             AssignmentGroup[]  @relation("GroupMembers")
+  devices            Device[]           @relation("DeviceOwner")
+  emailNotifications Boolean            @default(true)
+  moduleAccess       String[]           @default(["SELF_SERVICE"])
+  jobTitle           String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  domain             String
 }
 
 enum NotificationType {
@@ -92,7 +92,7 @@ enum TicketType {
 }
 
 enum SlaSchedule {
-  ALWAYS   // 24x7 — calendar hours
+  ALWAYS // 24x7 — calendar hours
   BUSINESS // Mon–Fri 09:00–17:00 — business hours
 }
 
@@ -113,7 +113,7 @@ model SlaDefinition {
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  domain        String      @default("global")
+  domain        String
 }
 
 // A live SLA clock attached to an incident: computes an effective due time,
@@ -151,27 +151,27 @@ model Incident {
   status      IncidentStatus @default(NEW)
   priority    Priority       @default(LOW)
   type        TicketType     @default(INCIDENT)
-  
-  callerId    String
-  caller      User           @relation("Caller", fields: [callerId], references: [id])
-  
-  assigneeId  String?
-  assignee    User?          @relation("Assignee", fields: [assigneeId], references: [id])
+
+  callerId String
+  caller   User   @relation("Caller", fields: [callerId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("Assignee", fields: [assigneeId], references: [id])
 
   assignmentGroupId String?
   assignmentGroup   AssignmentGroup? @relation(fields: [assignmentGroupId], references: [id])
 
-  notes       IncidentNote[]
-  attachments Attachment[]
+  notes        IncidentNote[]
+  attachments  Attachment[]
   slaInstances SlaInstance[]
 
   // A recurring incident can be linked to a Problem record for root-cause work.
-  problemId   String?
-  problem     Problem?       @relation(fields: [problemId], references: [id])
+  problemId String?
+  problem   Problem? @relation(fields: [problemId], references: [id])
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  domain      String         @default("global")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  domain    String
 
   @@unique([domain, number])
   @@index([domain, assignmentGroupId])
@@ -198,23 +198,23 @@ model TenantSettings {
 }
 
 model Attachment {
-  id           String   @id @default(cuid())
-  filename     String
-  mimeType     String
-  size         Int
-  data         Bytes
+  id       String @id @default(cuid())
+  filename String
+  mimeType String
+  size     Int
+  data     Bytes
 
   // An attachment belongs to either an incident or a knowledge article.
-  incidentId   String?
-  incident     Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  incidentId String?
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
-  articleId    String?
-  article      KnowledgeArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId String?
+  article   KnowledgeArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([incidentId])
   @@index([articleId])
@@ -227,32 +227,32 @@ enum NoteType {
 }
 
 model IncidentNote {
-  id         String   @id @default(cuid())
-  body       String
-  type       NoteType @default(COMMENT)
+  id   String   @id @default(cuid())
+  body String
+  type NoteType @default(COMMENT)
 
   incidentId String
   incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
-  authorId   String?
-  author     User?    @relation(fields: [authorId], references: [id])
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id])
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model KnowledgeArticle {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   content     String
-  isPublished Boolean  @default(false)
+  isPublished Boolean @default(false)
 
   authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
+  author      User         @relation(fields: [authorId], references: [id])
   attachments Attachment[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  domain      String   @default("global")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  domain    String
 }
 
 enum AssetStatus {
@@ -263,74 +263,75 @@ enum AssetStatus {
 }
 
 model Asset {
-  id           String      @id @default(cuid())
-  assetTag     String      @unique
-  name         String
-  category     String      // e.g., "Hardware", "Software"
-  status       AssetStatus @default(IN_STOCK)
-  
-  assigneeId   String?
-  assignee     User?       @relation("AssignedAssets", fields: [assigneeId], references: [id])
-  
+  id       String      @id @default(cuid())
+  assetTag String      @unique
+  name     String
+  category String // e.g., "Hardware", "Software"
+  status   AssetStatus @default(IN_STOCK)
+
+  assigneeId String?
+  assignee   User?   @relation("AssignedAssets", fields: [assigneeId], references: [id])
+
   purchaseDate DateTime?
   notes        String?
-  
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  domain       String      @default("global")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  domain    String
 }
 
 model CatalogItem {
   id          String           @id @default(cuid())
   name        String
   description String
-  category    String           // e.g., "Hardware", "Software", "Access"
-  icon        String?          // lucide icon key
-  imageUrl    String?          // product image
-  specs       Json?            // ["16GB RAM", "512GB SSD"]
-  formSchema  Json?            // custom request form schema
-  price       Float?           // optional showback cost
+  category    String // e.g., "Hardware", "Software", "Access"
+  icon        String? // lucide icon key
+  imageUrl    String? // product image
+  specs       Json? // ["16GB RAM", "512GB SSD"]
+  formSchema  Json? // custom request form schema
+  price       Float? // optional showback cost
   isActive    Boolean          @default(true)
   requests    CatalogRequest[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  domain      String           @default("global")
+  domain      String
 }
 
 // A real endpoint (laptop/PC) running the DEX agent, scoped to a tenant.
 model Device {
-  id          String   @id @default(cuid())
-  deviceKey   String   @unique // bearer secret the agent uses to post metrics
-  hostname    String
-  os          String?
-  user        String?  // logged-in OS user reported by the agent (free-text)
-  domain      String   // tenant
-  persona     String?  // e.g., "Developer", "Sales"
+  id        String  @id @default(cuid())
+  deviceKey String  @unique // bearer secret the agent uses to post metrics
+  hostname  String
+  os        String?
+  user      String? // logged-in OS user reported by the agent (free-text)
+  domain    String // tenant
+  persona   String? // e.g., "Developer", "Sales"
 
   // Authoritative owner: the app User this device belongs to. Distinct from the
   // free-text `user` OS-name above — this is a real link, set by enrollment
   // best-effort match or explicit assignment, and used to answer "my device".
-  ownerId     String?
-  owner       User?    @relation("DeviceOwner", fields: [ownerId], references: [id])
+  ownerId String?
+  owner   User?   @relation("DeviceOwner", fields: [ownerId], references: [id])
 
   // Latest snapshot (denormalized for a fast dashboard).
-  cpuPct      Float?
-  memUsedMb   Int?
-  memTotalMb  Int?
-  diskPct     Float?
-  uptimeSec   Int?
-  latencyMs   Int?
-  batteryPct  Int?
-  cpuCores    Int?
-  lastSeenAt  DateTime?
+  cpuPct       Float?
+  memUsedMb    Int?
+  memTotalMb   Int?
+  diskPct      Float?
+  uptimeSec    Int?
+  latencyMs    Int?
+  batteryPct   Int?
+  cpuCores     Int?
+  lastSeenAt   DateTime?
   extendedInfo Json?
 
   // Proactive monitoring: when we last auto-raised an alert for this device.
   lastAlertAt DateTime?
 
-  enrolledAt  DateTime @default(now())
+  enrolledAt          DateTime                    @default(now())
   metrics             DeviceMetric[]
   commands            RemoteCommand[]
+  configurationItem   ConfigurationItem?
   appCrashes          AppCrashEvent[]
   hardwarePredictions HardwareFailurePrediction[]
   installations       SoftwareInstallation[]
@@ -344,15 +345,15 @@ model Device {
 }
 
 model DeviceMetric {
-  id         String   @id @default(cuid())
-  deviceId   String
-  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  cpuPct     Float
-  memUsedMb  Int
-  memTotalMb Int
-  diskPct    Float?
-  uptimeSec  Int?
-  latencyMs  Int?
+  id            String   @id @default(cuid())
+  deviceId      String
+  device        Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  cpuPct        Float
+  memUsedMb     Int
+  memTotalMb    Int
+  diskPct       Float?
+  uptimeSec     Int?
+  latencyMs     Int?
   batteryPct    Int?
   wifiSsid      String?
   wifiSignalDbm Int?
@@ -375,7 +376,7 @@ model RemoteCommand {
   id          String        @id @default(cuid())
   deviceId    String
   device      Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  action      String        // FLUSH_DNS | CLEAR_TEMP | RESTART_SPOOLER | REBOOT
+  action      String // FLUSH_DNS | CLEAR_TEMP | RESTART_SPOOLER | REBOOT
   status      CommandStatus @default(QUEUED)
   result      String?
   domain      String
@@ -386,21 +387,43 @@ model RemoteCommand {
 }
 
 // One enrollment token per tenant; the agent presents it once to enroll.
+// An enrollment token admits a new device into a tenant, and enrolled devices
+// receive queued remediation commands — so possession of one is a meaningful
+// capability, not a convenience.
+//
+// It used to be `{ domain @id, token, createdAt }`: exactly one token per
+// tenant, valid forever, with no way to revoke or rotate it. Anyone who ever
+// saw it — in a runbook, a screenshot, a proxy log — could enrol a rogue device
+// indefinitely. It is now many-per-tenant, expiring, use-capped, and revocable,
+// which also makes rotation possible: issue a new one, revoke the old one.
 model EnrollmentToken {
-  domain    String   @id
-  token     String   @unique
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  domain      String
+  token       String    @unique
+  // What this token was issued for, e.g. "Finance laptop refresh, Aug 2026".
+  label       String?
+  expiresAt   DateTime
+  // How many devices this token may enrol. 1 is the default and the safe case;
+  // a batch rollout can ask for more, deliberately and visibly.
+  maxUses     Int       @default(1)
+  useCount    Int       @default(0)
+  revokedAt   DateTime?
+  createdById String?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([domain, createdAt])
 }
 
 model Flow {
-  id          String   @id @default(cuid())
-  name        String
+  id         String   @id @default(cuid())
+  name       String
   // Serialized node list: [{ id, type, name, desc }]
-  definition  Json
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  domain      String   @default("global")
+  definition Json
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  domain     String
 }
 
 enum RequestStatus {
@@ -411,40 +434,40 @@ enum RequestStatus {
 }
 
 model CatalogRequest {
-  id          String        @id @default(cuid())
-  itemId      String
-  item        CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id     String      @id @default(cuid())
+  itemId String
+  item   CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   requesterId String
-  requester   User          @relation(fields: [requesterId], references: [id])
+  requester   User   @relation(fields: [requesterId], references: [id])
 
-  status      RequestStatus @default(REQUESTED)
-  notes       String?
+  status RequestStatus @default(REQUESTED)
+  notes  String?
 
   // Links to the work-queue incident opened for this request, so approvals
   // stay in sync between the request record and the ticket.
-  incidentId  String?
+  incidentId String?
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  domain      String        @default("global")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  domain    String
 }
 
 // Marketing lead captured by a gated content download (e.g. the CIO's Guide).
 // Not tenant-scoped — these are inbound prospects, not signed-in users.
 model Lead {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  company   String
-  jobTitle  String
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  company    String
+  jobTitle   String
   // Which gated asset they requested, e.g. "cio-autonomous-it".
-  guide     String
+  guide      String
   // Lightweight attribution for where the form was submitted from.
-  source    String?
+  source     String?
   // Set true once the download has been served at least once.
-  downloaded Boolean @default(false)
-  createdAt DateTime @default(now())
+  downloaded Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
   @@index([guide, createdAt])
   @@index([email])
@@ -469,20 +492,20 @@ model Problem {
   status      ProblemStatus @default(NEW)
   priority    Priority      @default(MEDIUM)
 
-  rootCause   String? // findings of the RCA
-  workaround  String? // interim workaround (a Known Error once published)
-  knownError  Boolean       @default(false)
+  rootCause  String? // findings of the RCA
+  workaround String? // interim workaround (a Known Error once published)
+  knownError Boolean @default(false)
 
-  assigneeId  String?
-  assignee    User?         @relation("ProblemAssignee", fields: [assigneeId], references: [id])
+  assigneeId String?
+  assignee   User?   @relation("ProblemAssignee", fields: [assigneeId], references: [id])
 
-  incidents   Incident[] // incidents linked to this problem
-  notes       ProblemNote[]
+  incidents Incident[] // incidents linked to this problem
+  notes     ProblemNote[]
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  resolvedAt  DateTime?
-  domain      String        @default("global")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
+  domain     String
 
   @@unique([domain, number])
   @@index([domain, status])
@@ -507,15 +530,15 @@ model NumberCounter {
 }
 
 model ProblemNote {
-  id        String   @id @default(cuid())
-  body      String
-  type      NoteType @default(COMMENT)
+  id   String   @id @default(cuid())
+  body String
+  type NoteType @default(COMMENT)
 
   problemId String
-  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
-  authorId  String?
-  author    User?    @relation(fields: [authorId], references: [id])
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
 }
@@ -530,10 +553,10 @@ model AuditLog {
   actorName   String?
   actorEmail  String?
   // What
-  action      String   // CREATE | UPDATE | STATE_CHANGE | ASSIGN | APPROVE | REJECT | LINK | UNLINK | REMEDIATION | SLA_BREACH | ROLE_CHANGE
-  entityType  String   // Incident | Problem | CatalogRequest | Device | User | SlaInstance
+  action      String // CREATE | UPDATE | STATE_CHANGE | ASSIGN | APPROVE | REJECT | LINK | UNLINK | REMEDIATION | SLA_BREACH | ROLE_CHANGE
+  entityType  String // Incident | Problem | CatalogRequest | Device | User | SlaInstance
   entityId    String?
-  entityLabel String?  // e.g. "INC0001234", "PRB0000007"
+  entityLabel String? // e.g. "INC0001234", "PRB0000007"
   summary     String
   // Optional structured diff
   field       String?
@@ -541,6 +564,21 @@ model AuditLog {
   newValue    String?
   createdAt   DateTime @default(now())
 
+  // Tamper-evidence. Each entry is chained to the previous one *within its
+  // domain*: hash = SHA256(prevHash || canonical(payload)). Editing or deleting
+  // any historical row breaks every hash after it, which `verifyAuditChain()`
+  // detects. Append-only was previously only a comment in this file — anyone
+  // with DATABASE_URL could rewrite history undetectably.
+  //
+  // `seq` is the per-domain position. The unique constraint on (domain, seq) is
+  // what makes the chain safe under concurrent writers: two racing appends
+  // cannot both claim the same position, so the loser retries against the new
+  // head instead of forking the chain.
+  seq      Int     @default(0)
+  prevHash String?
+  hash     String?
+
+  @@unique([domain, seq])
   @@index([domain, createdAt])
   @@index([domain, entityType, entityId])
   @@index([domain, actorId])
@@ -550,10 +588,10 @@ model AppCrashEvent {
   id         String   @id @default(cuid())
   deviceId   String
   device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  appName    String   // e.g., "zoom.exe"
-  appVersion String?  // e.g., "5.14.2"
-  eventType  String   // "CRASH" or "HANG"
-  domain     String   // Tenant isolation
+  appName    String // e.g., "zoom.exe"
+  appVersion String? // e.g., "5.14.2"
+  eventType  String // "CRASH" or "HANG"
+  domain     String // Tenant isolation
   createdAt  DateTime @default(now())
 
   @@index([domain, appName])
@@ -561,15 +599,15 @@ model AppCrashEvent {
 }
 
 model HardwareFailurePrediction {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   deviceId      String
-  device        Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  component     String   // "BATTERY", "DISK", "CPU_THERMAL"
-  probability   Float    // 0-1
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  component     String // "BATTERY", "DISK", "CPU_THERMAL"
+  probability   Float // 0-1
   predictedDate DateTime?
-  status        String   // "WARNING", "CRITICAL", "RESOLVED"
+  status        String // "WARNING", "CRITICAL", "RESOLVED"
   domain        String
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([deviceId, component])
 }
@@ -588,14 +626,14 @@ model SoftwareInstallation {
 }
 
 model SoftwareUsage {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   deviceId          String
-  device            Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device            Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   softwareName      String
-  foregroundMinutes Int      @default(0)
+  foregroundMinutes Int       @default(0)
   lastUsedAt        DateTime?
   domain            String
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime  @updatedAt
 
   @@unique([deviceId, softwareName])
   @@index([domain, softwareName])
@@ -605,8 +643,8 @@ model RemediationCampaign {
   id             String   @id @default(cuid())
   name           String
   runbook        String
-  targetCriteria String   // e.g., JSON representation of filter criteria
-  status         String   // "DRAFT", "RUNNING", "COMPLETED"
+  targetCriteria String // e.g., JSON representation of filter criteria
+  status         String // "DRAFT", "RUNNING", "COMPLETED"
   totalTargeted  Int      @default(0)
   successCount   Int      @default(0)
   domain         String
@@ -619,9 +657,9 @@ model MicroSurveyResponse {
   id           String   @id @default(cuid())
   deviceId     String
   device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  triggerEvent String   // e.g., "APP_CRASH_zoom.exe"
+  triggerEvent String // e.g., "APP_CRASH_zoom.exe"
   question     String
-  rating       Int      // 1-5
+  rating       Int // 1-5
   comment      String?
   domain       String
   createdAt    DateTime @default(now())
@@ -659,16 +697,134 @@ model SecurityPosture {
 }
 
 model SmartContract {
-  id              String   @id @default(cuid())
-  name            String
-  metric          String   // "CPU", "RAM", "DISK"
-  operator        String   // ">", "<"
-  threshold       Float
-  action          String   // "CLEAR_TEMP", "RESTART_SPOOLER", "REBOOT", "FLUSH_DNS"
-  isActive        Boolean  @default(true)
-  triggersCount   Int      @default(0)
-  domain          String
-  createdAt       DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  metric        String // "CPU", "RAM", "DISK"
+  operator      String // ">", "<"
+  threshold     Float
+  action        String // "CLEAR_TEMP", "RESTART_SPOOLER", "REBOOT", "FLUSH_DNS"
+  isActive      Boolean  @default(true)
+  triggersCount Int      @default(0)
+  domain        String
+  createdAt     DateTime @default(now())
 
   @@index([domain, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// CMDB — configuration items and their dependencies
+// ---------------------------------------------------------------------------
+//
+// The previous "CMDB" was the asset register grouped by category: a fixed three
+// levels, no relationships, and therefore no way to answer the question a CMDB
+// exists to answer — "if this router dies, what stops working?"
+//
+// The model here is a directed graph. A relationship reads source → target as
+// "source DEPENDS ON target", so impact flows backwards along the edges: when a
+// target fails, everything pointing at it is impacted, transitively.
+
+enum CiType {
+  BUSINESS_SERVICE
+  APPLICATION
+  DATABASE
+  VIRTUAL_MACHINE
+  SERVER
+  STORAGE
+  LOAD_BALANCER
+  FIREWALL
+  ROUTER
+  SWITCH
+  WIRELESS_AP
+  LAPTOP
+  DESKTOP
+  PRINTER
+  SITE
+}
+
+enum CiStatus {
+  OPERATIONAL
+  DEGRADED
+  DOWN
+  MAINTENANCE
+  RETIRED
+}
+
+// How much a failure here matters. Independent of status — a DOWN printer and a
+// DOWN core router are not the same event, and the impact view ranks by this.
+enum CiCriticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CiRelationType {
+  // Application → the server or VM it runs on.
+  HOSTED_ON
+  // Virtual machine → its physical host.
+  RUNS_ON
+  // Any device → the switch, router, or AP that carries its traffic.
+  CONNECTED_TO
+  // Application → a database or another service it calls.
+  USES
+  // Business service → the applications that deliver it.
+  DELIVERED_BY
+  // Anything else. Kept so the graph can express a dependency the vocabulary
+  // above has not caught up with yet, rather than forcing a wrong label.
+  DEPENDS_ON
+}
+
+model ConfigurationItem {
+  id          String        @id @default(cuid())
+  // Human-facing identifier used in tickets and conversation, e.g. "CI0000042".
+  ciId        String
+  name        String
+  type        CiType
+  status      CiStatus      @default(OPERATIONAL)
+  criticality CiCriticality @default(MEDIUM)
+
+  // Optional link to a real enrolled endpoint. When set, the CI's health can be
+  // driven by live agent telemetry instead of being maintained by hand — which
+  // is the whole reason a DEX platform can build a CMDB nobody has to curate.
+  deviceId String? @unique
+  device   Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  location  String?
+  ipAddress String?
+  owner     String?
+  notes     String?
+
+  domain    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // `dependencies` are the CIs this one needs; `dependents` are the CIs that
+  // need this one. Naming them from the perspective of the row you are holding
+  // keeps call sites readable — `ci.dependents` is who you page when it dies.
+  dependencies CiRelationship[] @relation("CiDependencies")
+  dependents   CiRelationship[] @relation("CiDependents")
+
+  @@unique([domain, ciId])
+  @@index([domain, type])
+  @@index([domain, status])
+}
+
+model CiRelationship {
+  id String @id @default(cuid())
+
+  // source DEPENDS ON target.
+  sourceId String
+  source   ConfigurationItem @relation("CiDependencies", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId String
+  target   ConfigurationItem @relation("CiDependents", fields: [targetId], references: [id], onDelete: Cascade)
+
+  type      CiRelationType @default(DEPENDS_ON)
+  domain    String
+  createdAt DateTime       @default(now())
+
+  // One edge of a given kind between two CIs. A switch can be both CONNECTED_TO
+  // and DEPENDS_ON another CI without the graph gaining a duplicate.
+  @@unique([sourceId, targetId, type])
+  @@index([domain])
+  @@index([targetId])
 }

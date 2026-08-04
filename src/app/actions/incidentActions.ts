@@ -10,7 +10,7 @@ import { getSessionUser, requireAgent } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notify, notifyGroup } from "@/app/actions/notificationActions";
 import { resolveGroupByName } from "@/app/actions/groupActions";
-import { startSlaForIncident, pauseSla, resumeSla, stopSla, escalateIfBreached } from "@/app/actions/slaActions";
+import { startSlaForIncident, pauseSla, resumeSla, stopSla, escalateIfBreached } from "@/lib/sla-engine";
 import { logAudit } from "@/lib/audit";
 import { allocateNumber, seriesForTicketType } from "@/lib/ticket-number";
 

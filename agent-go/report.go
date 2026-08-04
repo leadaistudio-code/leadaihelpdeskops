@@ -146,7 +146,7 @@ func clip(s string, n int) string {
 // schedule tracks the cadence of the periodic sub-polls so heavy ones (boot,
 // software, hardware) don't run every tick.
 type schedule struct {
-	lastBoot, lastSoftware, lastHardware, lastCrash time.Time
+	lastBoot, lastSoftware, lastCrash time.Time
 }
 
 func newSchedule() *schedule {
@@ -178,19 +178,26 @@ func (s *schedule) run(server, deviceKey string) {
 		}
 	}
 
-	// Hardware health: every 15 minutes.
-	if now.Sub(s.lastHardware) > 15*time.Minute {
-		s.lastHardware = now
-		for _, h := range collectHardware() {
-			_ = postJSON(server, deviceKey, "hardware", h)
-		}
-	}
+	// Hardware failure predictions are NOT reported from here any more.
+	//
+	// The agent used to post a "probability" of 0.05/0.7/0.8 derived from a
+	// SMART health string — numbers with no basis, invented on the endpoint and
+	// sent as if they were predictions. The server derives real predictions in
+	// src/lib/hardware-prediction.ts by least-squares regression over the
+	// DeviceMetric series, and publishes slope, r2 and sample count alongside
+	// every one so it can be checked. A fabricated probability sitting in the
+	// same table as a measured one is exactly what that module exists to remove.
+	//
+	// The underlying disk/battery health strings are still worth collecting and
+	// should be reported as observed device attributes, not as predictions. That
+	// needs a field on Device (or its own model) rather than a reused prediction
+	// row; until then, nothing here fabricates.
 
 	// Boot time: once a day.
 	if now.Sub(s.lastBoot) > 24*time.Hour {
 		s.lastBoot = now
-		if total, osBoot, ok := collectBoot(); ok {
-			_ = postJSON(server, deviceKey, "boot", map[string]any{"totalBootSec": total, "osBootSec": osBoot})
+		if profile, ok := collectBoot(); ok {
+			_ = postJSON(server, deviceKey, "boot", profile)
 		}
 	}
 }

@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getActiveDomain } from "@/lib/tenant";
+import { getKioskDomain } from "@/lib/tenant";
 import { allocateNumber } from "@/lib/ticket-number";
 
 const ISSUE_LABELS: Record<string, string> = {
@@ -17,16 +17,19 @@ const ISSUE_LABELS: Record<string, string> = {
 // shared kiosk user) and returns the ticket number + live queue position.
 export async function createWalkupTicket(issueType: string) {
   const label = ISSUE_LABELS[issueType] ?? ISSUE_LABELS.other;
+  const domain = getKioskDomain();
 
-  // Find or create the shared walk-up kiosk caller.
-  let kiosk = await prisma.user.findUnique({ where: { email: "kiosk@leadaistudio.ai" } });
+  // Find or create this tenant's walk-up kiosk caller. The email carries the
+  // domain so two tenants' kiosks never collide on the unique email index —
+  // and so the kiosk user itself is a tenant row, not a shared one.
+  const email = `kiosk+${domain}@leadaistudio.ai`;
+  let kiosk = await prisma.user.findUnique({ where: { email } });
   if (!kiosk) {
     kiosk = await prisma.user.create({
-      data: { email: "kiosk@leadaistudio.ai", name: "TechLounge Kiosk", role: "EMPLOYEE" },
+      data: { email, name: "TechLounge Kiosk", role: "EMPLOYEE", domain },
     });
   }
 
-  const domain = await getActiveDomain();
   const number = await allocateNumber(domain, "INC");
 
   await prisma.incident.create({
@@ -53,7 +56,7 @@ export async function createWalkupTicket(issueType: string) {
 
 export async function getWalkupQueue() {
   const queue = await prisma.incident.count({
-    where: { title: { startsWith: "Walk-up:" }, status: { in: ["NEW", "IN_PROGRESS"] }, domain: await getActiveDomain() },
+    where: { title: { startsWith: "Walk-up:" }, status: { in: ["NEW", "IN_PROGRESS"] }, domain: getKioskDomain() },
   });
   return { queue, etaMins: Math.max(2, queue * 4) };
 }

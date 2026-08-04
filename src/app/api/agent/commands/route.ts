@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { checkRateLimit, deviceKeyBucket, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 
 // The agent polls this (with its device key) to pull queued remediation
@@ -9,6 +10,13 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get("authorization") ?? "";
     const deviceKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!deviceKey) return NextResponse.json({ error: "Missing device key." }, { status: 401 });
+
+    // The two command endpoints were the only agent routes with no rate limit.
+    // Limiting *before* the device lookup is the point: it caps how fast an
+    // unauthenticated caller can guess device keys, and stops one looping agent
+    // from monopolising the poller. The agent's normal cadence is far below 60/min.
+    const limit = await checkRateLimit(await deviceKeyBucket(deviceKey, "commands"), 60, 60_000);
+    if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const device = await prisma.device.findUnique({ where: { deviceKey }, select: { id: true } });
     if (!device) return NextResponse.json({ error: "Unknown device." }, { status: 401 });

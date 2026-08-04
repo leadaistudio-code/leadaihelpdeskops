@@ -71,7 +71,7 @@ export default function DashboardChart() {
             strokeWidth={2}
             fillOpacity={1} 
             fill="url(#colorTickets)" 
-            activeDot={{ r: 4, fill: "#00d4a4", stroke: "#ffffff", strokeWidth: 1 }}
+            activeDot={{ r: 4, fill: "#38E8B0", stroke: "#080B11", strokeWidth: 1 }}
           />
         </AreaChart>
       </ResponsiveContainer>

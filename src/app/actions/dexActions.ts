@@ -3,12 +3,26 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
-import { getSessionUser } from "@/lib/auth-utils";
+import { getSessionUser, requireAgent } from "@/lib/auth-utils";
 import { logAudit } from "@/lib/audit";
 import { predictForDevice } from "@/lib/hardware-prediction";
-import { openai } from "@ai-sdk/openai";
-import { generateText, generateObject } from "ai";
-import { z } from "zod";
+import { OPTIONS_LIMIT } from "@/lib/query-limits";
+import {
+  bucketLatencyByHour,
+  minutesSaved,
+  bootBand,
+  wifiBand,
+  packetLossBand,
+  median,
+  percentile,
+} from "@/lib/dex-metrics";
+import {
+  newEnrollmentTokenValue,
+  tokenState,
+  type EnrollmentTokenState,
+  DEFAULT_ENROLLMENT_TTL_HOURS,
+  MAX_ENROLLMENT_TTL_HOURS,
+} from "@/lib/enrollment";
 
 export type DexEndpoint = {
   deviceId: string;
@@ -51,54 +65,16 @@ function experienceScore(d: {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-// Auto-seeds realistic demo data attached to real enrolled devices if tables are empty.
-async function seedDemoData(domain: string) {
-  const devices = await prisma.device.findMany({ where: { domain }, select: { id: true } });
-  if (devices.length === 0) return;
-  const deviceId = devices[0].id; // Assign everything to the first active device for simplicity
-
-  // 1. AppCrashes
-  const crashCount = await prisma.appCrashEvent.count({ where: { domain } });
-  if (crashCount === 0) {
-    const apps = ['zoom.exe', 'ms-teams.exe', 'slack.exe', 'chrome.exe', 'excel.exe', 'explorer.exe'];
-    const crashesToInsert = apps.map(app => ({
-      deviceId, domain, appName: app, appVersion: 'Latest', eventType: Math.random() > 0.5 ? 'CRASH' : 'HANG',
-      createdAt: new Date(Date.now() - Math.random() * 86400000)
-    }));
-    await prisma.appCrashEvent.createMany({ data: crashesToInsert });
-  }
-
-  // 2. Software Usage (Shadow IT Cost-Killer)
-  const usageCount = await prisma.softwareUsage.count({ where: { domain } });
-  if (usageCount === 0) {
-    const usages = [
-      { deviceId, domain, softwareName: 'salesforce', foregroundMinutes: 0, lastUsedAt: new Date(Date.now() - 100 * 3600000) },
-      { deviceId, domain, softwareName: 'adobe', foregroundMinutes: 0, lastUsedAt: new Date(Date.now() - 96 * 3600000) },
-      { deviceId, domain, softwareName: 'slack', foregroundMinutes: 450, lastUsedAt: new Date() },
-      { deviceId, domain, softwareName: 'zoom', foregroundMinutes: 200, lastUsedAt: new Date() }
-    ];
-    await prisma.softwareUsage.createMany({ data: usages });
-  }
-
-  // 3. Security Posture
-  const secCount = await prisma.securityPosture.count({ where: { domain } });
-  if (secCount === 0) {
-    await prisma.securityPosture.create({
-      data: { deviceId, domain, bitlockerActive: false, firewallActive: true, avUpdated: true }
-    });
-  }
-
-  // 4. Hardware Failure predictions are no longer seeded — they are computed
-  //    from real telemetry by recomputeHardwarePredictions() below.
-
-  // 5. Smart Contracts
-  const scCount = await prisma.smartContract.count({ where: { domain } });
-  if (scCount === 0) {
-    await prisma.smartContract.create({
-      data: { domain, name: "Prevent Thermal Event", metric: "CPU", operator: ">", threshold: 90, action: "CLEAR_TEMP", triggersCount: 14 }
-    });
-  }
-}
+// NOTE: `seedDemoData()` was removed from this module.
+//
+// It ran on every `getDexSummary()` call and, for any tenant whose tables were
+// still empty, inserted fabricated app crashes, fabricated software-usage
+// records, a fabricated **security posture** (bitlocker: false), and a
+// fabricated automation rule with a made-up trigger count. A real customer's
+// first login silently populated their security posture with fiction — data
+// they would then act on, or show an auditor. A demo fixture must never run on
+// a request path in production. If a populated demo tenant is needed, seed it
+// deliberately from `scripts/` against a known demo domain.
 
 export async function getDexEndpoints(): Promise<DexEndpoint[]> {
   const devices = await prisma.device.findMany({
@@ -147,15 +123,12 @@ export async function getTenantUsers() {
     where: { domain: await getActiveDomain() },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
+    take: OPTIONS_LIMIT,
   });
 }
 
 // Tenant-level rollup for the dashboard headline.
 export async function getDexSummary() {
-  const domain = await getActiveDomain();
-  // Auto-seed missing mock data for the demo environment so the dashboard is live
-  await seedDemoData(domain);
-  
   const endpoints = await getDexEndpoints();
   const total = endpoints.length;
   const online = endpoints.filter((e) => e.online).length;
@@ -218,41 +191,17 @@ export async function assignDeviceOwner(deviceId: string, ownerId: string | null
   return { ok: true };
 }
 
-export async function queueAgenticRemediation(deviceId: string, prompt: string) {
-  const user = await getSessionUser();
-  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
-    throw new Error("Not authorized");
-  }
-  
-  const domain = await getActiveDomain();
-  const device = await prisma.device.findFirst({ where: { id: deviceId, domain }, select: { id: true, hostname: true } });
-  if (!device) throw new Error("Device not found");
-  
-  const { text: script } = await generateText({
-    model: openai("gpt-4o-mini"),
-    system: "You are an expert Windows IT administrator. Given a user request, you must write a single PowerShell script that accomplishes the goal. Return ONLY the raw PowerShell script. Do not include markdown code blocks (like ```powershell), just the raw script text. Make it safe and robust. If the request is unsafe or destructive, return '# UNSAFE REQUEST'.",
-    prompt,
-  });
-
-  if (script.trim().startsWith("# UNSAFE REQUEST") || script.trim() === "") {
-    throw new Error("AI determined the request was unsafe or could not generate a valid script.");
-  }
-
-  const actionStr = `RUN_SCRIPT: ${script.trim()}`;
-
-  await prisma.remoteCommand.create({ data: { deviceId, action: actionStr, domain } });
-  await logAudit({
-    domain,
-    action: "REMEDIATION",
-    entityType: "Device",
-    entityId: deviceId,
-    entityLabel: device.hostname,
-    summary: `Queued Agentic AI remediation: ${prompt}`,
-    actor: { id: user.id, name: user.name, email: user.email },
-  });
-  revalidatePath("/dex");
-  return { ok: true, script: script.trim() };
-}
+// NOTE: `queueAgenticRemediation`, `generateGlobalAgenticScript` and
+// `deployGlobalAgenticScript` were removed deliberately.
+//
+// They asked an LLM to write PowerShell and queued it as `RUN_SCRIPT: <text>`
+// for the agent to execute verbatim. Two problems, either of which is fatal:
+// a server action is a public HTTP endpoint, so the deploy step could be called
+// directly with any script, skipping generation and its safety check entirely;
+// and the "safety check" was the same model grading its own output, which is a
+// suggestion, not a control. The agent no longer honours `RUN_SCRIPT:` at all
+// (see agent-go/remediate.go), so these only ever queued commands that would be
+// refused. Remediation is now limited to the named runbook actions below.
 
 // Per-tenant DEX settings (server-side self-heal toggle).
 export async function getDexSettings() {
@@ -274,18 +223,133 @@ export async function setAutoHeal(autoHeal: boolean) {
   return { autoHeal };
 }
 
-// Admin-only: the tenant's enrollment token (created on first request).
-export async function getEnrollmentInfo() {
+// ---------------------------------------------------------------------------
+// Enrollment tokens (admin)
+// ---------------------------------------------------------------------------
+//
+// These replace `getEnrollmentInfo()`, which lazily minted one permanent,
+// unrevocable token per tenant on first read and returned it to anyone who
+// asked. A token is a capability to add a device to the fleet — and enrolled
+// devices receive remediation commands — so issuing one is now an explicit,
+// audited, expiring act.
+
+export type EnrollmentTokenView = {
+  id: string;
+  // Only ever populated for a token at the moment it is issued. Existing tokens
+  // list as a masked stub: the value is a bearer secret, and re-serving it on
+  // every page load is how it ends up in screenshots and browser caches.
+  token: string | null;
+  tokenHint: string;
+  label: string | null;
+  expiresAt: string;
+  maxUses: number;
+  useCount: number;
+  state: EnrollmentTokenState;
+  lastUsedAt: string | null;
+  createdAt: string;
+};
+
+function toTokenView(row: {
+  id: string;
+  token: string;
+  label: string | null;
+  expiresAt: Date;
+  maxUses: number;
+  useCount: number;
+  revokedAt: Date | null;
+  lastUsedAt: Date | null;
+  createdAt: Date;
+}, reveal = false): EnrollmentTokenView {
+  return {
+    id: row.id,
+    token: reveal ? row.token : null,
+    tokenHint: `${row.token.slice(0, 8)}…${row.token.slice(-4)}`,
+    label: row.label,
+    expiresAt: row.expiresAt.toISOString(),
+    maxUses: row.maxUses,
+    useCount: row.useCount,
+    state: tokenState(row),
+    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export async function listEnrollmentTokens(): Promise<EnrollmentTokenView[]> {
   const user = await getSessionUser();
-  if (!user || user.role !== "ADMIN") return null;
+  if (!user || user.role !== "ADMIN") return [];
+
+  const rows = await prisma.enrollmentToken.findMany({
+    where: { domain: await getActiveDomain() },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  return rows.map((r) => toTokenView(r));
+}
+
+export async function issueEnrollmentToken(opts?: {
+  label?: string;
+  ttlHours?: number;
+  maxUses?: number;
+}): Promise<EnrollmentTokenView | null> {
+  const user = await getSessionUser();
+  if (!user || user.role !== "ADMIN") throw new Error("Not authorized");
 
   const domain = await getActiveDomain();
-  let row = await prisma.enrollmentToken.findUnique({ where: { domain } });
-  if (!row) {
-    const token = `enr_${crypto.randomUUID().replace(/-/g, "")}`;
-    row = await prisma.enrollmentToken.create({ data: { domain, token } });
-  }
-  return { token: row.token };
+  const ttlHours = Math.min(
+    MAX_ENROLLMENT_TTL_HOURS,
+    Math.max(1, Math.floor(opts?.ttlHours ?? DEFAULT_ENROLLMENT_TTL_HOURS))
+  );
+  // Cap the batch size. An unbounded `maxUses` is just the old permanent token
+  // wearing a different hat.
+  const maxUses = Math.min(500, Math.max(1, Math.floor(opts?.maxUses ?? 1)));
+
+  const row = await prisma.enrollmentToken.create({
+    data: {
+      domain,
+      token: newEnrollmentTokenValue(),
+      label: opts?.label?.trim() || null,
+      expiresAt: new Date(Date.now() + ttlHours * 3_600_000),
+      maxUses,
+      createdById: user.id,
+    },
+  });
+
+  await logAudit({
+    domain,
+    action: "CREATE",
+    entityType: "EnrollmentToken",
+    entityId: row.id,
+    entityLabel: row.label ?? row.token.slice(0, 8),
+    summary: `Enrollment token issued — valid ${ttlHours}h, ${maxUses} use${maxUses === 1 ? "" : "s"}`,
+    actor: { id: user.id, name: user.name, email: user.email },
+  });
+
+  revalidatePath("/dex");
+  // Revealed exactly once, here.
+  return toTokenView(row, true);
+}
+
+export async function revokeEnrollmentToken(id: string) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "ADMIN") throw new Error("Not authorized");
+
+  const domain = await getActiveDomain();
+  const res = await prisma.enrollmentToken.updateMany({
+    where: { id, domain, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  if (res.count === 0) throw new Error("Enrollment token not found");
+
+  await logAudit({
+    domain,
+    action: "DELETE",
+    entityType: "EnrollmentToken",
+    entityId: id,
+    summary: "Enrollment token revoked",
+    actor: { id: user.id, name: user.name, email: user.email },
+  });
+
+  revalidatePath("/dex");
 }
 
 // App-DEX: Application Reliability Analytics
@@ -549,25 +613,28 @@ export async function createSmartContract(name: string, metric: string, operator
   return sc;
 }
 
+// SmartContract rows are if-metric-then-action rules that automatically queue
+// remediation commands to endpoints. A role check alone is not enough here: the
+// write must also carry the tenant, or a valid user of one tenant can flip or
+// delete the automation governing another tenant's machines.
 export async function toggleSmartContract(id: string, isActive: boolean) {
-  const user = await getSessionUser();
-  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) throw new Error("Not authorized");
-  
-  const sc = await prisma.smartContract.update({
-    where: { id },
-    data: { isActive }
-  });
+  await requireAgent();
+  const domain = await getActiveDomain();
+
+  const res = await prisma.smartContract.updateMany({ where: { id, domain }, data: { isActive } });
+  if (res.count === 0) throw new Error("Smart contract not found");
+
   revalidatePath("/dex");
-  return sc;
+  return await prisma.smartContract.findFirst({ where: { id, domain } });
 }
 
 export async function deleteSmartContract(id: string) {
-  const user = await getSessionUser();
-  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) throw new Error("Not authorized");
-  
-  await prisma.smartContract.delete({
-    where: { id }
-  });
+  await requireAgent();
+  const domain = await getActiveDomain();
+
+  const res = await prisma.smartContract.deleteMany({ where: { id, domain } });
+  if (res.count === 0) throw new Error("Smart contract not found");
+
   revalidatePath("/dex");
   return { ok: true };
 }
@@ -580,9 +647,21 @@ export async function deleteSmartContract(id: string) {
 // Bounded lookback so a long-lived device doesn't pull its entire history.
 const PREDICTION_LOOKBACK_DAYS = 45;
 const PREDICTION_MAX_SAMPLES = 500;
+// Recomputing costs one query per device. Cap the fleet size a single pass will
+// walk so this cannot become an unbounded fan-out on a large tenant.
+const PREDICTION_MAX_DEVICES = 2_000;
+// How long a prediction set is considered current. The underlying signal is a
+// 45-day regression over telemetry that arrives every 30s — it does not
+// meaningfully move minute to minute, so recomputing more often than this buys
+// nothing and costs a fan-out.
+const PREDICTION_FRESHNESS_MS = 30 * 60_000;
 
 export async function recomputeHardwarePredictions(domain: string) {
-  const devices = await prisma.device.findMany({ where: { domain }, select: { id: true } });
+  const devices = await prisma.device.findMany({
+    where: { domain },
+    select: { id: true },
+    take: PREDICTION_MAX_DEVICES,
+  });
   const since = new Date(Date.now() - PREDICTION_LOOKBACK_DAYS * 86_400_000);
 
   const rows: {
@@ -619,18 +698,39 @@ export async function recomputeHardwarePredictions(domain: string) {
   return rows.length;
 }
 
+// Recompute only if the tenant's prediction set has aged out.
+//
+// Predictions are derived data with a slow-moving input, so they belong on a
+// schedule, not on a render. `/api/sla/sweep` drives the scheduled pass; this
+// gate is the safety net for a tenant whose scheduler has not run yet, and it
+// collapses a per-render fan-out into at most one pass per freshness window.
+export async function recomputeHardwarePredictionsIfStale(domain: string) {
+  const newest = await prisma.hardwareFailurePrediction.findFirst({
+    where: { domain },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+
+  if (newest && Date.now() - newest.createdAt.getTime() < PREDICTION_FRESHNESS_MS) {
+    return null;
+  }
+  return recomputeHardwarePredictions(domain);
+}
+
 // Hardware Lifecycle Arbitrage
 export async function getLifecycleArbitrage() {
   const domain = await getActiveDomain();
 
-  // Refresh from live telemetry so the list reflects current trends, not a
-  // snapshot from whenever predictions were last written.
-  await recomputeHardwarePredictions(domain);
+  // Refresh only when the set has gone stale. This used to recompute
+  // unconditionally on every render — one query per device, on a page the
+  // dashboard polls, so a 500-device tenant issued 500 queries every visit.
+  await recomputeHardwarePredictionsIfStale(domain);
 
   const predictions = await prisma.hardwareFailurePrediction.findMany({
     where: { domain },
     include: { device: { select: { hostname: true, persona: true } } },
-    orderBy: { predictedDate: 'asc' }
+    orderBy: { predictedDate: 'asc' },
+    take: 200,
   });
 
   return predictions.map(p => {
@@ -706,44 +806,23 @@ export async function revokeSoftwareLicense(usageId: string) {
   return { ok: true, software: usage.softwareName };
 }
 
-export async function generateGlobalAgenticScript(prompt: string, modelStr: string) {
-  const user = await getSessionUser();
-  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
-    throw new Error("Not authorized");
+// Fleet-wide remediation using a named runbook action — the safe replacement
+// for the removed `deployGlobalAgenticScript`. The action is validated against
+// the same ALLOWED_ACTIONS vocabulary the agent compiles in, so the worst a
+// caller can queue is a runbook step the agent already knows how to perform.
+export async function queueFleetRemediation(action: string) {
+  const user = await requireAgent();
+
+  if (!ALLOWED_ACTIONS.includes(action as (typeof ALLOWED_ACTIONS)[number])) {
+    throw new Error("Unsupported action");
   }
 
-  const { object } = await generateObject({
-    model: openai(modelStr || "gpt-4o-mini"),
-    schema: z.object({
-      script: z.string().describe("The raw PowerShell script. MUST be empty if request is unsafe."),
-      explanation: z.string().describe("A short explanation of what the script does."),
-      isUnsafe: z.boolean().describe("True if the prompt requests a destructive or unsafe action.")
-    }),
-    system: "You are an expert Windows IT administrator. Given a user request, you must write a single PowerShell script that accomplishes the goal. Return ONLY the raw PowerShell script. Make it safe and robust. If the request is unsafe or destructive, set isUnsafe to true and return an empty script.",
-    prompt,
-  });
-
-  if (object.isUnsafe || object.script.trim() === "") {
-    throw new Error("AI determined the request was unsafe or could not generate a valid script.");
-  }
-
-  return { script: object.script.trim(), explanation: object.explanation };
-}
-
-export async function deployGlobalAgenticScript(prompt: string, script: string) {
-  const user = await getSessionUser();
-  if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
-    throw new Error("Not authorized");
-  }
-  
   const domain = await getActiveDomain();
-  const devices = await prisma.device.findMany({ where: { domain }, select: { id: true, hostname: true } });
-  
-  const actionStr = `RUN_SCRIPT: ${script.trim()}`;
+  const devices = await prisma.device.findMany({ where: { domain }, select: { id: true } });
 
-  const commands = devices.map(d => ({ deviceId: d.id, action: actionStr, domain }));
+  const commands = devices.map((d) => ({ deviceId: d.id, action, domain }));
   if (commands.length > 0) {
-     await prisma.remoteCommand.createMany({ data: commands });
+    await prisma.remoteCommand.createMany({ data: commands });
   }
 
   await logAudit({
@@ -752,10 +831,331 @@ export async function deployGlobalAgenticScript(prompt: string, script: string) 
     entityType: "Tenant",
     entityId: domain,
     entityLabel: "All Devices",
-    summary: `Queued Global Agentic AI remediation: ${prompt}`,
+    summary: `Queued fleet-wide remediation: ${action}`,
     actor: { id: user.id, name: user.name, email: user.email },
   });
-  
+
   revalidatePath("/dex");
   return { ok: true, deviceCount: devices.length };
+}
+
+// ---------------------------------------------------------------------------
+// Real dashboard telemetry
+// ---------------------------------------------------------------------------
+//
+// Everything below replaces a hardcoded array that used to sit on the DEX
+// dashboard underneath a "Live agent data" badge. The audit's point was that a
+// technically literate buyer opening DevTools during a demo sees the fabricated
+// arrays and stops believing the genuinely real capabilities too — so the fix is
+// not cosmetic.
+//
+// Where there is no telemetry yet, these return empty rather than plausible
+// filler, and the UI says so.
+
+// Hourly average latency across the fleet, from real DeviceMetric samples.
+// Replaces seven hardcoded points ending in a dramatic 120ms spike.
+export async function getLatencyTrend(hours = 12) {
+  const domain = await getActiveDomain();
+  const since = new Date(Date.now() - hours * 3_600_000);
+
+  const samples = await prisma.deviceMetric.findMany({
+    where: { device: { domain }, createdAt: { gte: since }, latencyMs: { not: null } },
+    select: { createdAt: true, latencyMs: true },
+    orderBy: { createdAt: "asc" },
+    take: 5_000,
+  });
+
+  const points = bucketLatencyByHour(samples, new Date(), hours);
+  const values = samples
+    .map((s) => s.latencyMs)
+    .filter((v): v is number => v != null && Number.isFinite(v));
+
+  return {
+    points,
+    // p95 is the number that corresponds to what users actually complain about.
+    p95: percentile(values, 95),
+    median: median(values),
+    samples: values.length,
+  };
+}
+
+// Fleet health counts derived from the same experience score the device table
+// shows. Replaces a hardcoded 850/120/30 that drifted off a client-side counter
+// and contradicted the real device total in the tile directly above it.
+export async function getFleetHealthBreakdown() {
+  const endpoints = await getDexEndpoints();
+  return {
+    healthy: endpoints.filter((e) => e.status === "Healthy").length,
+    warning: endpoints.filter((e) => e.status === "Warning").length,
+    critical: endpoints.filter((e) => e.status === "Critical").length,
+    total: endpoints.length,
+  };
+}
+
+// Real remediation activity from RemoteCommand. Replaces a `useState(0)` counter
+// that reset on every page load and an "admin time saved" figure derived from it.
+export async function getRemediationStats() {
+  const domain = await getActiveDomain();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const [todayByAction, allTimeDone, failed, pending] = await Promise.all([
+    prisma.remoteCommand.groupBy({
+      by: ["action"],
+      where: { domain, status: "DONE", completedAt: { gte: startOfDay } },
+      _count: { id: true },
+    }),
+    prisma.remoteCommand.count({ where: { domain, status: "DONE" } }),
+    prisma.remoteCommand.count({ where: { domain, status: "FAILED", createdAt: { gte: startOfDay } } }),
+    prisma.remoteCommand.count({ where: { domain, status: { in: ["QUEUED", "RUNNING"] } } }),
+  ]);
+
+  const byAction = todayByAction.map((a) => ({ action: a.action, count: a._count.id }));
+  const completedToday = byAction.reduce((n, a) => n + a.count, 0);
+
+  return {
+    completedToday,
+    failedToday: failed,
+    pending,
+    allTimeCompleted: allTimeDone,
+    // An estimate, and labelled as one in the UI.
+    minutesSavedToday: minutesSaved(byAction),
+  };
+}
+
+// The real remediation history, replacing a seeded log with fixed timestamps
+// that every user saw identically.
+export async function getRemediationHistory(limit = 20) {
+  const domain = await getActiveDomain();
+  const commands = await prisma.remoteCommand.findMany({
+    where: { domain },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(50, limit),
+    select: {
+      id: true,
+      action: true,
+      status: true,
+      result: true,
+      createdAt: true,
+      completedAt: true,
+      device: { select: { hostname: true } },
+    },
+  });
+
+  return commands.map((c) => ({
+    id: c.id,
+    action: c.action,
+    status: c.status as string,
+    hostname: c.device.hostname,
+    result: c.result,
+    at: (c.completedAt ?? c.createdAt).toISOString(),
+  }));
+}
+
+// Boot and login time. `BootProfile` has had exactly one write site and zero
+// read sites — the data has been collected all along and shown nowhere, despite
+// being among the most-requested DEX metrics in the market.
+export async function getBootPerformance(limit = 15) {
+  const domain = await getActiveDomain();
+
+  const profiles = await prisma.bootProfile.findMany({
+    where: { domain },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+    select: {
+      id: true,
+      totalBootSec: true,
+      biosSec: true,
+      osBootSec: true,
+      profileLoadSec: true,
+      gpoSec: true,
+      createdAt: true,
+      deviceId: true,
+      device: { select: { hostname: true, user: true } },
+    },
+  });
+
+  // One row per device — the most recent boot. Older boots stay in the query
+  // above so the fleet medians are computed over a real distribution, not just
+  // whichever machines rebooted most recently.
+  const latestByDevice = new Map<string, (typeof profiles)[number]>();
+  for (const p of profiles) if (!latestByDevice.has(p.deviceId)) latestByDevice.set(p.deviceId, p);
+
+  const totals = profiles.map((p) => p.totalBootSec);
+  const logins = profiles.map((p) => p.profileLoadSec).filter((v): v is number => v != null);
+
+  const slowest = [...latestByDevice.values()]
+    .sort((a, b) => b.totalBootSec - a.totalBootSec)
+    .slice(0, limit)
+    .map((p) => ({
+      id: p.id,
+      hostname: p.device.hostname,
+      user: p.device.user ?? "—",
+      totalSec: p.totalBootSec,
+      biosSec: p.biosSec,
+      osBootSec: p.osBootSec,
+      loginSec: p.profileLoadSec,
+      gpoSec: p.gpoSec,
+      band: bootBand(p.totalBootSec),
+      at: p.createdAt.toISOString(),
+    }));
+
+  return {
+    medianBootSec: median(totals),
+    p95BootSec: percentile(totals, 95),
+    medianLoginSec: median(logins),
+    devicesReporting: latestByDevice.size,
+    samples: profiles.length,
+    slowest,
+  };
+}
+
+// Network quality. `packetLossPct` and `wifiSignalDbm` are collected on every
+// metrics POST and were displayed nowhere.
+export async function getNetworkQuality(limit = 15) {
+  const domain = await getActiveDomain();
+  const since = new Date(Date.now() - 24 * 3_600_000);
+
+  const samples = await prisma.deviceMetric.findMany({
+    where: {
+      device: { domain },
+      createdAt: { gte: since },
+      OR: [{ packetLossPct: { not: null } }, { wifiSignalDbm: { not: null } }],
+    },
+    select: {
+      deviceId: true,
+      packetLossPct: true,
+      wifiSignalDbm: true,
+      wifiSsid: true,
+      latencyMs: true,
+      createdAt: true,
+      device: { select: { hostname: true, user: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 5_000,
+  });
+
+  // Aggregate per device over the window rather than showing the last sample:
+  // intermittent packet loss is the interesting case, and a single good sample
+  // would hide it.
+  const perDevice = new Map<
+    string,
+    {
+      hostname: string;
+      user: string | null;
+      ssid: string | null;
+      loss: number[];
+      signal: number[];
+      latency: number[];
+    }
+  >();
+
+  for (const s of samples) {
+    const entry = perDevice.get(s.deviceId) ?? {
+      hostname: s.device.hostname,
+      user: s.device.user,
+      ssid: s.wifiSsid,
+      loss: [] as number[],
+      signal: [] as number[],
+      latency: [] as number[],
+    };
+    if (s.packetLossPct != null) entry.loss.push(s.packetLossPct);
+    if (s.wifiSignalDbm != null) entry.signal.push(s.wifiSignalDbm);
+    if (s.latencyMs != null) entry.latency.push(s.latencyMs);
+    if (!entry.ssid && s.wifiSsid) entry.ssid = s.wifiSsid;
+    perDevice.set(s.deviceId, entry);
+  }
+
+  const devices = [...perDevice.entries()].map(([deviceId, d]) => {
+    const avgLoss = d.loss.length ? d.loss.reduce((a, b) => a + b, 0) / d.loss.length : null;
+    const medSignal = median(d.signal);
+    return {
+      deviceId,
+      hostname: d.hostname,
+      user: d.user ?? "—",
+      ssid: d.ssid,
+      packetLossPct: avgLoss,
+      worstPacketLossPct: d.loss.length ? Math.max(...d.loss) : null,
+      wifiSignalDbm: medSignal,
+      p95LatencyMs: percentile(d.latency, 95),
+      lossBand: avgLoss != null ? packetLossBand(avgLoss) : null,
+      signalBand: medSignal != null ? wifiBand(medSignal) : null,
+    };
+  });
+
+  // Worst first — this table exists to answer "who is having a bad time?"
+  devices.sort((a, b) => (b.packetLossPct ?? -1) - (a.packetLossPct ?? -1));
+
+  const allLoss = devices.map((d) => d.packetLossPct).filter((v): v is number => v != null);
+  const allSignal = devices.map((d) => d.wifiSignalDbm).filter((v): v is number => v != null);
+
+  return {
+    devicesReporting: devices.length,
+    medianPacketLossPct: median(allLoss),
+    medianWifiSignalDbm: median(allSignal),
+    poorConnectivityCount: devices.filter((d) => d.lossBand === "poor" || d.signalBand === "poor").length,
+    worst: devices.slice(0, limit),
+  };
+}
+
+// Employee sentiment from `MicroSurveyResponse` — the other model with a write
+// site and no read site. These are 1-5 ratings captured right after a bad event
+// (a crash, say), which makes them the only direct signal in the product about
+// how the fleet actually *feels* to use.
+export async function getSentimentSummary(days = 30) {
+  const domain = await getActiveDomain();
+  const since = new Date(Date.now() - days * 86_400_000);
+
+  const responses = await prisma.microSurveyResponse.findMany({
+    where: { domain, createdAt: { gte: since } },
+    select: {
+      rating: true,
+      triggerEvent: true,
+      comment: true,
+      createdAt: true,
+      device: { select: { hostname: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 1_000,
+  });
+
+  if (responses.length === 0) {
+    return {
+      responses: 0,
+      averageRating: null,
+      detractorPct: null,
+      byTrigger: [] as { trigger: string; averageRating: number; responses: number }[],
+      recentComments: [] as { hostname: string; rating: number; comment: string; at: string }[],
+    };
+  }
+
+  const ratings = responses.map((r) => r.rating);
+  const byTriggerMap = new Map<string, { total: number; count: number }>();
+  for (const r of responses) {
+    const b = byTriggerMap.get(r.triggerEvent) ?? { total: 0, count: 0 };
+    b.total += r.rating;
+    b.count += 1;
+    byTriggerMap.set(r.triggerEvent, b);
+  }
+
+  return {
+    responses: responses.length,
+    averageRating: ratings.reduce((a, b) => a + b, 0) / ratings.length,
+    // 1-2 out of 5 is a detractor. This is the number worth acting on; the mean
+    // hides a bimodal fleet where half the users are miserable.
+    detractorPct: (ratings.filter((r) => r <= 2).length / ratings.length) * 100,
+    byTrigger: [...byTriggerMap.entries()]
+      .map(([trigger, b]) => ({ trigger, averageRating: b.total / b.count, responses: b.count }))
+      .sort((a, b) => a.averageRating - b.averageRating)
+      .slice(0, 8),
+    recentComments: responses
+      .filter((r) => r.comment?.trim())
+      .slice(0, 5)
+      .map((r) => ({
+        hostname: r.device.hostname,
+        rating: r.rating,
+        comment: r.comment as string,
+        at: r.createdAt.toISOString(),
+      })),
+  };
 }

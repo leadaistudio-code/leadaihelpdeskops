@@ -4,22 +4,21 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 )
 
-// execAction runs a remediation queued by IT. Returns (ok, output). Mirrors the
-// runbook vocabulary the server queues (ALLOWED_ACTIONS + RUN_SCRIPT).
+// execAction runs a remediation queued by IT. Returns (ok, output).
+//
+// The vocabulary below is the ENTIRE set of things this agent will ever do. It
+// is compiled in deliberately: the server can only ask for a named action, and
+// an unrecognised action is refused rather than interpreted. Do not add a
+// branch that executes server-supplied script text — that turns any compromised
+// or misused staff account into arbitrary code execution on every enrolled
+// endpoint at once. Arbitrary scripting, if it is ever a real requirement,
+// needs asymmetric signing verified here, a second-person approval, and a
+// canary ring before it comes anywhere near this function.
 func execAction(action string) (bool, string) {
 	win := runtime.GOOS == "windows"
-
-	if strings.HasPrefix(action, "RUN_SCRIPT:") {
-		script := strings.TrimSpace(action[len("RUN_SCRIPT:"):])
-		if win {
-			return true, ps(script)
-		}
-		return true, sh(script)
-	}
 
 	switch action {
 	case "FLUSH_DNS":
@@ -30,6 +29,12 @@ func execAction(action string) (bool, string) {
 
 	case "CLEAR_TEMP":
 		return true, clearTemp()
+
+	case "REPAIR_SYSTEM_FILES":
+		if win {
+			return true, runCmd(15*time.Minute, "sfc", "/scannow")
+		}
+		return true, "N/A on Linux"
 
 	case "RESTART_SPOOLER":
 		if win {

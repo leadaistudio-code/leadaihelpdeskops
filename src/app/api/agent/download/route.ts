@@ -15,12 +15,16 @@ async function getAgentBinary(): Promise<Buffer | null> {
       /* fall through to local */
     }
   }
-  // Explicit static string paths so Next.js NFT includes them in the serverless bundle
+  // Explicit static string paths so Next.js NFT includes them in the serverless bundle.
+  //
+  // The legacy `agent/dist/*` fallbacks were removed: that directory holds the
+  // superseded Node agent, whose binaries still contain the RUN_SCRIPT branch
+  // that executes arbitrary server-supplied script text. Serving one as a
+  // fallback would hand a customer the vulnerable agent. Only serve builds from
+  // `agent-go/dist`, which is produced from the current source.
   const pathsToTry = [
     path.join(process.cwd(), "agent-go", "dist", "aiops-agent.exe"),
     path.join(process.cwd(), "agent-go", "dist", "dex-agent.exe"),
-    path.join(process.cwd(), "agent", "dist", "aiops-agent.exe"),
-    path.join(process.cwd(), "agent", "dist", "dex-agent.exe"),
   ];
 
   for (const filePath of pathsToTry) {

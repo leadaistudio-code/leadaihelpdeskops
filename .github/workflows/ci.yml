@@ -32,6 +32,78 @@ jobs:
       - name: Unit tests
         run: npm test
 
+  schema:
+    name: Migrations match the schema
+    runs-on: ubuntu-latest
+    # Catches the failure mode that produced the audit's lowest score: a schema
+    # changed with `prisma db push` and never written down as a migration, so
+    # the migration history cannot rebuild the current database. Compares the
+    # committed migrations against schema.prisma and fails on any drift.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for schema drift
+        run: |
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --exit-code
+        env:
+          SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shadow
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fails on unwaived high/critical advisories in the PRODUCTION dependency
+      # tree. Waivers live in audit-allowlist.json with a reason and a review
+      # date, and an expired waiver fails the build — see the note at the top of
+      # the script for why a bare `npm audit --audit-level=high` does not work
+      # here.
+      - name: Dependency audit
+        run: node scripts/audit-deps.mjs
+
+      # An SBOM is increasingly a procurement requirement for anyone shipping an
+      # endpoint agent. Generating it per-build means it is always current.
+      - name: Generate SBOM
+        run: npm sbom --sbom-format cyclonedx > sbom.cyclonedx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cyclonedx.json
+
   build:
     name: Production build
     runs-on: ubuntu-latest

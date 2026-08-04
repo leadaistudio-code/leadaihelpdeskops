@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs';
 import AppShell from "@/components/AppShell";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import Script from "next/script";
 
-// Mintlify design language: Inter carries every UI surface (body, headings,
-// labels, buttons); Geist Mono is used surgically for code and type signatures.
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
 
 export const metadata: Metadata = {
   title: {
@@ -66,7 +64,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${inter.variable} ${geistMono.variable} font-sans bg-[#080B11] text-slate-200`}>
+        <body className={`${jakarta.variable} ${bricolage.variable} font-sans bg-slate-50 text-slate-900 dark:bg-[#080B11] dark:text-[#EAEEF5]`}>
           <Script
             id="json-ld"
             type="application/ld+json"
@@ -74,7 +72,7 @@ export default function RootLayout({
           />
           <AppShell>{children}</AppShell>
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ''} />
-        </body>
+</body>
       </html>
     </ClerkProvider>
   );

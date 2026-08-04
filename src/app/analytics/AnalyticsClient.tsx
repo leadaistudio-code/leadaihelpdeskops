@@ -3,11 +3,22 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Ghost, ShieldX, Check, Activity } from "lucide-react";
-import { revokeSoftwareLicense } from "@/app/actions/dexActions";
+import { revokeSoftwareLicense, type getShadowItSavings } from "@/app/actions/dexActions";
 import { toast } from "@/components/toast";
 import { Panel, PanelHeader, Badge, Button, DataTable, THead, TH, TBody, TR, TD } from "@/components/ui";
 
-export default function AnalyticsClient({ initialData, activeData }: { initialData: any[], activeData: any[] }) {
+// Derived from the server action that produces the data rather than restated
+// here, so the two cannot drift and `any[]` is not needed to paper over the gap.
+type ShadowItData = Awaited<ReturnType<typeof getShadowItSavings>>;
+type License = ShadowItData["unusedLicenses"][number];
+
+export default function AnalyticsClient({
+  initialData,
+  activeData,
+}: {
+  initialData: License[];
+  activeData: License[];
+}) {
   const [data, setData] = useState(initialData);
   const [revoking, setRevoking] = useState<string | null>(null);
 

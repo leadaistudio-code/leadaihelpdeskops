@@ -12,6 +12,15 @@ vi.mock("@/lib/prisma", () => ({ default: prismaMock }));
 
 import { executeFleetTool, FLEET_TOOL_SCHEMAS } from "@/lib/fleet-tools";
 
+// `executeFleetTool` returns `unknown` on purpose — it is a dispatcher over
+// tools with different result shapes, and the model-facing boundary should not
+// pretend otherwise. Narrowing once here beats an `any` at each call site.
+type DeviceListResult = { count: number; devices: { hostname: string }[] };
+
+async function listDevices(name: string, input: unknown, domain: string): Promise<DeviceListResult> {
+  return (await executeFleetTool(name, input, domain)) as DeviceListResult;
+}
+
 const ACME = "org_acme";
 beforeEach(() => vi.clearAllMocks());
 
@@ -70,14 +79,14 @@ describe("list_devices filtering", () => {
       online(),
       { ...online(), hostname: "OLD", lastSeenAt: new Date(now - 10 * 60_000) },
     ]);
-    const res: any = await executeFleetTool("list_devices", { filter: "offline" }, ACME);
+    const res = await listDevices("list_devices", { filter: "offline" }, ACME);
     expect(res.count).toBe(1);
     expect(res.devices[0].hostname).toBe("OLD");
   });
 
   it("low_disk filter returns devices past the disk threshold", async () => {
     prismaMock.device.findMany.mockResolvedValue([online(), { ...online(), hostname: "FULL", diskPct: 92 }]);
-    const res: any = await executeFleetTool("list_devices", { filter: "low_disk" }, ACME);
+    const res = await listDevices("list_devices", { filter: "low_disk" }, ACME);
     expect(res.count).toBe(1);
     expect(res.devices[0].hostname).toBe("FULL");
   });
@@ -88,8 +97,8 @@ describe("list_devices filtering", () => {
       { ...online(), hostname: "HOT", cpuPct: 95 },
       { ...online(), hostname: "GONE", lastSeenAt: new Date(now - 10 * 60_000) },
     ]);
-    const res: any = await executeFleetTool("list_devices", { filter: "at_risk" }, ACME);
+    const res = await listDevices("list_devices", { filter: "at_risk" }, ACME);
     expect(res.count).toBe(2);
-    expect(res.devices.map((d: any) => d.hostname).sort()).toEqual(["GONE", "HOT"]);
+    expect(res.devices.map((d) => d.hostname).sort()).toEqual(["GONE", "HOT"]);
   });
 });

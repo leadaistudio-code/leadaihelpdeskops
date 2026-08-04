@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { createIncident } from "@/app/actions/incidentActions";
+import { LIST_LIMIT, FEED_LIMIT } from "@/lib/query-limits";
 
 // Default catalogue seeded on first load so the storefront is never empty.
 const DEFAULT_CATALOG = [
@@ -52,7 +53,7 @@ export async function getCatalogItems() {
   // Additively seed any default catalogue items missing for this tenant. This
   // keeps the storefront fully populated — including older tenants that were
   // seeded before the catalogue was expanded — without duplicating existing rows.
-  const existing = await prisma.catalogItem.findMany({ where: { domain }, select: { name: true } });
+  const existing = await prisma.catalogItem.findMany({ where: { domain }, select: { name: true }, take: LIST_LIMIT });
   const have = new Set(existing.map((e) => e.name));
   const missing = DEFAULT_CATALOG.filter((c) => !have.has(c.name));
   if (missing.length > 0) {
@@ -61,6 +62,7 @@ export async function getCatalogItems() {
   return prisma.catalogItem.findMany({
     where: { isActive: true, domain },
     orderBy: { category: "asc" },
+    take: LIST_LIMIT,
   });
 }
 
@@ -76,6 +78,7 @@ export async function getMyCatalogRequests() {
     where: { requesterId: user.id, domain: await getActiveDomain() },
     include: { item: true },
     orderBy: { createdAt: "desc" },
+    take: FEED_LIMIT,
   });
 }
 

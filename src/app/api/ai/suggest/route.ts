@@ -3,7 +3,7 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { rateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
+import { checkRateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 import { scoreArticle } from "@/lib/text-rank";
 import { getActiveDomain } from "@/lib/tenant";
@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const limit = rateLimit(await callerKey(req, "suggest"), 15, 60_000);
+    const limit = await checkRateLimit(await callerKey(req, "suggest"), 15, 60_000);
     if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const parsed = schema.safeParse(await req.json());

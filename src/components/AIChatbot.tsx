@@ -57,14 +57,21 @@ export default function AIChatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      setMessages([{ id: "greeting", role: "assistant", content: GREETING }]);
-    }
-  }, [isOpen, messages.length]);
+  // Seed the greeting when the panel opens rather than from an effect that
+  // watches `messages.length` and then writes to `messages` — that shape
+  // schedules an extra render pass on every open and reads as a state loop.
+  const openChat = () => {
+    setIsOpen(true);
+    setMessages((prev) =>
+      prev.length === 0 ? [{ id: "greeting", role: "assistant", content: GREETING }] : prev
+    );
+  };
 
   const send = async (text: string) => {
-    const userMessage: Message = { id: `u-${Date.now()}`, role: "user", content: text };
+    // crypto.randomUUID() rather than Date.now(): the id only needs to be
+    // unique as a React key, and Date.now() is an impure call in a render path
+    // that also collides when two messages land in the same millisecond.
+    const userMessage: Message = { id: `u-${crypto.randomUUID()}`, role: "user", content: text };
     const next = [...messages, userMessage];
     setMessages(next);
     setIsTyping(true);
@@ -109,16 +116,16 @@ export default function AIChatbot() {
     <>
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={openChat}
           aria-label="Open Now Assist"
-          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0a0a0a] hover:bg-[#1c1c1e] rounded-full shadow-lg shadow-black/30 flex items-center justify-center text-white transition-colors z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4a4]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#ffffff]"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0a0a0a] hover:bg-[#1c1c1e] rounded-full shadow-lg shadow-black/30 flex items-center justify-center text-white transition-colors z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38E8B0]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080B11]"
         >
           <Sparkles className="w-6 h-6" />
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-2xl border border-white/10 flex flex-col z-50 overflow-hidden shadow-2xl shadow-black/40 transition-all duration-300">
+        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] glass-panel rounded-2xl border border-white/10 flex flex-col z-50 overflow-hidden transition-all duration-300">
           <div className="bg-white/[0.02] p-4 flex justify-between items-center border-b border-white/10">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#00d4a4]/10 text-[#00926f]">
@@ -161,9 +168,9 @@ export default function AIChatbot() {
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="bg-white/[0.04] border border-white/10 rounded-2xl rounded-bl-none p-4 flex space-x-2 items-center w-20">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full" style={{ opacity: 0.8, animationDelay: "0ms" }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full" style={{ opacity: 0.6, animationDelay: "150ms" }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full" style={{ opacity: 0.4, animationDelay: "300ms" }}></div>
                 </div>
               </div>
             )}

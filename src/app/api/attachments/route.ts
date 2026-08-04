@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-utils";
-import { rateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
+import { checkRateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 import { getActiveDomain } from "@/lib/tenant";
 
@@ -19,7 +19,7 @@ const BLOCKED = new Set([
 
 export async function POST(req: Request) {
   try {
-    const limit = rateLimit(await callerKey(req, "upload"), 30, 60_000);
+    const limit = await checkRateLimit(await callerKey(req, "upload"), 30, 60_000);
     if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const user = await getSessionUser();

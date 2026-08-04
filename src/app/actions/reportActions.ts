@@ -166,11 +166,13 @@ export async function getDexReportData(period: string) {
     include: { device: { select: { hostname: true } } }
   });
 
-  const topCrashes = crashes.reduce((acc: any, c) => {
+  const topCrashes = crashes.reduce<Record<string, number>>((acc, c) => {
     acc[c.appName] = (acc[c.appName] || 0) + 1;
     return acc;
   }, {});
-  const sortedCrashes = Object.entries(topCrashes).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+  const sortedCrashes = Object.entries(topCrashes)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
 
   // 3. Security Drifts
   const security = await prisma.securityPosture.findMany({

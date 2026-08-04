@@ -6,6 +6,7 @@ import { NoteType } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-utils";
 import { getActiveDomain } from "@/lib/tenant";
 import { notifyGroup } from "@/app/actions/notificationActions";
+import { LIST_LIMIT, OPTIONS_LIMIT } from "@/lib/query-limits";
 async function requireAgent() {
   const user = await getSessionUser();
   if (!user || (user.role !== "ADMIN" && user.role !== "IT_AGENT")) {
@@ -24,6 +25,7 @@ export async function getGroups() {
       _count: { select: { incidents: true } },
     },
     orderBy: { name: "asc" },
+    take: LIST_LIMIT,
   });
   return groups.map((g) => ({
     id: g.id,
@@ -40,6 +42,7 @@ export async function getGroupOptions() {
     where: { domain },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
+    take: OPTIONS_LIMIT,
   });
 }
 

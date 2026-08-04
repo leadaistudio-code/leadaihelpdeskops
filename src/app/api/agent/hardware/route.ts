@@ -1,55 +1,32 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import prisma from "@/lib/prisma";
-import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
-import { logError } from "@/lib/observability";
 
-const schema = z.object({
-  component: z.string().min(1).max(100),
-  probability: z.number().min(0).max(1),
-  predictedDate: z.string().datetime().nullish(),
-  status: z.enum(["WARNING", "CRITICAL", "RESOLVED"]),
-});
+// Retired: agent-reported hardware "predictions".
+//
+// This route accepted `{ component, probability, status }` from the endpoint and
+// wrote it straight into `HardwareFailurePrediction`. The probabilities were
+// invented on the agent — 0.05 if a SMART string said "Healthy", 0.8 if it did
+// not — and landed in the same table as the real ones.
+//
+// Real predictions come from `src/lib/hardware-prediction.ts`: least-squares
+// regression over the actual `DeviceMetric` series, which publishes slope, r²,
+// sample count and days-to-threshold with every output and refuses to emit
+// anything at all below `MIN_SAMPLES`. That explainability is the product's
+// genuine differentiator, and it is worth nothing if a fabricated row can sit
+// next to a derived one indistinguishably.
+//
+// The route is kept (rather than deleted) and fails closed, because the agent
+// cannot yet self-update: binaries already installed on customer laptops will
+// keep POSTing here for as long as they are deployed. Deleting the file would
+// give them a 404 they ignore; returning 410 documents the decision at the only
+// place that can actually enforce it. Remove this once no agent in the field
+// predates the change.
 
-export async function POST(req: Request) {
-  try {
-    const authHeader = req.headers.get("authorization") ?? "";
-    const deviceKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-    if (!deviceKey) {
-      return NextResponse.json({ error: "Missing device key." }, { status: 401 });
-    }
-
-    const limit = rateLimit(`hardware:${deviceKey}`, 20, 60_000);
-    if (!limit.ok) return tooManyRequests(limit.resetMs);
-
-    const device = await prisma.device.findUnique({
-      where: { deviceKey },
-      select: { id: true, domain: true },
-    });
-    if (!device) {
-      return NextResponse.json({ error: "Unknown device." }, { status: 401 });
-    }
-
-    const parsed = schema.safeParse(await req.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid hardware payload." }, { status: 400 });
-    }
-    const data = parsed.data;
-
-    await prisma.hardwareFailurePrediction.create({
-      data: {
-        deviceId: device.id,
-        component: data.component,
-        probability: data.probability,
-        predictedDate: data.predictedDate ? new Date(data.predictedDate) : null,
-        status: data.status,
-        domain: device.domain,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    logError(error, { route: "/api/agent/hardware" });
-    return NextResponse.json({ error: "Ingest failed." }, { status: 500 });
-  }
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "Endpoint retired. Hardware failure predictions are derived server-side from device metrics; agents must not report predictions.",
+    },
+    { status: 410 }
+  );
 }

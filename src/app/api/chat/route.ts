@@ -1,7 +1,7 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { rateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
+import { checkRateLimit, callerKey, tooManyRequests } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 import { isAIConfigured, MODELS } from "@/lib/ai";
 import { getSessionUser } from "@/lib/auth-utils";
@@ -41,7 +41,7 @@ Keep replies short and concrete — a sentence or two, plus the next step.`;
 
 export async function POST(req: Request) {
   try {
-    const limit = rateLimit(await callerKey(req, "chat"), 20, 60_000);
+    const limit = await checkRateLimit(await callerKey(req, "chat"), 20, 60_000);
     if (!limit.ok) return tooManyRequests(limit.resetMs);
 
     const user = await getSessionUser();

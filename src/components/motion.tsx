@@ -109,21 +109,25 @@ export function AnimatedCounter({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const reduceMotion = useReducedMotion();
-  const [display, setDisplay] = useState(0);
+  const [animated, setAnimated] = useState(0);
 
   useEffect(() => {
-    if (!inView) return;
-    if (reduceMotion) {
-      setDisplay(value);
-      return;
-    }
+    // Nothing to animate: either it is off-screen, or the viewer has asked for
+    // reduced motion, in which case the final value is rendered directly below
+    // rather than written into state from here.
+    if (!inView || reduceMotion) return;
     const controls = animate(0, value, {
       duration: 1,
       ease: "easeOut",
-      onUpdate: (v) => setDisplay(v),
+      onUpdate: (v) => setAnimated(v),
     });
     return () => controls.stop();
   }, [inView, value, reduceMotion]);
+
+  // Derived during render instead of synchronised through an effect. With
+  // reduced motion there is no count-up at all, so the final value renders
+  // immediately; otherwise the animated value carries it (0 until in view).
+  const display = reduceMotion ? value : animated;
 
   return (
     <span ref={ref} className={className}>

@@ -34,7 +34,10 @@ export default function FleetCopilot() {
 
   const send = async (text: string) => {
     if (!text.trim() || isTyping) return;
-    const userMessage: Message = { id: `u-${Date.now()}`, role: "user", content: text };
+    // crypto.randomUUID() rather than Date.now(): the id only needs to be
+    // unique as a React key, and Date.now() is an impure call in a render path
+    // that also collides when two messages land in the same millisecond.
+    const userMessage: Message = { id: `u-${crypto.randomUUID()}`, role: "user", content: text };
     const next = [...messages, userMessage];
     setMessages(next);
     setInput("");
@@ -107,9 +110,9 @@ export default function FleetCopilot() {
                 <Bot className="w-4 h-4" />
               </div>
               <div className="bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 flex space-x-1.5 items-center">
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" style={{ opacity: 0.8, animationDelay: "0ms" }} />
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" style={{ opacity: 0.6, animationDelay: "150ms" }} />
+                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" style={{ opacity: 0.4, animationDelay: "300ms" }} />
               </div>
             </div>
           )}

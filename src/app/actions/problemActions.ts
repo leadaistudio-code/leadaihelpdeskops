@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma";
 import { ProblemStatus, Priority, NoteType, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getActiveDomain } from "@/lib/tenant";
-import { getSessionUser } from "@/lib/auth-utils";
+import { getSessionUser, requireAgent } from "@/lib/auth-utils";
 import { notify } from "@/app/actions/notificationActions";
 import { logAudit } from "@/lib/audit";
 import { allocateNumber } from "@/lib/ticket-number";
+import { LIST_LIMIT } from "@/lib/query-limits";
 
 async function nextProblemNumber(domain: string) {
   return allocateNumber(domain, "PRB");
@@ -31,6 +32,7 @@ export async function getProblems(opts?: { status?: ProblemStatus | "ALL"; searc
       _count: { select: { incidents: true } },
     },
     orderBy: { createdAt: "desc" },
+    take: LIST_LIMIT,
   });
 }
 
@@ -116,6 +118,7 @@ export async function createProblemFromIncident(incidentId: string) {
 }
 
 export async function linkIncidentToProblem(problemId: string, incidentId: string) {
+  await requireAgent();
   const domain = await getActiveDomain();
   const [p, inc] = await Promise.all([
     prisma.problem.findFirst({ where: { id: problemId, domain }, select: { number: true } }),
@@ -132,6 +135,7 @@ export async function linkIncidentToProblem(problemId: string, incidentId: strin
 }
 
 export async function unlinkIncidentFromProblem(incidentId: string) {
+  await requireAgent();
   const domain = await getActiveDomain();
   const inc = await prisma.incident.findFirst({ where: { id: incidentId, domain }, select: { problemId: true } });
   if (!inc?.problemId) return;
@@ -143,6 +147,7 @@ export async function unlinkIncidentFromProblem(incidentId: string) {
 }
 
 export async function updateProblemState(id: string, status: ProblemStatus) {
+  await requireAgent();
   const domain = await getActiveDomain();
   const p = await prisma.problem.findFirst({ where: { id, domain }, select: { status: true, number: true, assigneeId: true, title: true } });
   if (!p) throw new Error("Not found");
@@ -178,6 +183,7 @@ export async function updateProblemDetails(
   id: string,
   data: { rootCause?: string; workaround?: string; priority?: Priority }
 ) {
+  await requireAgent();
   const domain = await getActiveDomain();
   const p = await prisma.problem.findFirst({ where: { id, domain }, select: { id: true } });
   if (!p) throw new Error("Not found");

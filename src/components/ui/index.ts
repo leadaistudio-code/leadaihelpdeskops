@@ -10,3 +10,5 @@ export type { StatTone } from "./StatTile";
 export { PageHeader } from "./PageHeader";
 export { Field, Label, Input, Textarea, Select } from "./Field";
 export { DataTable, THead, TH, TBody, TR, TD } from "./Table";
+export { Tabs, TabPanel, useTabs } from "./Tabs";
+export type { TabItem } from "./Tabs";

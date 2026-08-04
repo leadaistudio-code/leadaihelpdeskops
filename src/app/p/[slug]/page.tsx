@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, Phone, MapPin, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, PiggyBank, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, Phone, MapPin, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
 import RoiCalculator from "@/components/roi-calculator";
+import DemoRequestForm from "@/components/DemoRequestForm";
+import { PRICING_TIERS, PRICING_FAQ } from "@/lib/pricing";
 
 // Individual Page Components
 const AboutPage = () => (
@@ -52,40 +54,7 @@ const ContactPage = () => (
         </div>
       </div>
       
-      <div className="bg-white p-8 border border-[#e5e5e5] rounded-xl shadow-lg">
-        <h3 className="text-2xl font-bold text-[#0a0a0a] mb-6">Request a Demo</h3>
-        <form className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#3a3a3c] mb-1">First Name</label>
-              <input type="text" className="w-full px-4 py-2 border border-[#e5e5e5] rounded-lg focus:ring-2 focus:ring-[#00d4a4] focus:border-[#00d4a4] focus:outline-none" placeholder="John" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#3a3a3c] mb-1">Last Name</label>
-              <input type="text" className="w-full px-4 py-2 border border-[#e5e5e5] rounded-lg focus:ring-2 focus:ring-[#00d4a4] focus:border-[#00d4a4] focus:outline-none" placeholder="Doe" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#3a3a3c] mb-1">Work Email</label>
-            <input type="email" className="w-full px-4 py-2 border border-[#e5e5e5] rounded-lg focus:ring-2 focus:ring-[#00d4a4] focus:border-[#00d4a4] focus:outline-none" placeholder="john@company.com" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#3a3a3c] mb-1">Company Size</label>
-            <select className="w-full px-4 py-2 border border-[#e5e5e5] rounded-lg focus:ring-2 focus:ring-[#00d4a4] focus:border-[#00d4a4] focus:outline-none">
-              <option>1-500 Employees</option>
-              <option>500-2000 Employees</option>
-              <option>2000+ Employees</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#3a3a3c] mb-1">How can we help?</label>
-            <textarea className="w-full px-4 py-2 border border-[#e5e5e5] rounded-lg focus:ring-2 focus:ring-[#00d4a4] focus:border-[#00d4a4] focus:outline-none h-24" placeholder="Tell us about your IT challenges..."></textarea>
-          </div>
-          <button type="button" className="w-full py-3 bg-[#0a0a0a] text-white font-semibold rounded-full hover:bg-[#1c1c1e] transition-colors mt-4">
-            Submit Request
-          </button>
-        </form>
-      </div>
+      <DemoRequestForm />
     </div>
   </div>
 );
@@ -184,72 +153,59 @@ const PRODUCT_MODULES = [
   },
 ];
 
+// This page previously carried invented outcome statistics ("3.4M tickets
+// deflected") and three testimonials attributed to organisations that do not
+// exist. We have no customers to quote yet, so it now says that plainly. Do not
+// add a number here that cannot be traced to a named, callable reference — a
+// buyer who finds one fabricated figure stops believing the true ones.
 const CustomersPage = () => (
   <div className="max-w-6xl mx-auto py-20 px-6">
     <div className="text-center mb-16">
       <span className="inline-block px-3 py-1 bg-[#00d4a4]/10 border border-[#00d4a4]/20 text-[#00926f] font-semibold text-xs uppercase tracking-wider rounded-full mb-6">
-        Customer Stories
+        Design Partners
       </span>
       <h1 className="text-4xl md:text-5xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-6 max-w-3xl mx-auto leading-tight">
-        IT leaders run their entire helpdesk on LeadAIStudio.
+        We&rsquo;re onboarding our first IT teams by hand.
       </h1>
       <p className="text-lg text-[#3a3a3c] max-w-2xl mx-auto">
-        From 500-person scale-ups to 50,000-seat global enterprises, teams trust one platform to deflect tickets, predict failures, and delight employees.
+        LeadAIStudio is new. We don&rsquo;t have customer logos or case studies to show you yet — and
+        we&rsquo;d rather say so than invent them. What we have is a working product and the founder&rsquo;s
+        undivided attention.
       </p>
     </div>
 
-    {/* Outcome stats */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
-      <RoiStat icon={<TrendingDown className="w-5 h-5" />} value="52%" label="Faster Resolution" />
-      <RoiStat icon={<Gauge className="w-5 h-5" />} value="3.4M" label="Tickets Deflected" />
-      <RoiStat icon={<Users className="w-5 h-5" />} value="1.2M" label="Employees Supported" />
-      <RoiStat icon={<ShieldCheck className="w-5 h-5" />} value="99.9%" label="SLA Compliance" />
-    </div>
-
-    {/* Case study cards */}
+    {/* What being early actually gets you */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
       {[
         {
-          quote: "We redeployed two full-time engineers off the help desk within the first quarter.",
-          who: "Director of IT Operations",
-          org: "Global manufacturing · 14,000 employees",
-          stat: "45% lower MTTR",
+          title: "The founder on the phone",
+          desc: "Not a support queue and not a success manager reading a script. You get the person who wrote the code.",
         },
         {
-          quote: "Predictive telemetry caught a fleet-wide battery defect before a single laptop died in the field.",
-          who: "VP of End-User Computing",
-          org: "Financial services · 28,000 employees",
-          stat: "$2.1M downtime avoided",
+          title: "Your problems shape the roadmap",
+          desc: "Design partners set priorities. The gaps you hit are the ones that get fixed next, not filed.",
         },
         {
-          quote: "Our employees finally treat IT like a product they love, not a queue they dread.",
-          who: "Head of Digital Workplace",
-          org: "SaaS scale-up · 3,000 employees",
-          stat: "4.8 / 5 CSAT",
+          title: "Hands-on migration",
+          desc: "We do the setup, the data import, and the agent rollout with you rather than handing you a doc.",
         },
       ].map((c) => (
-        <div key={c.who} className="bg-white border border-[#e5e5e5] rounded-xl p-7 flex flex-col">
-          <div className="inline-flex w-fit px-3 py-1 bg-[#00d4a4]/10 text-[#00926f] text-xs font-bold rounded-full mb-5">
-            {c.stat}
-          </div>
-          <p className="text-[#3a3a3c] font-medium leading-relaxed mb-6 flex-1">&ldquo;{c.quote}&rdquo;</p>
-          <div className="border-t border-[#ededed] pt-4">
-            <div className="font-bold text-[#0a0a0a] text-sm">{c.who}</div>
-            <div className="text-[#6b6b6d] text-xs">{c.org}</div>
-          </div>
+        <div key={c.title} className="bg-white border border-[#e5e5e5] rounded-xl p-7 flex flex-col">
+          <h3 className="font-bold text-[#0a0a0a] text-lg mb-3">{c.title}</h3>
+          <p className="text-[#3a3a3c] leading-relaxed">{c.desc}</p>
         </div>
       ))}
     </div>
 
     {/* CTA */}
     <div className="bg-[#f7f7f7] border border-[#e5e5e5] rounded-2xl p-10 md:p-14 text-center">
-      <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-4">Join the teams transforming IT.</h2>
+      <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-4">Be one of the first.</h2>
       <p className="text-[#3a3a3c] max-w-xl mx-auto mb-8">
-        See why IT leaders are consolidating their entire helpdesk stack onto one platform.
+        Try the product yourself, or talk to us about a design-partner engagement.
       </p>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
         <Link href="/p/contact" className="px-8 py-3.5 bg-white border border-[#e5e5e5] text-[#0a0a0a] font-semibold rounded-full hover:bg-white transition-colors">
-          Talk to Sales
+          Talk to Us
         </Link>
         <Link href="/dashboard" className="px-8 py-3.5 bg-[#0a0a0a] text-white font-semibold rounded-full hover:bg-[#1c1c1e] transition-colors">
           Try the Demo
@@ -259,55 +215,6 @@ const CustomersPage = () => (
   </div>
 );
 
-const PRICING_TIERS = [
-  {
-    name: "Team",
-    blurb: "For growing IT teams getting started with automation.",
-    price: "$8",
-    unit: "/ employee / mo",
-    cta: "Start Free Trial",
-    highlighted: false,
-    features: [
-      "AI Service Desk (L1 deflection)",
-      "Knowledge Management",
-      "Service Catalogue",
-      "Up to 1,000 employees",
-      "Standard support",
-    ],
-  },
-  {
-    name: "Business",
-    blurb: "For enterprises unifying their full helpdesk stack.",
-    price: "$18",
-    unit: "/ employee / mo",
-    cta: "Request a Demo",
-    highlighted: true,
-    features: [
-      "Everything in Team",
-      "Digital Employee Experience (DEX)",
-      "Asset Management & CMDB",
-      "Flow Designer automation",
-      "Predictive telemetry",
-      "Priority support & SLA tracking",
-    ],
-  },
-  {
-    name: "Enterprise",
-    blurb: "For global organizations and MSPs with complex needs.",
-    price: "Custom",
-    unit: "tailored to scale",
-    cta: "Contact Sales",
-    highlighted: false,
-    features: [
-      "Everything in Business",
-      "Domain separation (multi-tenant)",
-      "SSO, SCIM & advanced RBAC",
-      "Dedicated success engineer",
-      "Custom integrations & API limits",
-      "99.9% uptime SLA",
-    ],
-  },
-];
 
 const PricingPage = () => (
   <div className="max-w-6xl mx-auto py-20 px-6">
@@ -345,7 +252,7 @@ const PricingPage = () => (
             <span className="text-sm ml-2 text-[#6b6b6d]">{t.unit}</span>
           </div>
           <Link
-            href="/p/contact"
+            href={t.ctaHref}
             className={`text-center px-6 py-3 font-semibold rounded-full transition-colors mb-8 ${
               t.highlighted
                 ? "bg-[#00d4a4] text-[#0a0a0a] hover:bg-[#00b48a]"
@@ -362,6 +269,11 @@ const PricingPage = () => (
               </li>
             ))}
           </ul>
+          {t.roadmapNote && (
+            <p className="mt-6 pt-4 border-t border-[#ededed] text-xs leading-relaxed text-[#6b6b6d]">
+              {t.roadmapNote}
+            </p>
+          )}
         </div>
       ))}
     </div>
@@ -370,24 +282,7 @@ const PricingPage = () => (
     <div className="max-w-3xl mx-auto">
       <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-8 text-center">Pricing questions, answered</h2>
       <div className="space-y-4">
-        {[
-          {
-            q: "How does per-employee pricing work?",
-            a: "You're billed for active employees supported by the platform, not per agent or admin. As your headcount grows, pricing scales predictably.",
-          },
-          {
-            q: "Can I start with one module and add more later?",
-            a: "Yes. Many teams start with the AI Service Desk and expand into DEX, Asset Management, and automation as they consolidate tools.",
-          },
-          {
-            q: "Is there a free trial?",
-            a: "The Team plan includes a 14-day free trial with no credit card required. Business and Enterprise plans include a guided proof-of-value.",
-          },
-          {
-            q: "Do you offer discounts for annual billing or nonprofits?",
-            a: "Yes — annual commitments receive a discount, and we offer special pricing for nonprofits and education. Contact sales for details.",
-          },
-        ].map((item) => (
+        {PRICING_FAQ.map((item) => (
           <div key={item.q} className="bg-white border border-[#e5e5e5] rounded-xl p-6">
             <h3 className="font-bold text-[#0a0a0a] mb-2">{item.q}</h3>
             <p className="text-[#3a3a3c] text-sm leading-relaxed">{item.a}</p>
@@ -527,27 +422,26 @@ const RoiPage = () => (
         Return on Investment
       </span>
       <h1 className="text-4xl md:text-5xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-6 max-w-3xl mx-auto leading-tight">
-        IT support that pays for itself in a single quarter.
+        Model the case before you commit to it.
       </h1>
       <p className="text-lg text-[#3a3a3c] max-w-2xl mx-auto">
-        LeadAIStudio AIOps turns your busiest cost center into a measurable profit lever — deflecting routine tickets, slashing resolution times, and giving every hour back to your highest-value engineers.
+        LeadAIStudio targets your busiest cost centre — deflecting routine tickets, shortening
+        resolution times, and giving hours back to your highest-value engineers. Below is a model you
+        can run on your own numbers, not a claim about someone else&rsquo;s.
       </p>
     </div>
 
-    {/* Headline proof band */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
-      <RoiStat icon={<TrendingDown className="w-5 h-5" />} value="45%" label="Lower MTTR" />
-      <RoiStat icon={<Gauge className="w-5 h-5" />} value="60%" label="L1 Ticket Deflection" />
-      <RoiStat icon={<PiggyBank className="w-5 h-5" />} value="$1.2M" label="Avg. Annual Savings" />
-      <RoiStat icon={<Clock className="w-5 h-5" />} value="< 90 days" label="Time to Payback" />
-    </div>
+    {/* No headline proof band: we have no deployments to average, and inventing
+        one would poison every true claim on this page. The calculator below is
+        explicitly labelled as a model driven by the visitor's own inputs. */}
 
     {/* Interactive calculator */}
     <div className="mb-24">
       <div className="text-center mb-10">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-3">Calculate your savings</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-3">Model your savings</h2>
         <p className="text-base text-[#3a3a3c] max-w-xl mx-auto">
-          A live estimate built on benchmarks from real enterprise deployments. No email required.
+          An estimate calculated live from the figures you enter. These are assumptions, not measured
+          results from existing customers — we&rsquo;re early, and we don&rsquo;t have those yet. No email required.
         </p>
       </div>
       <RoiCalculator />
@@ -563,7 +457,7 @@ const RoiPage = () => (
         <RoiDriver
           icon={<Gauge className="w-6 h-6" />}
           title="Autonomous L1 deflection"
-          desc="Intelligent triage resolves password resets, access requests, and known issues with zero human touch — removing up to 60% of your ticket volume before it ever reaches an agent."
+          desc="Intelligent triage resolves password resets, access requests, and known issues with zero human touch, removing routine volume before it ever reaches an agent."
         />
         <RoiDriver
           icon={<BrainCircuit className="w-6 h-6" />}
@@ -573,7 +467,7 @@ const RoiPage = () => (
         <RoiDriver
           icon={<Clock className="w-6 h-6" />}
           title="Faster mean time to resolution"
-          desc="Auto-routing and full-context handoffs cut MTTR by 45%, so the tickets that do reach a human resolve in a fraction of the time — and SLAs stop slipping."
+          desc="Auto-routing and full-context handoffs mean the tickets that do reach a human start with the diagnosis already done — so they resolve faster and SLAs stop slipping."
         />
         <RoiDriver
           icon={<ShieldCheck className="w-6 h-6" />}
@@ -583,20 +477,15 @@ const RoiPage = () => (
       </div>
     </div>
 
-    {/* Testimonial */}
-    <div className="bg-[#f7f7f7] border border-[#e5e5e5] rounded-2xl p-10 md:p-16 mb-20 text-center">
-      <p className="text-2xl md:text-3xl font-semibold tracking-[-0.01em] text-[#0a0a0a] leading-snug max-w-3xl mx-auto mb-8">
-        &ldquo;We redeployed two full-time engineers off the help desk within the first quarter. LeadAIStudio paid for itself before our first invoice was even due.&rdquo;
-      </p>
-      <div className="text-[#00926f] font-semibold">Director of IT Operations</div>
-      <div className="text-[#6b6b6d] text-sm">Global manufacturing enterprise · 14,000 employees</div>
-    </div>
+    {/* No testimonial block: the quote that sat here was attributed to a
+        customer that does not exist. It returns when a real one says it. */}
 
     {/* CTA */}
     <div className="text-center">
       <h2 className="text-2xl md:text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-4">Want the numbers for your exact environment?</h2>
       <p className="text-base text-[#3a3a3c] max-w-xl mx-auto mb-8">
-        Our team will build a tailored ROI model using your ticket data, headcount, and SLA targets — typically within 48 hours.
+        We&rsquo;ll build a tailored model using your ticket data, headcount, and SLA targets, and be
+        explicit about which inputs are your measurements and which are our assumptions.
       </p>
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
         <Link href="/p/contact" className="px-8 py-3.5 bg-[#0a0a0a] text-white font-semibold rounded-full hover:bg-[#1c1c1e] transition-colors">
@@ -610,15 +499,8 @@ const RoiPage = () => (
   </div>
 );
 
-const RoiStat = ({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) => (
-  <div className="bg-white border border-[#e5e5e5] rounded-xl p-6 text-center">
-    <div className="w-10 h-10 mx-auto rounded-lg bg-[#00d4a4]/10 text-[#00926f] flex items-center justify-center mb-3">
-      {icon}
-    </div>
-    <div className="text-3xl font-semibold tracking-[-0.02em] text-[#0a0a0a] mb-1">{value}</div>
-    <div className="text-xs font-semibold text-[#6b6b6d] uppercase tracking-wide">{label}</div>
-  </div>
-);
+// `RoiStat` was deleted along with its callers. Its only remaining use would be
+// to display a headline outcome figure, and we have no measured ones to show.
 
 const RoiDriver = ({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) => (
   <div className="bg-white border border-[#e5e5e5] rounded-xl p-7 hover:shadow-lg hover:border-[#00d4a4]/40 transition-[box-shadow,border-color]">
@@ -826,7 +708,7 @@ const PAGE_SEO: Record<string, { title: string; description: string }> = {
   },
   pricing: {
     title: "Pricing — One platform, one predictable price",
-    description: "Simple per-employee pricing across Team, Business, and Enterprise plans. Every plan includes the AI engine.",
+    description: "Simple per-device pricing across Starter, Growth, and Enterprise plans. Every plan includes the AI engine.",
   },
   about: {
     title: "About Us — Our mission to automate IT",

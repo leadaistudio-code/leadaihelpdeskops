@@ -14,8 +14,13 @@ type Crash struct {
 	EventType  string `json:"eventType"`
 }
 
-type HardwarePred struct {
-	Component   string  `json:"component"`
-	Probability float64 `json:"probability"`
-	Status      string  `json:"status"`
+// BootProfile is what the endpoint actually measured about its last startup.
+// Every field is optional because not every platform (or every boot) exposes
+// every phase — an absent measurement is sent as null, never as an estimate.
+type BootProfile struct {
+	TotalBootSec   int  `json:"totalBootSec"`
+	BiosSec        *int `json:"biosSec,omitempty"`
+	OsBootSec      *int `json:"osBootSec,omitempty"`
+	ProfileLoadSec *int `json:"profileLoadSec,omitempty"`
+	GpoSec         *int `json:"gpoSec,omitempty"`
 }

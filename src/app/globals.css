@@ -1,33 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  /* Mintlify: Inter for every UI surface, Geist Mono for code. No display face. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* Enterprise Calm: Plus Jakarta Sans for UI, Bricolage Grotesque for display */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Mintlify palette tokens (usable as bg-ink, text-brand-green, etc.) */
-  --color-ink: #0a0a0a;
-  --color-charcoal: #1c1c1e;
-  --color-slate-ink: #3a3a3c;
-  --color-steel: #5a5a5c;
-  --color-stone: #888888;
-  --color-mutedink: #a8a8aa;
-  --color-hairline: #e5e5e5;
-  --color-hairline-soft: #ededed;
-  --color-canvas: #ffffff;
-  --color-surface: #f7f7f7;
-  --color-brand-green: #00d4a4;
-  --color-brand-green-deep: #00b48a;
+  /* Enterprise Calm palette tokens */
+  --color-ink: #080B11;
+  --color-charcoal: #0F141D;
+  --color-slate-ink: #141B26;
+  --color-steel: #5C6678;
+  --color-stone: #8D98AC;
+  --color-mutedink: #8D98AC;
+  --color-hairline: #1F2937;
+  --color-hairline-soft: #161E29;
+  --color-canvas: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-brand-green: #38E8B0;
+  --color-brand-green-deep: #12B489;
 }
 
-/* Inter carries headings too — weight, not a second typeface, creates hierarchy. */
-h1, h2, h3 {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+/* Enterprise Calm: Bricolage Grotesque display font with fluid clamp rules. */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+h3 {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  line-height: 1.2;
   letter-spacing: -0.02em;
-}
-.font-display {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer utilities {
@@ -38,7 +49,7 @@ h1, h2, h3 {
     background-color: #080B11;
     background-image:
       radial-gradient(ellipse at top left, rgba(56, 232, 176, 0.05) 0%, transparent 46%),
-      radial-gradient(ellipse at bottom right, rgba(109, 94, 246, 0.055) 0%, transparent 48%);
+      radial-gradient(ellipse at bottom right, rgba(18, 180, 137, 0.04) 0%, transparent 48%);
     background-attachment: fixed;
   }
 
@@ -58,15 +69,13 @@ h1, h2, h3 {
     background: rgba(255, 255, 255, 0.2);
   }
 
-  /* The elevated surface. Recast from decorative glassmorphism (mint-tinted
-     border + heavy blur) to a calm bordered plane: neutral hairline, light
-     fill, restrained shadow. Used app-wide as the panel/frame ground. */
+  /* Flat-By-Default surface. Restrained shadow, solid bordered plane. */
   .glass-panel {
-    background: rgba(13, 18, 26, 0.72);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(15, 20, 29, 0.62);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.28);
   }
 
   /* Legacy accent frame — softened to a neutral hairline so any remaining
@@ -93,11 +102,10 @@ h1, h2, h3 {
    conveys nothing is not motion the console needs. */
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-3px); }
   100% { transform: translateY(0px); }
 }
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: none;
 }
 
 /* pulse-glow no longer pulses — banned as decoration. Resolves to a static,
