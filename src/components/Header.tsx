@@ -66,7 +66,7 @@ export default function Header() {
     <>
       <header className="h-16 flex items-center justify-between px-6 fixed top-0 w-full z-40 transition-all duration-300 bg-slate-950/40 backdrop-blur-xl border-b border-white/5">
         <Link href="/dashboard" className="flex items-center">
-          <Logo size={34} />
+          <Logo size={40} />
         </Link>
         
         <div className="flex items-center space-x-5">

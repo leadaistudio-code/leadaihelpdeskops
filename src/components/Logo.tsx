@@ -49,7 +49,7 @@ export function LogoMark({
   Defaults suit a dark surface; pass `wordClass` to recolor on light backgrounds.
 */
 export default function Logo({
-  size = 34,
+  size = 42,
   withWordmark = true,
   className = "",
   wordClass = "text-white",
@@ -60,10 +60,16 @@ export default function Logo({
   wordClass?: string;
 }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`inline-flex items-center ${className}`} style={{ gap: size * 0.26 }}>
       <LogoMark size={size} />
       {withWordmark && (
-        <span className={`font-display font-extrabold tracking-tight text-[15px] leading-none ${wordClass}`}>
+        // A lockup scales as one unit: the wordmark is sized from the mark
+        // rather than pinned to a literal, so every placement stays in
+        // proportion instead of drifting as sizes change.
+        <span
+          className={`font-display font-extrabold tracking-tight leading-none ${wordClass}`}
+          style={{ fontSize: size * 0.42 }}
+        >
           Lead<span className="text-[#00926f]">AI</span>
           <span className="text-slate-400 font-bold">Studio</span>
         </span>

@@ -34,8 +34,6 @@ const CSS = `
   --dimtext:#5C6678; --signal:#38E8B0; --signal-bright:#38E8B0; --signal-deep:#12B489;
   --signal-tint:rgba(56, 232, 176, 0.10); --signal-border:rgba(56, 232, 176, 0.45); --warn:#F5B14C; --crit:#FF6B7D;
 }
-  font-family:var(--sans); -webkit-font-smoothing:antialiased; overflow-x:hidden;
-}
 .mc-root *{box-sizing:border-box}
 .mc-root a{color:inherit;text-decoration:none}
 .mc-root h1,.mc-root h2,.mc-root h3{margin:0;letter-spacing:-0.025em;font-weight:700;text-wrap:balance;line-height:1.05}
@@ -55,7 +53,7 @@ const CSS = `
 .mc-root .navrow{display:flex;align-items:center;justify-content:space-between;height:66px}
 .mc-root .brand{display:flex;align-items:center;gap:11px}
 .mc-root .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--signal-bright);color:#03130d;font-weight:900;font-family:var(--mono)}
-.mc-root .brand b{font-size:15px;letter-spacing:-0.02em}
+.mc-root .brand b{font-size:17px;letter-spacing:-0.02em}
 .mc-root .navlinks{display:flex;gap:30px;font-size:13.5px;color:var(--muted);font-weight:500}
 .mc-root .navlinks a{transition:color .18s}
 .mc-root .navlinks a:hover{color:var(--text)}
@@ -386,7 +384,7 @@ export default function LandingPage() {
 
       <nav>
         <div className="wrap navrow">
-          <div className="brand"><LogoMark size={34} /><b>LeadAIStudio</b></div>
+          <div className="brand"><LogoMark size={42} /><b>LeadAIStudio</b></div>
           <div className="navlinks">
             <a href="#platform">Platform</a>
             <a href="#heal">Self-healing</a>
@@ -621,7 +619,7 @@ export default function LandingPage() {
         <div className="wrap">
           <div className="foot">
             <div>
-              <div className="brand"><LogoMark size={34} /><b>LeadAIStudio</b></div>
+              <div className="brand"><LogoMark size={42} /><b>LeadAIStudio</b></div>
               <p>The AI-native platform for autonomous IT operations. Predict, decide, heal — across every endpoint you manage.</p>
             </div>
             <div><h4>Platform</h4><Link href="/p/aiops-telemetry">AIOps telemetry</Link><Link href="/p/flow-designer">Flow designer</Link><Link href="/p/service-catalog">Service catalog</Link><Link href="/p/pricing">Pricing</Link></div>

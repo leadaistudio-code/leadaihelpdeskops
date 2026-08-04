@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, BrainCircuit, Workflow, BookOpen, TrendingDown, Clock, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
+import Logo from "@/components/Logo";
 import RoiCalculator from "@/components/roi-calculator";
 import DemoRequestForm from "@/components/DemoRequestForm";
 import { PRICING_TIERS, PRICING_FAQ } from "@/lib/pricing";
@@ -807,13 +808,8 @@ export default async function GenericMarketingPage({ params }: { params: Promise
       {/* Header */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#ededed]">
         <div className="flex items-center justify-between px-6 lg:px-8 py-4 max-w-7xl mx-auto">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#0a0a0a] rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-[#00d4a4]" />
-            </div>
-            <div className="text-xl font-bold tracking-tight text-[#0a0a0a]">
-              LeadAIStudio AIOps
-            </div>
+          <Link href="/" aria-label="LeadAIStudio home">
+            <Logo size={44} wordClass="text-[#0a0a0a]" />
           </Link>
           <div className="hidden md:flex items-center space-x-8 text-xs font-medium text-[#3a3a3c]">
             <Link href="/p/product" className="hover:text-[#00926f] transition-colors">Product</Link>
@@ -840,12 +836,9 @@ export default async function GenericMarketingPage({ params }: { params: Promise
       <footer className="bg-white border-t border-[#e5e5e5] py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-5 h-5 bg-[#0a0a0a] rounded flex items-center justify-center">
-                <Zap className="w-3 h-3 text-[#00d4a4]" />
-              </div>
-              <span className="text-base font-bold text-[#0a0a0a]">LeadAIStudio AIOps</span>
-            </div>
+            <Link href="/" aria-label="LeadAIStudio home" className="inline-block mb-4">
+              <Logo size={40} wordClass="text-[#0a0a0a]" />
+            </Link>
             <p className="text-xs text-[#6b6b6d] max-w-sm">Enterprise IT Service Management and AIOps platform designed for global scale.</p>
           </div>
           <div>
