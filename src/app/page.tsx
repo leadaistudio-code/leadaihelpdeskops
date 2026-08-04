@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import HeroDemoVideo from "@/components/HeroDemoVideo";
-import { LogoMark } from "@/components/Logo";
+import Logo from "@/components/Logo";
 import RoiCalculator from "@/components/RoiCalculator";
 import { useMarketingTheme, ThemeToggle } from "@/components/ThemeContext";
 import { PRICING_TIERS } from "@/lib/pricing";
@@ -51,9 +51,10 @@ const CSS = `
 .mc-root nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(255,255,255,0.01);border-bottom:1px solid var(--line-soft)}
 .theme-dark .mc-root nav{background:rgba(8,11,17,.8)}
 .mc-root .navrow{display:flex;align-items:center;justify-content:space-between;height:66px}
-.mc-root .brand{display:flex;align-items:center;gap:11px}
-.mc-root .logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--signal-bright);color:#03130d;font-weight:900;font-family:var(--mono)}
-.mc-root .brand b{font-size:17px;letter-spacing:-0.02em}
+/* The mark and wordmark now come from the shared <Logo> lockup, which brings
+   its own spacing and type sizing. The old .logo tile and .brand b rules that
+   used to style a hand-rolled mark here are gone with it. */
+.mc-root .brand{display:flex;align-items:center}
 .mc-root .navlinks{display:flex;gap:30px;font-size:13.5px;color:var(--muted);font-weight:500}
 .mc-root .navlinks a{transition:color .18s}
 .mc-root .navlinks a:hover{color:var(--text)}
@@ -384,7 +385,7 @@ export default function LandingPage() {
 
       <nav>
         <div className="wrap navrow">
-          <div className="brand"><LogoMark size={42} /><b>LeadAIStudio</b></div>
+          <div className="brand"><Logo size={42} wordClass="[color:var(--text)]" /></div>
           <div className="navlinks">
             <a href="#platform">Platform</a>
             <a href="#heal">Self-healing</a>
@@ -619,7 +620,7 @@ export default function LandingPage() {
         <div className="wrap">
           <div className="foot">
             <div>
-              <div className="brand"><LogoMark size={42} /><b>LeadAIStudio</b></div>
+              <div className="brand"><Logo size={42} wordClass="[color:var(--text)]" /></div>
               <p>The AI-native platform for autonomous IT operations. Predict, decide, heal — across every endpoint you manage.</p>
             </div>
             <div><h4>Platform</h4><Link href="/p/aiops-telemetry">AIOps telemetry</Link><Link href="/p/flow-designer">Flow designer</Link><Link href="/p/service-catalog">Service catalog</Link><Link href="/p/pricing">Pricing</Link></div>
