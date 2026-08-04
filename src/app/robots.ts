@@ -21,6 +21,6 @@ export default function robots(): MetadataRoute.Robots {
         '/search/'
       ],
     },
-    sitemap: 'https://leadaistudio.ai/sitemap.xml',
+    sitemap: 'https://leadaistudio.com/sitemap.xml',
   };
 }

@@ -370,10 +370,10 @@ function CatalogMock() {
 }
 
 const SCREENS: Record<TabKey, { url: string; node: React.ReactNode }> = {
-  command: { url: "leadaistudio.ai/dashboard", node: <CommandCenterMock /> },
-  dex: { url: "leadaistudio.ai/dex", node: <DexMock /> },
-  analytics: { url: "leadaistudio.ai/reports", node: <AnalyticsMock /> },
-  catalog: { url: "leadaistudio.ai/catalog", node: <CatalogMock /> },
+  command: { url: "leadaistudio.com/dashboard", node: <CommandCenterMock /> },
+  dex: { url: "leadaistudio.com/dex", node: <DexMock /> },
+  analytics: { url: "leadaistudio.com/reports", node: <AnalyticsMock /> },
+  catalog: { url: "leadaistudio.com/catalog", node: <CatalogMock /> },
 };
 
 /* ------------------------------- Component ------------------------------- */

@@ -53,7 +53,7 @@ const jsonLd = {
     "priceCurrency": "USD"
   },
   "description": "AI-driven IT service management platform featuring Service Desk, DEX, Knowledge base, Catalogue and Asset Management.",
-  "url": "https://leadaistudio.ai"
+  "url": "https://leadaistudio.com"
 };
 
 export default function RootLayout({

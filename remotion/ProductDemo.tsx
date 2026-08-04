@@ -675,7 +675,7 @@ const RoiScene: React.FC = () => {
           <Zap color="#fff" size={32} />
         </div>
         <div style={{ color: "#fff", fontSize: 38, fontWeight: 800 }}>
-          Try the interactive demo → <span style={{ color: "#60a5fa" }}>leadaistudio.ai</span>
+          Try the interactive demo → <span style={{ color: "#60a5fa" }}>leadaistudio.com</span>
         </div>
       </div>
     </AbsoluteFill>

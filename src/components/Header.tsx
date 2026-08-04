@@ -109,7 +109,7 @@ export default function Header() {
                       </div>
                       <div className="overflow-hidden">
                         <div className="text-base font-semibold text-white truncate">{clerkUser.fullName}</div>
-                        <div className="text-sm text-slate-400 truncate">{clerkUser.primaryEmailAddress?.emailAddress || "user@leadaistudio.ai"}</div>
+                        <div className="text-sm text-slate-400 truncate">{clerkUser.primaryEmailAddress?.emailAddress || "user@leadaistudio.com"}</div>
                         <div className="mt-1.5 inline-block px-2 py-0.5 bg-white/5 text-slate-300 text-xs font-semibold rounded border border-white/10 uppercase tracking-wider">
                           {role.replace('_', ' ')}
                         </div>

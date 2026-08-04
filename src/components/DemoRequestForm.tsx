@@ -36,7 +36,7 @@ export default function DemoRequestForm() {
         <h3 className="text-2xl font-bold text-[#0a0a0a]">Request received</h3>
         <p className="mt-2 max-w-sm text-[#3a3a3c]">
           Thanks — our enterprise team will be in touch within one business day. If it&apos;s urgent,
-          call <span className="whitespace-nowrap">+1 (800) 555-0199</span>.
+          email <a href="mailto:contact@leadaistudio.com" className="font-semibold text-[#00926f] hover:underline">contact@leadaistudio.com</a>.
         </p>
       </div>
     );

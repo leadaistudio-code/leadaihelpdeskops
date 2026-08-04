@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, Phone, MapPin, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck, Users, Mail, BrainCircuit, Workflow, BookOpen, Zap, TrendingDown, Clock, Gauge, FileText, PlayCircle, GraduationCap, Newspaper, Download, Calendar, Bot, MonitorSmartphone, Boxes, ShoppingCart, Network, LayoutGrid } from "lucide-react";
 import RoiCalculator from "@/components/roi-calculator";
 import DemoRequestForm from "@/components/DemoRequestForm";
 import { PRICING_TIERS, PRICING_FAQ } from "@/lib/pricing";
@@ -41,15 +41,10 @@ const ContactPage = () => (
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-[#00d4a4]/10 text-[#00926f] rounded-full flex items-center justify-center"><Mail className="w-5 h-5" /></div>
-            <div><p className="font-bold text-[#0a0a0a]">Email Us</p><p className="text-[#3a3a3c]">enterprise@leadaistudio.ai</p></div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-[#00d4a4]/10 text-[#00926f] rounded-full flex items-center justify-center"><Phone className="w-5 h-5" /></div>
-            <div><p className="font-bold text-[#0a0a0a]">Call Sales</p><p className="text-[#3a3a3c]">+1 (800) 555-0199</p></div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-[#00d4a4]/10 text-[#00926f] rounded-full flex items-center justify-center"><MapPin className="w-5 h-5" /></div>
-            <div><p className="font-bold text-[#0a0a0a]">Headquarters</p><p className="text-[#3a3a3c]">100 Innovation Drive, San Francisco, CA</p></div>
+            <div>
+              <p className="font-bold text-[#0a0a0a]">Email Us</p>
+              <a href="mailto:contact@leadaistudio.com" className="text-[#3a3a3c] hover:text-[#00926f] transition-colors">contact@leadaistudio.com</a>
+            </div>
           </div>
         </div>
       </div>

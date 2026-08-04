@@ -664,7 +664,7 @@ function renderNextSteps(doc: Doc, lead: GuideLead) {
     { width: CONTENT_W - 44, lineGap: 3 }
   );
   doc.fillColor("#A5B4FC").font("Helvetica-Bold").fontSize(11).text(
-    "leadaistudio.ai  ·  hello@leadaistudio.ai",
+    "leadaistudio.com  ·  contact@leadaistudio.com",
     MARGIN + 22,
     y + h - 30,
     { width: CONTENT_W - 44 }

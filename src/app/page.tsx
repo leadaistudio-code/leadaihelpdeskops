@@ -451,7 +451,7 @@ export default function LandingPage() {
       <section className="sec" id="demo" style={{ paddingTop: 20, scrollMarginTop: 90 }}>
         <div className="wrap">
           <div className="rv demoframe">
-            <div className="top"><span className="d" /><span className="d" /><span className="d" /><span className="url">leadaistudio.ai</span></div>
+            <div className="top"><span className="d" /><span className="d" /><span className="d" /><span className="url">leadaistudio.com</span></div>
             <HeroDemoVideo />
           </div>
         </div>

@@ -108,7 +108,7 @@ export async function submitDemoRequest(formData: FormData): Promise<DemoRequest
     logError(new Error("demo request email not sent"), { scope: "submitDemoRequest", lead: text });
     return {
       ok: false,
-      error: "We couldn't send your request just now. Please email enterprise@leadaistudio.ai directly.",
+      error: "We couldn't send your request just now. Please email contact@leadaistudio.com directly.",
     };
   }
 
