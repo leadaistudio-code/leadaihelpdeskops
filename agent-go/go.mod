@@ -3,7 +3,7 @@ module github.com/leadaistudio/dex-agent
 go 1.22
 
 require (
-	fyne.io/systray v1.11.0
+	fyne.io/systray v1.12.2
 	github.com/shirou/gopsutil/v3 v3.24.5
 )
 
