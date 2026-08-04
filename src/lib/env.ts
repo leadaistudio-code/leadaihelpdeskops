@@ -69,15 +69,31 @@ const result = parseEnv();
 // a misconfigured deploy is visible from outside rather than only in logs.
 export const envErrors: string[] = result.errors;
 
-if (envErrors.length > 0 && !isBuildPhase) {
-  const message = `Invalid environment configuration:\n  - ${envErrors.join("\n  - ")}`;
-  if (process.env.NODE_ENV === "production") {
-    // Fail at boot. A production deploy that cannot reach its database or
-    // verify a session is not partially working; it is broken, and it should
-    // say so before it starts accepting traffic.
-    throw new Error(message);
-  }
-  console.warn(`[env] ${message}`);
+export const envErrorMessage =
+  envErrors.length > 0 ? `Invalid environment configuration:\n  - ${envErrors.join("\n  - ")}` : null;
+
+if (envErrorMessage && !isBuildPhase) {
+  // Loud, structured, and on every cold start — but NOT a module-scope throw.
+  //
+  // This used to throw here in production, on the reasoning that a deploy which
+  // cannot reach its database is broken and should say so before serving
+  // traffic. In a serverless/edge deployment it does not read that way. The
+  // throw happens while the module graph is still loading, so the platform
+  // returns a bare "Internal Server Error" with no body and no digest — and
+  // critically, it takes /api/health down with it. The one endpoint built to
+  // report which variables are misconfigured became the endpoint that could
+  // never answer, precisely when you needed it.
+  //
+  // Now the process starts, /api/health reports `configuration: invalid` with
+  // a 503, and anything that genuinely needs the database fails at the query
+  // with a real error. Callers that want the hard stop can use assertEnv().
+  console.error(`[env] ${envErrorMessage}`);
+}
+
+// Explicit fail-fast for callers that must not proceed on bad config — e.g. a
+// migration or seed script, where continuing would write to the wrong place.
+export function assertEnv(): void {
+  if (envErrorMessage) throw new Error(envErrorMessage);
 }
 
 export const env = result.env as AppEnv;
