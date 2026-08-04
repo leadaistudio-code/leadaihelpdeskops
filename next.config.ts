@@ -31,7 +31,8 @@ const csp = [
   "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.com https://www.googletagmanager.com https://www.google-analytics.com",
   "media-src 'self'",
   "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
-  "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+  // youtube-nocookie.com hosts the hero product demo embed.
+  "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://www.youtube-nocookie.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
