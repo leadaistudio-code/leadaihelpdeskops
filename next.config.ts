@@ -23,16 +23,32 @@ const isDev = process.env.NODE_ENV !== "production";
 //   frame-src    Clerk renders its sign-in flows and org switcher in frames.
 //   frame-ancestors 'none' is the CSP-level equivalent of X-Frame-Options DENY
 //                and is what modern browsers actually enforce.
+// A Clerk *development* instance serves its script and API from
+// <slug>.clerk.accounts.dev. A *production* instance serves them from a CNAME
+// on your own domain — clerk.leadaistudio.com — which matches neither
+// *.clerk.accounts.dev nor *.clerk.com. Leaving it out blocks clerk.browser.js
+// outright, and the sign-in page hangs forever on its loading state with no
+// server-side error to explain why.
+//
+// Derived from NEXT_PUBLIC_CLERK_FRONTEND_API when set, so a domain change is a
+// config change rather than a code change. NOTE: this is read at build time —
+// the variable must exist in the build environment, not just at runtime.
+const clerkFrontendHost = process.env.NEXT_PUBLIC_CLERK_FRONTEND_API
+  ? `https://${process.env.NEXT_PUBLIC_CLERK_FRONTEND_API.replace(/^https?:\/\//, "").replace(/\/$/, "")}`
+  : "https://clerk.leadaistudio.com";
+
+const clerkHosts = `https://*.clerk.accounts.dev https://*.clerk.com ${clerkFrontendHost}`;
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://www.googletagmanager.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${clerkHosts} https://challenges.cloudflare.com https://www.googletagmanager.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `img-src 'self' data: blob: https://img.clerk.com ${clerkHosts} https://www.googletagmanager.com https://www.google-analytics.com`,
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.com https://www.googletagmanager.com https://www.google-analytics.com",
   "media-src 'self'",
-  "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  `connect-src 'self' ${clerkHosts} https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com`,
   // youtube-nocookie.com hosts the hero product demo embed.
-  "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://www.youtube-nocookie.com",
+  `frame-src 'self' ${clerkHosts} https://challenges.cloudflare.com https://www.youtube-nocookie.com`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
